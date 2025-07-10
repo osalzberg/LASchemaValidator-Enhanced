@@ -472,6 +472,9 @@ function handleFiles(files) {
         return;
     }
     
+    // Clear any existing validation results when new files are selected
+    clearValidationResults();
+    
     uploadedFiles = Array.from(files);
     
     // Sort files by path for better organization
@@ -483,6 +486,33 @@ function handleFiles(files) {
     
     displayFileList();
     enableValidateButton();
+}
+
+// Function to clear validation results and reset UI when new files are selected
+function clearValidationResults() {
+    // Hide results section
+    const resultsSection = document.getElementById('results');
+    if (resultsSection) {
+        resultsSection.style.display = 'none';
+    }
+    
+    // Clear results content
+    const resultsDiv = document.getElementById('validationResults');
+    if (resultsDiv) {
+        resultsDiv.innerHTML = '';
+    }
+    
+    // Clear global validation results
+    validationResults = [];
+    
+    // Reset validate button to normal state
+    const validateBtn = document.getElementById('validateBtn');
+    if (validateBtn) {
+        validateBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Validate Files';
+        validateBtn.classList.remove('btn-danger', 'btn-warning');
+        validateBtn.classList.add('btn-success');
+        validateBtn.disabled = false;
+    }
 }
 
 function displayFileList() {
@@ -2002,7 +2032,7 @@ function showFileContent(resultIndex, location) {
             modal.style.display = 'block';
             modal.classList.add('show');
             
-            // Scroll to problematic line after a short delay for non-Bootstrap modals
+           
             setTimeout(() => {
                 scrollToProblematicLine(location, problemItem);
             }, 300);
@@ -2705,10 +2735,6 @@ function clearFiles() {
     if (fileInput) fileInput.value = '';
     if (folderInput) folderInput.value = '';
     
-    // Hide results if shown
-    const results = document.getElementById('results');
-    if (results) {
-        results.style.display = 'none';
-    }
-    
+    // Clear validation results
+    clearValidationResults();
 }
