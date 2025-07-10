@@ -618,7 +618,9 @@ function createFileListItem(file, index, isInFolder = false) {
 function getFileIcon(filename) {
     const extension = filename.split('.').pop().toLowerCase();
     
-    if (filename.includes('.manifest.json')) {
+    if (filename.includes('.transform.manifest.json')) {
+        return { icon: 'fas fa-exchange-alt', class: 'transform-manifest', type: 'Transform Manifest' };
+    } else if (filename.includes('.manifest.json')) {
         return { icon: 'fas fa-file-code', class: 'manifest', type: 'Manifest' };
     } else if (extension === 'kql') {
         return { icon: 'fas fa-search', class: 'kql', type: 'KQL' };
@@ -831,6 +833,8 @@ async function validateFile(file) {
     try {
         if (fileType === 'manifest') {
             validationResult = await validateManifestFile(file, validationResult);
+        } else if (fileType === 'transform-manifest') {
+            validationResult = await validateTransformManifestFile(file, validationResult);
         } else if (fileType === 'kql') {
             validationResult = await validateKQLFile(file, validationResult);
         } else if (fileType === 'json') {
@@ -847,6 +851,7 @@ async function validateFile(file) {
 }
 
 function getFileType(filename) {
+    if (filename.includes('.transform.manifest.json')) return 'transform-manifest';
     if (filename.includes('.manifest.json')) return 'manifest';
     if (filename.endsWith('.kql')) return 'kql';
     if (filename.endsWith('.json')) return 'json';
@@ -1015,6 +1020,223 @@ async function validateManifestFile(file, result) {
                 suggestion: 'Change the relatedFunctions field to an array of function references.'
             });
             result.status = 'fail';
+        }
+        
+        if (result.issues.length === 0 && result.status !== 'fail') {
+            result.status = 'pass';
+        }
+        
+    } catch (error) {
+        result.status = 'fail';
+        result.issues.push({
+            message: 'Invalid JSON format: ' + error.message,
+            type: 'json_syntax_error',
+            field: 'file',
+            location: 'entire_file',
+            severity: 'error',
+            suggestion: 'Fix the JSON syntax errors in the file. Common issues include missing commas, unmatched brackets, or invalid characters.'
+        });
+    }
+    
+    return result;
+}
+
+async function validateTransformManifestFile(file, result) {
+    const content = await readFileContent(file);
+    
+    try {
+        const manifest = JSON.parse(content);
+        
+        // Store original content for drill-down
+        result.originalContent = content;
+        result.parsedContent = manifest;
+        
+        // Add identifier that this is a transform manifest
+        result.isTransformManifest = true;
+        
+        // Check required fields for transform manifests based on documentation
+        const requiredFields = ['name', 'description', 'transformVersion', 'dataTypeId', 'transformState', 'icmTeam', 'contactDL', 'relatedTable', 'kqlFilePath', 'sampleInputRecordsFilePath', 'sampleOutputRecordsFilePath'];
+        requiredFields.forEach(field => {
+            if (!manifest[field]) {
+                result.issues.push({
+                    message: `Missing required field: ${field}`,
+                    type: 'missing_field',
+                    field: field,
+                    location: 'root',
+                    severity: 'error',
+                    suggestion: `Add the required field "${field}" to the root level of your transform manifest file.`
+                });
+                result.status = 'fail';
+            }
+        });
+        
+        // Validate transform manifest should NOT have these fields (they belong to NGSchema)
+        const forbiddenFields = ['type', 'displayName', 'simplifiedSchemaVersion', 'tables', 'functions', 'queries'];
+        forbiddenFields.forEach(field => {
+            if (manifest[field]) {
+                result.issues.push({
+                    message: `Transform manifest should not contain field: ${field}`,
+                    type: 'forbidden_field',
+                    field: field,
+                    location: 'root',
+                    currentValue: manifest[field],
+                    severity: 'error',
+                    suggestion: `Remove the "${field}" field from the transform manifest. This field belongs to the main NGSchema manifest, not transform manifests.`
+                });
+                result.status = 'fail';
+            }
+        });
+        
+        // Validate descriptions
+        if (manifest.description) {
+            validateDescription(manifest.description, 'Transform description', result, 'root.description');
+        }
+        
+        // Validate transformVersion is a number >= 1
+        if (manifest.transformVersion !== undefined) {
+            if (typeof manifest.transformVersion !== 'number' || manifest.transformVersion < 1 || !Number.isInteger(manifest.transformVersion)) {
+                result.issues.push({
+                    message: 'transformVersion must be an integer >= 1',
+                    type: 'invalid_value',
+                    field: 'transformVersion',
+                    location: 'root',
+                    currentValue: manifest.transformVersion,
+                    expectedValue: 'integer >= 1',
+                    severity: 'error',
+                    suggestion: 'Change the transformVersion to a positive integer starting from 1.'
+                });
+                result.status = 'fail';
+            }
+        }
+        
+        // Validate dataTypeId follows naming convention
+        if (manifest.dataTypeId && typeof manifest.dataTypeId === 'string') {
+            if (!manifest.dataTypeId.includes('_')) {
+                result.warnings.push({
+                    message: 'dataTypeId should follow SERVICEIDENTITYNAME_LOGCATEGORYNAME convention',
+                    type: 'naming_convention_warning',
+                    field: 'dataTypeId',
+                    location: 'root.dataTypeId',
+                    currentValue: manifest.dataTypeId,
+                    severity: 'warning',
+                    suggestion: 'Consider using the naming convention SERVICEIDENTITYNAME_LOGCATEGORYNAME for better consistency (e.g., "CISCO_SECURITY").'
+                });
+            }
+        }
+        
+        // Validate transformState
+        if (manifest.transformState !== undefined) {
+            const validStates = ['Validation', 'Production'];
+            if (!validStates.includes(manifest.transformState)) {
+                result.issues.push({
+                    message: 'transformState must be either "Validation" or "Production"',
+                    type: 'invalid_value',
+                    field: 'transformState',
+                    location: 'root',
+                    currentValue: manifest.transformState,
+                    expectedValue: 'Validation or Production',
+                    severity: 'error',
+                    suggestion: 'Set transformState to either "Validation" for testing or "Production" for live deployment.'
+                });
+                result.status = 'fail';
+            }
+        }
+        
+        // Validate string fields
+        const stringFields = ['name', 'icmTeam', 'contactDL', 'relatedTable', 'kqlFilePath', 'sampleInputRecordsFilePath', 'sampleOutputRecordsFilePath'];
+        stringFields.forEach(field => {
+            if (manifest[field] && typeof manifest[field] !== 'string') {
+                result.issues.push({
+                    message: `${field} must be a string`,
+                    type: 'invalid_type',
+                    field: field,
+                    location: 'root',
+                    currentValue: typeof manifest[field],
+                    expectedValue: 'string',
+                    severity: 'error',
+                    suggestion: `Change the ${field} value to a string.`
+                });
+                result.status = 'fail';
+            }
+        });
+        
+        // Validate file paths have correct extensions
+        if (manifest.kqlFilePath && !manifest.kqlFilePath.endsWith('.kql')) {
+            result.issues.push({
+                message: 'kqlFilePath must reference a .kql file',
+                type: 'invalid_file_extension',
+                field: 'kqlFilePath',
+                location: 'root',
+                currentValue: manifest.kqlFilePath,
+                severity: 'error',
+                suggestion: 'Change the kqlFilePath to reference a file with .kql extension.'
+            });
+            result.status = 'fail';
+        }
+        
+        if (manifest.sampleInputRecordsFilePath && !manifest.sampleInputRecordsFilePath.endsWith('.json')) {
+            result.issues.push({
+                message: 'sampleInputRecordsFilePath must reference a .json file',
+                type: 'invalid_file_extension',
+                field: 'sampleInputRecordsFilePath',
+                location: 'root',
+                currentValue: manifest.sampleInputRecordsFilePath,
+                severity: 'error',
+                suggestion: 'Change the sampleInputRecordsFilePath to reference a file with .json extension.'
+            });
+            result.status = 'fail';
+        }
+        
+        if (manifest.sampleOutputRecordsFilePath && !manifest.sampleOutputRecordsFilePath.endsWith('.json')) {
+            result.issues.push({
+                message: 'sampleOutputRecordsFilePath must reference a .json file',
+                type: 'invalid_file_extension',
+                field: 'sampleOutputRecordsFilePath',
+                location: 'root',
+                currentValue: manifest.sampleOutputRecordsFilePath,
+                severity: 'error',
+                suggestion: 'Change the sampleOutputRecordsFilePath to reference a file with .json extension.'
+            });
+            result.status = 'fail';
+        }
+        
+        // Validate optional inputFilePath if present (for new dataTypeIds)
+        if (manifest.inputFilePath !== undefined) {
+            if (typeof manifest.inputFilePath !== 'string') {
+                result.issues.push({
+                    message: 'inputFilePath must be a string',
+                    type: 'invalid_type',
+                    field: 'inputFilePath',
+                    location: 'root',
+                    severity: 'error',
+                    suggestion: 'Change the inputFilePath value to a string.'
+                });
+                result.status = 'fail';
+            } else if (!manifest.inputFilePath.endsWith('.json')) {
+                result.issues.push({
+                    message: 'inputFilePath must reference a .json file',
+                    type: 'invalid_file_extension',
+                    field: 'inputFilePath',
+                    location: 'root',
+                    currentValue: manifest.inputFilePath,
+                    severity: 'error',
+                    suggestion: 'Change the inputFilePath to reference a file with .json extension.'
+                });
+                result.status = 'fail';
+            }
+        }
+        
+        // Add informational note about what this transform does
+        if (manifest.relatedTable) {
+            result.warnings.push({
+                message: `This transform sends data to the "${manifest.relatedTable}" table`,
+                type: 'info',
+                field: 'relatedTable',
+                location: 'root.relatedTable',
+                currentValue: manifest.relatedTable,
+                severity: 'info',
+                suggestion: 'Ensure that the referenced table exists in the main NGSchema and that your transform KQL produces data compatible with that table structure.'
+            });
         }
         
         if (result.issues.length === 0 && result.status !== 'fail') {
