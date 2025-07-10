@@ -674,16 +674,30 @@ async function validateFiles() {
         // Process each file
         const results = [];
         for (let i = 0; i < uploadedFiles.length; i++) {
+            // Update current file display
+            updateCurrentFile(i, uploadedFiles[i]);
+            
+            // Update progress bar
             updateProgress((i / uploadedFiles.length) * 100);
+            
+            // Validate the current file
             const result = await validateFile(uploadedFiles[i]);
             results.push(result);
         }
         
+        // Update final progress and current file display
         updateProgress(100);
+        const fileDisplayElement = document.getElementById('current-file-display');
+        if (fileDisplayElement) {
+            fileDisplayElement.innerHTML = `<strong>Validation completed!</strong>`;
+        }
         
         // Add folder structure analysis if we have files with relative paths
         const hasfolderStructure = uploadedFiles.some(file => file.webkitRelativePath || file.relativePath);
         if (hasfolderStructure) {
+            if (fileDisplayElement) {
+                fileDisplayElement.innerHTML = `<strong>Analyzing folder structure...</strong>`;
+            }
             const folderAnalysis = analyzeFolderStructure(uploadedFiles);
             results.unshift(folderAnalysis); // Add folder analysis at the beginning
         }
@@ -1505,8 +1519,17 @@ function showValidationProgress() {
         <div class="text-center">
             <div class="loading-spinner"></div>
             <h4 class="mt-3">Validating Files...</h4>
-            <div class="validation-progress">
+            <div class="validation-progress mb-3">
                 <div class="progress-bar bg-primary" style="width: 0%"></div>
+            </div>
+            <div class="current-file-info">
+                <div class="badge bg-secondary mb-2">
+                    <span id="current-file-counter">0</span> of <span id="total-files">${uploadedFiles.length}</span> files
+                </div>
+                <div class="current-file-name text-muted">
+                    <i class="fas fa-file me-2"></i>
+                    <span id="current-file-display">Preparing validation...</span>
+                </div>
             </div>
         </div>
     `;
@@ -1516,6 +1539,22 @@ function updateProgress(percentage) {
     const progressBar = document.querySelector('.validation-progress .progress-bar');
     if (progressBar) {
         progressBar.style.width = percentage + '%';
+    }
+}
+
+function updateCurrentFile(fileIndex, file) {
+    // Update file counter
+    const counterElement = document.getElementById('current-file-counter');
+    if (counterElement) {
+        counterElement.textContent = fileIndex + 1;
+    }
+    
+    // Update current file name
+    const fileDisplayElement = document.getElementById('current-file-display');
+    if (fileDisplayElement && file) {
+        const displayName = file.webkitRelativePath || file.relativePath || file.name;
+        const truncatedName = displayName.length > 50 ? '...' + displayName.slice(-47) : displayName;
+        fileDisplayElement.innerHTML = `Scanning: <strong>${truncatedName}</strong>`;
     }
 }
 
