@@ -1,6 +1,0 @@
-// Test KQL Transform
-TestInput
-| project Timestamp, Message
-| where isnotempty(Message)
-| extend ProcessedMessage = strcat("Processed: ", Message)
-| project Timestamp, ProcessedMessage as Message

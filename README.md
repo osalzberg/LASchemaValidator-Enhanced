@@ -33,9 +33,12 @@ A comprehensive solution for Azure Log Analytics schema onboarding that combines
 To test the enhanced Dynamic type warning functionality:
 
 1. Visit the live application: https://happy-water-01a48df10.2.azurestaticapps.net
-2. Upload the included `test_dynamic_with_warnings.manifest.json` file
+2. Upload the included `example_dynamic_warnings.manifest.json` file (located in the webapp folder)
 3. Click "Validate Schema" to see the enhanced warnings
 4. Click "View Details" on any Dynamic type warning to see the expanded information
+
+### Alternative Test File
+You can also use the `quick_test_dynamic.manifest.json` file in the root directory for a simpler test case.
 
 ## ⚙️ Deployment
 
@@ -45,94 +48,63 @@ This enhanced version is deployed to Azure Static Web Apps with:
 - **Global CDN distribution**
 - **HTTPS by default**
 
-## Setup
+## 🚀 Getting Started
 
-1. **Clone and navigate to the project**:
+### Quick Start
+1. Visit the live application: https://happy-water-01a48df10.2.azurestaticapps.net
+2. Upload a manifest file (use the example files to test)
+3. Click "Validate Schema" to see validation results
+4. Explore the enhanced Dynamic type warnings with interactive "View Details" buttons
 
+### Local Development
+1. **Clone the repository**:
    ```bash
-   cd LASchemaOnboardingAgent
+   git clone https://github.com/osalzberg/LASchemaValidator-Enhanced.git
+   cd LASchemaValidator-Enhanced
    ```
 
-2. **Install dependencies**:
-
+2. **Run locally**:
    ```bash
-   pip install -r requirements.txt
+   cd webapp
+   python start_server.py
    ```
+   Then visit http://localhost:8000
 
-3. **Configure Azure OpenAI**:
-
-   ```bash
-   cp .env.template .env
-   # Edit .env with your Azure OpenAI credentials
-   ```
-
-4. **Test your configuration**:
-
-   ```bash
-   python main.py test
-   ```
-
-## Usage
-
-### Ask a Single Question
-
-```bash
-python main.py ask --question "What is machine learning?"
-```
-
-### Use a Custom System Prompt
-
-```bash
-python main.py custom --prompt "You are a Python expert" --question "How do I use decorators?"
-```
-
-### Start Interactive Chat
-
-```bash
-python main.py chat
-```
-
-### Test Configuration
-
-```bash
-python main.py test
-```
-
-## Configuration
-
-Create a `.env` file based on `.env.template` with your Azure OpenAI credentials:
-
-```env
-AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
-AZURE_OPENAI_KEY="your-api-key-here"
-AZURE_OPENAI_DEPLOYMENT="gpt-35-turbo"
-```
-
-## Requirements
-
-- Python 3.7+
-- Azure OpenAI service access
-- Required Python packages (see requirements.txt)
-
-## Project Structure
+## 📁 Project Structure
 
 ```text
-├── main.py                    # Main CLI application
-├── .env.template             # Environment variables template
-├── requirements.txt          # Python dependencies
-├── README.md                # This file
-└── .github/
-    └── copilot-instructions.md  # Copilot development guidelines
+├── webapp/
+│   ├── index.html                           # Main application
+│   ├── script.js                           # Enhanced validation logic
+│   ├── style.css                           # Enhanced styling
+│   ├── example_dynamic_warnings.manifest.json # Test file with Dynamic types
+│   └── staticwebapp.config.json            # Azure Static Web App config
+├── quick_test_dynamic.manifest.json        # Simple test file
+├── README.md                               # This file
+├── MIGRATION_COMPLETE.md                   # Migration summary
+└── .github/workflows/                      # GitHub Actions CI/CD
+    └── azure-static-web-apps-*.yml
 ```
 
-## Development
+## 🎯 Features in Detail
 
-This project uses:
+### Enhanced Dynamic Type Detection
+- Automatically scans manifest files for `dynamic` type columns
+- Provides performance impact warnings
+- Suggests specific alternative data types
+- Offers best practice recommendations
 
-- **Click** for CLI interface
-- **Requests** for HTTP API calls
-- **python-dotenv** for environment variable management
+### Interactive Warning System
+- Expandable warning cards with detailed information
+- Visual indicators using orange warning styling
+- Clickable "View Details" buttons for comprehensive guidance
+- Performance optimization suggestions
 
-## License
+## 🌐 Live Application
+
+The enhanced validator is available at:
+**https://happy-water-01a48df10.2.azurestaticapps.net**
+
+## 📄 License
 
 MIT License
