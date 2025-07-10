@@ -1,0 +1,47 @@
+{
+  "type": "DataConnector",
+  "displayName": "Quick Dynamic Type Test",
+  "description": "Simple test to demonstrate enhanced Dynamic type warnings.",
+  "simplifiedSchemaVersion": "3",
+  "tables": [
+    {
+      "name": "TestTable_CL",
+      "description": "Test table with multiple Dynamic type columns.",
+      "dataTypeId": "TEST_QUICK",
+      "artifactVersion": 1,
+      "input": [
+        {
+          "name": "rawData",
+          "type": "Dynamic",
+          "description": "Raw data - will trigger enhanced warning."
+        }
+      ],
+      "columns": [
+        {
+          "name": "TimeGenerated",
+          "type": "DateTime",
+          "description": "Event timestamp.",
+          "isRequired": true
+        },
+        {
+          "name": "EventData",
+          "type": "Dynamic",
+          "description": "Event data - will show View Details button.",
+          "isRequired": false
+        },
+        {
+          "name": "UserInfo",
+          "type": "Dynamic",
+          "description": "User information - another Dynamic type warning.",
+          "isRequired": false
+        },
+        {
+          "name": "EventName",
+          "type": "String",
+          "description": "Event name - normal string field.",
+          "isRequired": true
+        }
+      ]
+    }
+  ]
+}
