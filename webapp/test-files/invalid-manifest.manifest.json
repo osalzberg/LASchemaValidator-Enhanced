@@ -1,0 +1,51 @@
+{
+  "type": "Microsoft.Resources/TestResource",
+  "displayName": "Test Resource Provider",
+  "description": "test resource provider with issues",
+  "simplifiedSchemaVersion": "2",
+  "tables": [
+    {
+      "name": "ThisTableNameIsWayTooLongForAzureLogAnalyticsAndWillFailValidation",
+      "description": "test table without proper capitalization",
+      "categories": ["audit"],
+      "dataTypeId": "TESTRESOURCE_LOGS",
+      "artifactVersion": 1,
+      "input": [
+        {
+          "name": "time",
+          "type": "DateTime"
+        }
+      ],
+      "transformFilePath": "KQL/TestTransform.kql",
+      "columns": [
+        {
+          "name": "TimeGenerated",
+          "description": "timestamp without proper ending",
+          "type": "InvalidType",
+          "isDefaultDisplay": true
+        },
+        {
+          "name": "OperationName",
+          "type": "String"
+        }
+      ],
+      "sampleInputRecordsFilePath": "SampleInputRecords/TestSample.json",
+      "isResourceCentric": true
+    }
+  ],
+  "functions": [
+    {
+      "name": "GetTestEvents",
+      "displayName": "Get Test Events",
+      "description": "function description with issues",
+      "bodyFilePath": "KQL/GetTestEventsFunction.kql"
+    }
+  ],
+  "queries": [
+    {
+      "displayName": "Recent Test Events",
+      "description": "query description without proper format",
+      "bodyFilePath": "KQL/RecentEventsQuery.kql"
+    }
+  ]
+}

@@ -1,0 +1,1208 @@
+/* Custom CSS for Azure Log Analytics Schema Validator */
+
+:root {
+    --azure-blue: #0078d4;
+    --azure-light-blue: #2b88d8;
+    --azure-dark-blue: #005a9e;
+    --success-green: #107c10;
+    --warning-orange: #ff8c00;
+    --danger-red: #d13438;
+    --light-gray: #f8f9fa;
+    --border-color: #dee2e6;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+}
+
+/* Microsoft Logo in Header */
+.navbar-brand svg {
+    vertical-align: middle;
+}
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+}
+
+.hero-image {
+    text-align: center;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+}
+
+/* Feature Cards */
+.feature-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.feature-icon {
+    transition: transform 0.3s ease;
+}
+
+.feature-card:hover .feature-icon {
+    transform: scale(1.1);
+}
+
+/* Upload Area */
+.upload-area {
+    border: 3px dashed var(--border-color);
+    border-radius: 15px;
+    background: #fafbfc;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.upload-area:hover {
+    border-color: var(--azure-blue);
+    background: #f0f8ff;
+}
+
+.upload-area.drag-over {
+    border-color: var(--azure-blue) !important;
+    background: linear-gradient(135deg, #e6f3ff 0%, #cce7ff 100%) !important;
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 120, 212, 0.3);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 8px 25px rgba(0, 120, 212, 0.3); }
+    50% { box-shadow: 0 12px 35px rgba(0, 120, 212, 0.5); }
+    100% { box-shadow: 0 8px 25px rgba(0, 120, 212, 0.3); }
+}
+
+.border-dashed {
+    border-style: dashed !important;
+}
+
+/* File Upload Type Selection */
+.btn-check:checked + .btn-outline-primary {
+    background-color: var(--azure-blue);
+    border-color: var(--azure-blue);
+    color: white;
+    transform: scale(1.05);
+}
+
+.btn-outline-primary {
+    transition: all 0.3s ease;
+    border-radius: 10px;
+}
+
+.btn-outline-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 120, 212, 0.3);
+}
+
+/* File List Items */
+.file-item {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.file-item:hover {
+    background-color: #f8f9fa;
+}
+
+.file-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    margin-right: 15px;
+}
+
+.file-icon.manifest { background: #e3f2fd; color: #1976d2; }
+.file-icon.kql { background: #fff3e0; color: #f57c00; }
+.file-icon.json { background: #e8f5e8; color: #388e3c; }
+.file-icon.other { background: #f3e5f5; color: #7b1fa2; }
+
+/* Folder structure styles */
+.folder-header {
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border-left: 3px solid #007bff;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.folder-header strong {
+    color: #495057;
+}
+
+.folder-header .badge {
+    font-size: 0.7em;
+}
+
+.file-item.ms-3 {
+    border-left: 2px solid #e9ecef;
+    background-color: #fafbfc;
+}
+
+.file-item.ms-3:hover {
+    background-color: #f1f3f4;
+}
+
+/* File path display */
+.file-item .text-info {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8em;
+}
+
+/* Results Section */
+.result-item {
+    border-radius: 10px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.result-item:hover {
+    transform: translateX(5px);
+}
+
+.status-pass {
+    border-left: 5px solid var(--success-green);
+    background: #f0fff4;
+}
+
+.status-fail {
+    border-left: 5px solid var(--danger-red);
+    background: #fff5f5;
+}
+
+.status-warning {
+    border-left: 5px solid var(--warning-orange);
+    background: #fffbf0;
+}
+
+/* Progress Bar */
+.validation-progress {
+    height: 8px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #e9ecef;
+    margin: 20px 0;
+}
+
+.validation-progress .progress-bar {
+    transition: width 0.5s ease;
+    border-radius: 10px;
+}
+
+/* Buttons */
+.btn-primary {
+    background: linear-gradient(45deg, var(--azure-blue), var(--azure-light-blue));
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, var(--azure-dark-blue), var(--azure-blue));
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 120, 212, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(45deg, var(--success-green), #16a085);
+    border: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background: linear-gradient(45deg, #0e6b0e, var(--success-green));
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(16, 124, 16, 0.4);
+}
+
+/* Button Loading States */
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.btn-loading .btn-text {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: btnSpin 1s linear infinite;
+}
+
+@keyframes btnSpin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.btn-loading:hover {
+    transform: none !important;
+}
+
+/* Enhanced validation button animation */
+.btn-validating {
+    background: linear-gradient(45deg, #17a2b8, #20c997) !important;
+    border-color: #17a2b8 !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-validating::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.btn-validating .fa-check-circle::before {
+    content: '\f013'; /* Change to cog icon */
+    animation: spin 1s linear infinite;
+}
+
+/* Button transition animations */
+.btn {
+    transition: all 0.3s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Accordion for detailed results */
+.accordion-item {
+    border: none;
+    border-radius: 10px !important;
+    margin-bottom: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.accordion-button {
+    border-radius: 10px !important;
+    background: #f8f9fa;
+    border: none;
+    font-weight: 600;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.accordion-button:not(.collapsed) {
+    background: var(--azure-blue);
+    color: white;
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(0, 120, 212, 0.25);
+}
+
+/* Loading Animation */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--azure-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-section {
+        text-align: center;
+        min-height: 50vh;
+    }
+    
+    .display-4 {
+        font-size: 2rem;
+    }
+    
+    .btn-lg {
+        font-size: 1rem;
+        padding: 0.75rem 1.5rem;
+    }
+    
+    .feature-card {
+        margin-bottom: 20px;
+    }
+    
+    .upload-area {
+        padding: 2rem !important;
+    }
+    
+    .line-number {
+        width: 40px;
+        padding: 0 8px;
+        font-size: 11px;
+    }
+    
+    .line-content {
+        padding: 0 12px;
+        font-size: 13px;
+    }
+    
+    .code-content {
+        font-size: 13px;
+    }
+}
+
+/* Tooltip Styling */
+.tooltip {
+    font-size: 0.875rem;
+}
+
+.tooltip-inner {
+    background: var(--azure-dark-blue);
+    border-radius: 6px;
+}
+
+/* Pre code blocks */
+pre {
+    font-size: 0.875rem;
+    line-height: 1.4;
+    border-radius: 10px;
+}
+
+/* Badge Styling */
+.badge {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.badge-success {
+    background: var(--success-green);
+}
+
+.badge-danger {
+    background: var(--danger-red);
+}
+
+.badge-warning {
+    background: var(--warning-orange);
+}
+
+/* Status badge alignment fixes */
+.badge.status-badge {
+    min-width: 65px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    font-size: 0.75em;
+    padding: 0.5em 0.75em;
+}
+
+.accordion-button .badge {
+    min-width: 65px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    font-size: 0.75em;
+    padding: 0.5em 0.75em;
+}
+
+/* Fix badge alignment in accordion headers */
+.accordion-header .badge {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* Status display improvements */
+.validation-status {
+    min-width: 75px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75em;
+    padding: 0.5em 0.75em;
+}
+
+/* Badge consistency for all validation results */
+.validation-results .badge {
+    min-width: 65px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    font-size: 0.75em;
+}
+
+/* Ensure proper spacing in accordion buttons */
+.accordion-button {
+    align-items: center;
+    justify-content: flex-start;
+    display: flex;
+}
+
+.accordion-button strong {
+    flex-grow: 1;
+    text-align: left;
+}
+
+.accordion-button .badge {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Card hover effects */
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Footer */
+footer {
+    background: linear-gradient(45deg, #212529, #343a40) !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--azure-blue);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--azure-dark-blue);
+}
+
+/* Animation for section reveals */
+.section-reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+}
+
+.section-reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Interactive Validation Cards */
+.validation-card {
+    transition: all 0.3s ease;
+    border-radius: 15px;
+    overflow: visible;
+    cursor: pointer;
+    position: relative;
+    margin-bottom: 2rem;
+    min-height: 280px; /* Ensure minimum height instead of forcing full height */
+}
+
+.validation-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
+}
+
+.validation-card .card-body {
+    transition: background-color 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.5rem;
+    min-height: 280px;
+}
+
+.validation-card:hover .card-body {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.validation-card .card-text {
+    flex-grow: 1;
+    margin-bottom: 1rem;
+}
+
+.validation-card .btn {
+    transition: all 0.3s ease;
+    border-radius: 20px;
+    font-weight: 500;
+    margin-top: auto;
+    position: relative;
+    z-index: 10;
+}
+
+.validation-details {
+    transition: all 0.4s ease;
+    overflow: visible;
+    margin-top: 0;
+    border-radius: 0 0 15px 15px;
+    position: relative;
+    z-index: 10;
+}
+
+.validation-card .btn i {
+    transition: transform 0.3s ease;
+}
+
+.validation-card .btn.expanded i {
+    transform: rotate(180deg);
+}
+
+.validation-card .feature-icon i {
+    transition: all 0.3s ease;
+}
+
+.validation-card:hover .feature-icon i {
+    transform: scale(1.1);
+    filter: brightness(1.1);
+}
+
+.validation-details.show {
+    display: block !important;
+    animation: slideDown 0.4s ease-out;
+}
+
+.validation-details.hide {
+    animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        max-height: 1000px; /* Increased from 500px */
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 1;
+        max-height: 1000px; /* Increased from 500px */
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+}
+
+.validation-details .card-footer {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    border-top: 2px solid #e9ecef;
+    padding: 1.5rem;
+    margin: 0;
+    border-radius: 0 0 15px 15px;
+}
+
+.validation-details h6 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+.validation-details ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.validation-details li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+    color: #6c757d;
+}
+
+.validation-details code {
+    background: rgba(0, 120, 212, 0.1);
+    color: var(--azure-blue);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.validation-details .row {
+    margin: 0;
+}
+
+.validation-details .col-12 {
+    padding: 0;
+}
+
+/* Hide PASS badges in accordion */
+.accordion-button .badge.bg-success {
+    display: none;
+}
+
+.validation-status.bg-success {
+    display: none;
+}
+
+/* Validation Issue Cards */
+.validation-issues .card {
+    border-left: 4px solid #dc3545;
+}
+
+.validation-warnings .card {
+    border-left: 4px solid #ffc107;
+}
+
+.issue-details {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.issue-details h6 {
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.issue-details code {
+    font-size: 0.875rem;
+    word-break: break-word;
+}
+
+.validation-issues .btn-outline-danger:hover,
+.validation-warnings .btn-outline-warning:hover {
+    transform: translateY(-1px);
+}
+
+/* File Content Modal */
+#fileContentModal .modal-body pre {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+#fileContentModal .modal-body code {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Enhanced File Content Viewer */
+.file-content-viewer {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.code-header {
+    background: #f8f9fa;
+    padding: 12px 16px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+}
+
+.code-content {
+    margin: 0;
+    background: #ffffff;
+    padding: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    max-height: 500px;
+    overflow-y: auto;
+    border: none;
+}
+
+.code-line {
+    display: flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 2px 0;
+    border-left: 4px solid transparent;
+    transition: background-color 0.2s;
+}
+
+.code-line:hover {
+    background-color: #f8f9fa;
+}
+
+.line-number {
+    display: inline-block;
+    width: 50px;
+    padding: 0 12px;
+    text-align: right;
+    color: #6c757d;
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.line-content {
+    padding: 0 16px;
+    flex-grow: 1;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+/* Problem Line Styling */
+.problem-line {
+    background-color: #fff5f5 !important;
+    border-left-color: #dc3545 !important;
+    animation: highlightProblem 2s ease-in-out;
+}
+
+@keyframes highlightProblem {
+    0% { 
+        background-color: #fff5f5;
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    25% { 
+        background-color: #f8d7da;
+        box-shadow: 0 0 10px 5px rgba(220, 53, 69, 0.4);
+    }
+    50% { 
+        background-color: #f5c6cb;
+        box-shadow: 0 0 20px 10px rgba(220, 53, 69, 0.3);
+    }
+    75% { 
+        background-color: #f8d7da;
+        box-shadow: 0 0 10px 5px rgba(220, 53, 69, 0.4);
+    }
+    100% { 
+        background-color: #fff5f5;
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+}
+
+.problem-line .line-number {
+    background-color: #f8d7da;
+    color: #721c24;
+    font-weight: bold;
+}
+
+.problem-line .line-content {
+    color: #721c24;
+    font-weight: 500;
+}
+
+.problem-indicator {
+    color: #dc3545;
+    font-size: 12px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+/* Fix Line Styling */
+.fix-line {
+    background-color: #f0fff4 !important;
+    border-left-color: #28a745 !important;
+    animation: highlightFix 2s ease-in-out;
+}
+
+.fix-line .line-number.fix-number {
+    background-color: #d4edda;
+    color: #155724;
+    font-weight: bold;
+}
+
+.fix-line .line-content {
+    color: #155724;
+    font-weight: 500;
+}
+
+.fix-indicator {
+    color: #28a745;
+    font-size: 12px;
+    margin-right: 12px;
+    flex-shrink: 0;
+    font-weight: 500;
+}
+
+/* Fix Suggestion Box */
+.fix-suggestion {
+    padding: 16px;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Separator Line Styling */
+.separator-line {
+    background-color: #f8f9fa !important;
+    border-left-color: #6c757d !important;
+    opacity: 0.7;
+}
+
+.separator-line .line-number.separator-number {
+    background-color: #e9ecef;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.separator-line .line-content.separator-content {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.separator-indicator {
+    color: #6c757d;
+    font-size: 12px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+/* Fix Summary Styling */
+.fix-summary {
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    padding: 20px;
+    margin-top: 0;
+}
+
+.value-box {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #ffffff;
+}
+
+.value-box.problem-box {
+    border-color: #dc3545;
+    background: #fff5f5;
+}
+
+.value-box.fix-box {
+    border-color: #28a745;
+    background: #f0fff4;
+}
+
+.value-box h6 {
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.value-box code {
+    background: transparent;
+    padding: 0;
+    font-size: 14px;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+.problem-box code {
+    color: #721c24;
+}
+
+.fix-box code {
+    color: #155724;
+}
+
+/* Legend Styling */
+.code-legend {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.legend-color.problem-color {
+    background-color: #dc3545;
+}
+
+.legend-color.fix-color {
+    background-color: #28a745;
+}
+
+.legend-color.warning-color {
+    background-color: #ff9800;
+}
+
+.legend-item small {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* Summary statistics alignment */
+.validation-summary-stats {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    text-align: center;
+}
+
+.validation-summary-stats .col-3 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+}
+
+/* Overall status card alignment */
+.validation-overall-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+}
+
+.validation-overall-status h5 {
+    font-weight: 700;
+    margin-top: 10px;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-section {
+        text-align: center;
+        min-height: 50vh;
+    }
+    
+    .display-4 {
+        font-size: 2rem;
+    }
+    
+    .btn-lg {
+        font-size: 1rem;
+        padding: 0.75rem 1.5rem;
+    }
+    
+    .feature-card {
+        margin-bottom: 20px;
+    }
+    
+    .validation-card {
+        margin-bottom: 1.5rem;
+        min-height: auto;
+    }
+    
+    .validation-card .card-body {
+        padding: 1rem;
+    }
+    
+    .validation-details .card-footer {
+        padding: 1rem;
+    }
+    
+    .upload-area {
+        padding: 2rem !important;
+    }
+    
+    .line-number {
+        width: 40px;
+        padding: 0 8px;
+        font-size: 11px;
+    }
+    
+    .line-content {
+        padding: 0 12px;
+        font-size: 13px;
+    }
+    
+    .code-content {
+        font-size: 13px;
+    }
+}
+
+/* Additional constraints for statistics boxes */
+.validation-results-container .col-md-6 .row {
+    flex-wrap: nowrap !important;
+    margin: 0 -0.25rem;
+}
+
+.validation-results-container .col-md-6 .row .col-3 {
+    flex: 1 1 0%;
+    min-width: 0;
+    padding: 0 0.25rem;
+}
+
+/* Ensure statistics fit in available space */
+.validation-summary-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    flex-wrap: nowrap;
+    overflow: hidden;
+}
+
+.validation-summary-stats .col-3 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+    flex: 1 1 0%;
+    min-width: 0;
+    padding: 0 0.25rem;
+}
+
+/* Compact layout for statistics */
+.summary-stat-box {
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.summary-stat-box .stat-number,
+.summary-stat-box .stat-label,
+.summary-stat-box .stat-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Warning Line Styling */
+.warning-line {
+    background-color: #fff8e1 !important;
+    border-left-color: #ff9800 !important;
+    animation: highlightWarning 2s ease-in-out;
+}
+
+@keyframes highlightWarning {
+    0% { 
+        background-color: #fff8e1;
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7);
+    }
+    25% { 
+        background-color: #ffecb3;
+        box-shadow: 0 0 10px 5px rgba(255, 152, 0, 0.4);
+    }
+    50% { 
+        background-color: #ffe0b2;
+        box-shadow: 0 0 20px 10px rgba(255, 152, 0, 0.3);
+    }
+    75% { 
+        background-color: #ffecb3;
+        box-shadow: 0 0 10px 5px rgba(255, 152, 0, 0.4);
+    }
+    100% { 
+        background-color: #fff8e1;
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7);
+    }
+}
+
+.warning-line .line-number {
+    background-color: #ffecb3;
+    color: #e65100;
+    font-weight: bold;
+}
+
+.warning-line .line-content {
+    color: #e65100;
+    font-weight: 500;
+}
+
+/* Warning indicator styling */
+.warning-indicator {
+    background-color: #ff9800;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+.warning-number {
+    background-color: #ffecb3 !important;
+    color: #e65100 !important;
+    font-weight: bold;
+}
+
+/* Warning box styling */
+.warning-box {
+    border: 1px solid #ff9800;
+    background-color: #fff8e1;
+}
+
+.warning-box h6 {
+    color: #e65100;
+}
+
+.warning-box code {
+    background-color: #ffecb3;
+    color: #e65100;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Update existing problem indicators */

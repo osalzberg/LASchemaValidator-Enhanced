@@ -1,0 +1,17 @@
+[
+  {
+    "time": "2024-01-15T10:30:00Z",
+    "operationName": "Microsoft.Storage/storageAccounts/read",
+    "properties": "{\"accountName\":\"teststorage\",\"location\":\"eastus\"}"
+  },
+  {
+    "time": "2024-01-15T10:31:00Z",
+    "operationName": "Microsoft.Compute/virtualMachines/start/action",
+    "properties": "{\"vmName\":\"testvm\",\"resourceGroup\":\"testRG\"}"
+  },
+  {
+    "time": "2024-01-15T10:32:00Z",
+    "operationName": "Microsoft.Network/networkSecurityGroups/write",
+    "properties": "{\"nsgName\":\"testnsg\",\"rules\":[\"allow-http\",\"allow-https\"]}"
+  }
+]

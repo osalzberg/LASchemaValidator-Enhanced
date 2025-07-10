@@ -1,0 +1,37 @@
+{
+  "routes": [
+    {
+      "route": "/",
+      "rewrite": "/index.html"
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "*.{js,css,png,jpg,jpeg,gif,svg,ico,woff,woff2,ttf,eot,json}",
+      "/script.js",
+      "/style.css",
+      "/favicon.svg",
+      "/favicon.ico"
+    ]
+  },
+  "mimeTypes": {
+    ".js": "text/javascript",
+    ".css": "text/css",
+    ".json": "application/json"
+  },
+  "globalHeaders": {
+    "content-security-policy": "default-src 'self' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "x-xss-protection": "1; mode=block",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "permissions-policy": "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+  },
+  "forwardingGateway": {
+    "requiredHeaders": {
+      "X-Forwarded-Proto": "https"
+    }
+  }
+}

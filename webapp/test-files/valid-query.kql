@@ -1,0 +1,7 @@
+// Valid KQL query example
+TestTable
+| where TimeGenerated > ago(1h)
+| project TimeGenerated, OperationName, Properties
+| summarize Count = count() by OperationName
+| order by Count desc
+| take 10

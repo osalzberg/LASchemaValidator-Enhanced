@@ -1,0 +1,4 @@
+source
+| project
+    TimeGenerated = todatetime(["timestamp"]),
+    TestValue = tostring(properties.value)

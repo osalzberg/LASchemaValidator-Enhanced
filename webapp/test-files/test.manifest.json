@@ -1,0 +1,24 @@
+{
+    "type": "Microsoft.Test/example",
+    "displayName": "Test Example",
+    "description": "Example for testing validation alignment",
+    "simplifiedSchemaVersion": "3",
+    "tables": [
+        {
+            "name": "TestTable",
+            "dataTypeId": "TESTSERVICE_EXAMPLE",
+            "input": [
+                {
+                    "name": "timestamp",
+                    "type": "DateTime"
+                }
+            ],
+            "output": [
+                {
+                    "name": "TimeGenerated",
+                    "type": "DateTime"
+                }
+            ]
+        }
+    ]
+}

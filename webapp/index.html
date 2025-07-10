@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Log Analytics Schema Validator - Agent</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="favicon.svg">
+    <!-- Stylesheets -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">
+                <svg class="me-2" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
+                    <rect x="13" y="1" width="10" height="10" fill="#7FBA00"/>
+                    <rect x="1" y="13" width="10" height="10" fill="#00A4EF"/>
+                    <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
+                </svg>
+                Microsoft Azure Log Analytics Schema Validator
+            </span>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-section bg-light py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold text-primary mb-4">
+                        Validate Your Microsoft Azure Log Analytics Schema
+                    </h1>
+                    <p class="lead mb-4">
+                        Ensure your Log Analytics onboarding package meets all requirements with our comprehensive validation tool. 
+                        Upload your schema files and get instant feedback on structure, format, and compliance.
+                    </p>
+                    <div class="d-flex gap-3">
+                        <button id="startValidationBtn" class="btn btn-primary btn-lg" onclick="showValidationAndScroll()" title="Show validation section and scroll to it">
+                            <i class="fas fa-upload me-2"></i>Run Validation
+                        </button>
+                        <button id="viewGuideBtn" class="btn btn-outline-primary btn-lg" onclick="toggleGuide()" title="Toggle guide">
+                            <i class="fas fa-book me-2"></i>View Guide
+                        </button>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-keyboard me-1"></i>
+                            Keyboard shortcuts: <kbd>V</kbd> for validation, <kbd>G</kbd> for guide, <kbd>Esc</kbd> to close
+                        </small>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="hero-image">
+                        <i class="fas fa-chart-line fa-8x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="display-5 fw-bold">What We Validate</h2>
+                <p class="lead text-muted">Click on any validation area to learn more about our comprehensive checks</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <!-- Folder Structure -->
+            <div class="col-md-4">
+                <div class="validation-card card border-0 shadow-sm" data-validation="folder">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i class="fas fa-folder-tree fa-3x text-primary"></i>
+                        </div>
+                        <h4 class="card-title">Folder Structure</h4>
+                        <p class="card-text">Validates your onboarding package follows the correct NGSchema structure</p>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-primary btn-sm" onclick="
+                                // Close all other details first
+                                document.querySelectorAll('.validation-details').forEach(detail => {
+                                    if (detail.id !== 'folder-details') {
+                                        detail.style.display = 'none';
+                                    }
+                                });
+                                document.querySelectorAll('.validation-card button').forEach(btn => {
+                                    if (btn !== this) {
+                                        btn.innerHTML = btn.innerHTML.replace('Show Less', 'Learn More').replace('fa-chevron-up', 'fa-chevron-down');
+                                    }
+                                });
+                                
+                                // Toggle current details
+                                const folderDetails = document.getElementById('folder-details');
+                                if (folderDetails.style.display === 'none') {
+                                    folderDetails.style.display = 'block';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-up\'></i> Show Less';
+                                } else {
+                                    folderDetails.style.display = 'none';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-down\'></i> Learn More';
+                                }
+                            ">
+                                <i class="fas fa-chevron-down"></i> Learn More
+                            </button>
+                        </div>
+                    </div>
+                    <div class="validation-details" id="folder-details" style="display: none;">
+                        <div class="card-footer bg-light">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="fw-bold mb-3"><i class="fas fa-check-circle text-success"></i> What We Check:</h6>
+                                    <ul class="small mb-3">
+                                        <li>Required directories (KQL, SampleInputRecords, SampleOutputRecords)</li>
+                                        <li>Proper file naming conventions</li>
+                                        <li>No forbidden characters in paths</li>
+                                        <li>Case sensitivity compliance</li>
+                                    </ul>
+                                </div>
+                                <div class="col-12">
+                                    <h6 class="fw-bold mb-3"><i class="fas fa-exclamation-triangle text-warning"></i> Common Issues:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Missing required folders</li>
+                                        <li>Files in wrong directories</li>
+                                        <li>Special characters in file names</li>
+                                        <li>Incorrect case sensitivity</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manifest Validation -->
+            <div class="col-md-4">
+                <div class="validation-card card border-0 shadow-sm" data-validation="manifest">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i class="fas fa-file-code fa-3x text-success"></i>
+                        </div>
+                        <h4 class="card-title">Manifest Validation</h4>
+                        <p class="card-text">Comprehensive checks of your manifest.json file structure and content</p>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-success btn-sm" onclick="
+                                // Close all other details first
+                                document.querySelectorAll('.validation-details').forEach(detail => {
+                                    if (detail.id !== 'manifest-details') {
+                                        detail.style.display = 'none';
+                                    }
+                                });
+                                document.querySelectorAll('.validation-card button').forEach(btn => {
+                                    if (btn !== this) {
+                                        btn.innerHTML = btn.innerHTML.replace('Show Less', 'Learn More').replace('fa-chevron-up', 'fa-chevron-down');
+                                    }
+                                });
+                                
+                                // Toggle current details
+                                const manifestDetails = document.getElementById('manifest-details');
+                                if (manifestDetails.style.display === 'none') {
+                                    manifestDetails.style.display = 'block';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-up\'></i> Show Less';
+                                } else {
+                                    manifestDetails.style.display = 'none';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-down\'></i> Learn More';
+                                }
+                            ">
+                                <i class="fas fa-chevron-down"></i> Learn More
+                            </button>
+                        </div>
+                    </div>
+                    <div class="validation-details" id="manifest-details" style="display: none;">
+                        <div class="card-footer bg-light">
+                            <h6 class="fw-bold mb-2"><i class="fas fa-check-circle text-success"></i> Structure Validation:</h6>
+                            <ul class="small mb-2">
+                                <li>Valid JSON syntax</li>
+                                <li>Required fields present</li>
+                                <li>Schema version compliance</li>
+                                <li>File references accuracy</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-table text-primary"></i> Table Validation:</h6>
+                            <ul class="small mb-2">
+                                <li>Table schema definitions</li>
+                                <li>Column types and constraints</li>
+                                <li>Required TimeGenerated column (DateTime type)</li>
+                                <li>Forbidden system-added columns (Type, TenantId, _ResourceId, _SubscriptionId)</li>
+                                <li>Reserved column name restrictions</li>
+                                <li>Primary key validation</li>
+                                <li>Index definitions</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle text-warning"></i> Dynamic Type Warning:</h6>
+                            <ul class="small mb-2">
+                                <li><strong>Dynamic type usage detected - Performance Impact Warning</strong></li>
+                                <li><strong>Recommendation: Promote fields to top-level columns when possible</strong></li>
+                                <li><strong>Top-level fields improve query performance significantly</strong></li>
+                                <li><strong>Top-level fields provide better query authoring experience</strong></li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-code text-info"></i> Transform Validation:</h6>
+                            <ul class="small mb-0">
+                                <li>KQL transform references</li>
+                                <li>Input/output mapping</li>
+                                <li>Function dependencies</li>
+                                <li>Parameter validation</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle text-warning"></i> Manifest-Sample Consistency:</h6>
+                            <ul class="small mb-0">
+                                <li><strong>Input sample columns match manifest input schema</strong></li>
+                                <li><strong>Output sample columns match manifest output schema</strong></li>
+                                <li><strong>Column types consistent between manifest and samples</strong></li>
+                                <li><strong>All required manifest columns present in samples</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KQL Validation -->
+            <div class="col-md-4">
+                <div class="validation-card card border-0 shadow-sm" data-validation="kql">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i class="fas fa-search fa-3x text-warning"></i>
+                        </div>
+                        <h4 class="card-title">KQL Validation</h4>
+                        <p class="card-text">Syntax and semantic validation of KQL queries, functions, and transforms</p>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-warning btn-sm" onclick="
+                                // Close all other details first
+                                document.querySelectorAll('.validation-details').forEach(detail => {
+                                    if (detail.id !== 'kql-details') {
+                                        detail.style.display = 'none';
+                                    }
+                                });
+                                document.querySelectorAll('.validation-card button').forEach(btn => {
+                                    if (btn !== this) {
+                                        btn.innerHTML = btn.innerHTML.replace('Show Less', 'Learn More').replace('fa-chevron-up', 'fa-chevron-down');
+                                    }
+                                });
+                                
+                                // Toggle current details
+                                const kqlDetails = document.getElementById('kql-details');
+                                if (kqlDetails.style.display === 'none') {
+                                    kqlDetails.style.display = 'block';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-up\'></i> Show Less';
+                                } else {
+                                    kqlDetails.style.display = 'none';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-down\'></i> Learn More';
+                                }
+                            ">
+                                <i class="fas fa-chevron-down"></i> Learn More
+                            </button>
+                        </div>
+                    </div>
+                    <div class="validation-details" id="kql-details" style="display: none;">
+                        <div class="card-footer bg-light">
+                            <h6 class="fw-bold mb-2"><i class="fas fa-code text-warning"></i> Syntax Validation:</h6>
+                            <ul class="small mb-2">
+                                <li>Valid KQL syntax</li>
+                                <li>Proper operator usage</li>
+                                <li>Function call validation</li>
+                                <li>Parameter binding</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-cogs text-primary"></i> Transform Checks:</h6>
+                            <ul class="small mb-2">
+                                <li>Input schema compliance</li>
+                                <li>Output schema validation</li>
+                                <li>Data type consistency</li>
+                                <li>Field mapping accuracy</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-search text-info"></i> Query Validation:</h6>
+                            <ul class="small mb-0">
+                                <li>Table reference validation</li>
+                                <li>Column existence checks</li>
+                                <li>Performance considerations</li>
+                                <li>Best practice compliance</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description Validation -->
+            <div class="col-md-4">
+                <div class="validation-card card border-0 shadow-sm" data-validation="descriptions">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i class="fas fa-file-alt fa-3x text-info"></i>
+                        </div>
+                        <h4 class="card-title">Description Format</h4>
+                        <p class="card-text">Ensures all descriptions follow proper formatting and style guidelines</p>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-info btn-sm" onclick="
+                                // Close all other details first
+                                document.querySelectorAll('.validation-details').forEach(detail => {
+                                    if (detail.id !== 'descriptions-details') {
+                                        detail.style.display = 'none';
+                                    }
+                                });
+                                document.querySelectorAll('.validation-card button').forEach(btn => {
+                                    if (btn !== this) {
+                                        btn.innerHTML = btn.innerHTML.replace('Show Less', 'Learn More').replace('fa-chevron-up', 'fa-chevron-down');
+                                    }
+                                });
+                                
+                                // Toggle current details
+                                const descriptionsDetails = document.getElementById('descriptions-details');
+                                if (descriptionsDetails.style.display === 'none') {
+                                    descriptionsDetails.style.display = 'block';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-up\'></i> Show Less';
+                                } else {
+                                    descriptionsDetails.style.display = 'none';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-down\'></i> Learn More';
+                                }
+                            ">
+                                <i class="fas fa-chevron-down"></i> Learn More
+                            </button>
+                        </div>
+                    </div>
+                    <div class="validation-details" id="descriptions-details" style="display: none;">
+                        <div class="card-footer bg-light">
+                            <h6 class="fw-bold mb-2"><i class="fas fa-check-circle text-success"></i> Format Rules:</h6>
+                            <ul class="small mb-2">
+                                <li>Must start with capital letter</li>
+                                <li>Must end with a period</li>
+                                <li>Should be clear and descriptive</li>
+                                <li>No excessive length (reasonable limits)</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-list text-info"></i> Applied To:</h6>
+                            <ul class="small mb-2">
+                                <li>Top-level manifest description</li>
+                                <li>Table descriptions</li>
+                                <li>Column descriptions</li>
+                                <li>Function and query descriptions</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-lightbulb text-warning"></i> Best Practices:</h6>
+                            <ul class="small mb-0">
+                                <li>Be specific about the data content</li>
+                                <li>Explain typical use cases</li>
+                                <li>Include examples when helpful</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sample Data -->
+            <div class="col-md-4">
+                <div class="validation-card card border-0 shadow-sm" data-validation="samples">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i class="fas fa-database fa-3x text-secondary"></i>
+                        </div>
+                        <h4 class="card-title">Sample Data</h4>
+                        <p class="card-text">Verifies input and output samples match schema definitions</p>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="
+                                // Close all other details first
+                                document.querySelectorAll('.validation-details').forEach(detail => {
+                                    if (detail.id !== 'samples-details') {
+                                        detail.style.display = 'none';
+                                    }
+                                });
+                                document.querySelectorAll('.validation-card button').forEach(btn => {
+                                    if (btn !== this) {
+                                        btn.innerHTML = btn.innerHTML.replace('Show Less', 'Learn More').replace('fa-chevron-up', 'fa-chevron-down');
+                                    }
+                                });
+                                
+                                // Toggle current details
+                                const samplesDetails = document.getElementById('samples-details');
+                                if (samplesDetails.style.display === 'none') {
+                                    samplesDetails.style.display = 'block';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-up\'></i> Show Less';
+                                } else {
+                                    samplesDetails.style.display = 'none';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-down\'></i> Learn More';
+                                }
+                            ">
+                                <i class="fas fa-chevron-down"></i> Learn More
+                            </button>
+                        </div>
+                    </div>
+                    <div class="validation-details" id="samples-details" style="display: none;">
+                        <div class="card-footer bg-light">
+                            <h6 class="fw-bold mb-2"><i class="fas fa-check-circle text-success"></i> JSON Format:</h6>
+                            <ul class="small mb-2">
+                                <li>Valid JSON syntax</li>
+                                <li>Must be arrays of objects</li>
+                                <li>At least one sample record</li>
+                                <li>Consistent field structure</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-arrow-right text-info"></i> Input Samples:</h6>
+                            <ul class="small mb-2">
+                                <li>Match input schema definition</li>
+                                <li>Include all required fields</li>
+                                <li>Realistic data values</li>
+                                <li>Proper data types</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle text-warning"></i> Critical Validation:</h6>
+                            <ul class="small mb-2">
+                                <li><strong>Input columns must exist in transformation KQL</strong></li>
+                                <li><strong>Field names must match manifest column definitions</strong></li>
+                                <li><strong>Data types must align with expected transform inputs</strong></li>
+                                <li><strong>Missing input fields will cause transformation failures</strong></li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-arrow-left text-primary"></i> Output Samples:</h6>
+                            <ul class="small mb-0">
+                                <li>Match expected transform output</li>
+                                <li>Include Log Analytics standard fields</li>
+                                <li>Demonstrate data transformation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- File References -->
+            <div class="col-md-4">
+                <div class="validation-card card border-0 shadow-sm" data-validation="references">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon mb-3">
+                            <i class="fas fa-link fa-3x text-danger"></i>
+                        </div>
+                        <h4 class="card-title">File References</h4>
+                        <p class="card-text">Ensures all referenced files exist and are properly linked in the manifest</p>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-danger btn-sm" onclick="
+                                // Close all other details first
+                                document.querySelectorAll('.validation-details').forEach(detail => {
+                                    if (detail.id !== 'references-details') {
+                                        detail.style.display = 'none';
+                                    }
+                                });
+                                document.querySelectorAll('.validation-card button').forEach(btn => {
+                                    if (btn !== this) {
+                                        btn.innerHTML = btn.innerHTML.replace('Show Less', 'Learn More').replace('fa-chevron-up', 'fa-chevron-down');
+                                    }
+                                });
+                                
+                                // Toggle current details
+                                const referencesDetails = document.getElementById('references-details');
+                                if (referencesDetails.style.display === 'none') {
+                                    referencesDetails.style.display = 'block';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-up\'></i> Show Less';
+                                } else {
+                                    referencesDetails.style.display = 'none';
+                                    this.innerHTML = '<i class=\'fas fa-chevron-down\'></i> Learn More';
+                                }
+                            ">
+                                <i class="fas fa-chevron-down"></i> Learn More
+                            </button>
+                        </div>
+                    </div>
+                    <div class="validation-details" id="references-details" style="display: none;">
+                        <div class="card-footer bg-light">
+                            <h6 class="fw-bold mb-2"><i class="fas fa-check-circle text-success"></i> KQL File References:</h6>
+                            <ul class="small mb-2">
+                                <li>All transform files referenced in manifest</li>
+                                <li>Query files properly linked</li>
+                                <li>Function files correctly referenced</li>
+                                <li>No orphaned KQL files</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-file-alt text-info"></i> Sample File References:</h6>
+                            <ul class="small mb-2">
+                                <li>Input sample files exist and are linked</li>
+                                <li>Output sample files exist and are linked</li>
+                                <li>File paths match manifest entries</li>
+                                <li>No missing sample files</li>
+                            </ul>
+                            <h6 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle text-warning"></i> Common Issues:</h6>
+                            <ul class="small mb-0">
+                                <li>Typos in file paths</li>
+                                <li>Case sensitivity mismatches</li>
+                                <li>Missing files referenced in manifest</li>
+                                <li>Unreferenced files in folders</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div id="upload-section" class="bg-light py-5" style="display: none;">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-xl-10">
+                    <div class="card border-0 shadow">
+                        <div class="card-body p-5">
+                            <div class="text-center mb-4">
+                                <h2 class="card-title display-6 fw-bold">Upload Your Schema Files</h2>
+                                <p class="card-text lead text-muted">
+                                    Upload individual files or a complete folder structure for validation
+                                </p>
+                            </div>
+
+                            <!-- File Upload Area -->
+                            <div class="upload-area border-3 border-dashed border-primary rounded-3 p-5 text-center position-relative" 
+                                 ondrop="dropHandler(event)" 
+                                 ondragover="dragOverHandler(event)" 
+                                 ondragenter="dragEnterHandler(event)" 
+                                 ondragleave="dragLeaveHandler(event)">
+                                <div class="upload-content">
+                                    <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
+                                    <h4 class="mb-3">Drag & Drop Files Here</h4>
+                                    <p class="text-muted mb-3">or</p>
+                                    <input type="file" id="fileInput" class="d-none" multiple accept=".json,.kql,.manifest.json">
+                                    <input type="file" id="folderInput" class="d-none" webkitdirectory multiple>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                            <i class="fas fa-file-upload me-2"></i>Select Files
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('folderInput').click()">
+                                            <i class="fas fa-folder-open me-2"></i>Select Folder
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- File List -->
+                            <div id="fileList" class="mt-4" style="display: none;">
+                                <h5 class="mb-3">Selected Files:</h5>
+                                <div id="fileListContent" class="list-group"></div>
+                            </div>
+
+                            <!-- Validation Controls -->
+                            <div class="text-center mt-4">
+                                <button id="validateBtn" class="btn btn-success btn-lg" onclick="validateFiles()" disabled>
+                                    <i class="fas fa-check-circle me-2"></i>Validate Files
+                                </button>
+                                <button id="clearBtn" class="btn btn-outline-secondary btn-lg ms-2" onclick="clearFiles()">
+                                    <i class="fas fa-trash me-2"></i>Clear Files
+                                </button>
+                            </div>
+
+                            <!-- Validation Loader -->
+                            <div id="validationLoader" class="text-center mt-4" style="display: none;">
+                                <div class="d-flex justify-content-center align-items-center flex-column">
+                                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <h5 class="text-primary mb-2">
+                                        <i class="fas fa-cog fa-spin me-2"></i>Validating Your Files...
+                                    </h5>
+                                    <p class="text-muted mb-3">
+                                        <small>Please wait while we analyze your schema package</small>
+                                    </p>
+                                    <div class="progress mb-3" style="width: 300px; height: 8px;">
+                                        <div id="validationProgress" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                                             role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <div class="validation-steps">
+                                        <div class="row text-center">
+                                            <div class="col-md-3 mb-2">
+                                                <div id="step1" class="validation-step">
+                                                    <i class="fas fa-folder-tree text-muted"></i>
+                                                    <small class="d-block text-muted">Structure</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <div id="step2" class="validation-step">
+                                                    <i class="fas fa-file-code text-muted"></i>
+                                                    <small class="d-block text-muted">Manifest</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <div id="step3" class="validation-step">
+                                                    <i class="fas fa-search text-muted"></i>
+                                                    <small class="d-block text-muted">KQL</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <div id="step4" class="validation-step">
+                                                    <i class="fas fa-database text-muted"></i>
+                                                    <small class="d-block text-muted">Samples</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Results Section -->
+                            <div id="results" class="mt-5" style="display: none;">
+                                <h3 class="mb-4">Validation Results</h3>
+                                <div id="validationResults"></div>
+                                <div id="resultsContent"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guide Section -->
+    <div id="guide-section" class="bg-light py-5" style="display: none;">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center mb-5">
+                    <h2 class="display-5 fw-bold">Azure Log Analytics Schema Onboarding Guide</h2>
+                    <p class="lead text-muted">Complete guide to onboarding schemas with NGSchema (dedicated schema) format</p>
+                </div>
+            </div>
+
+            <!-- NGSchema Benefits Section -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="card border-0 shadow">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-primary mb-4">
+                                <i class="fas fa-star me-2"></i>Why Choose NGSchema (Dedicated Schema)?
+                            </h3>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5 class="text-success mb-3">
+                                        <i class="fas fa-rocket me-2"></i>Performance Benefits
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Improved query performance with dedicated resources</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Better data compression and storage optimization</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Faster ingestion with streamlined pipeline</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Enhanced scalability for high-volume data</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5 class="text-info mb-3">
+                                        <i class="fas fa-cogs me-2"></i>Modern Features
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Simplified schema version 3 format</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Advanced KQL transformation capabilities</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Better integration with Azure Monitor ecosystem</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Future-proof architecture for new features</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Migration from Legacy:</strong> NGSchema replaces legacy workflow schemas with improved architecture and performance. Contact the team for migration assistance.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirements Section -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="card border-0 shadow">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-primary mb-4">
+                                <i class="fas fa-clipboard-check me-2"></i>Prerequisites & Requirements
+                            </h3>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5 class="text-warning mb-3">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>Before You Start
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Ensure dataTypeId is registered in ODS (12 hours after release)</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Verify regional support - NGSchema not available in all regions</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Plan for schema versioning strategy</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Review cost implications and data retention policies</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5 class="text-danger mb-3">
+                                        <i class="fas fa-ban me-2"></i>Important Limitations
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-times-circle text-danger me-2"></i>Only supports single workflow per schema</li>
+                                        <li class="mb-2"><i class="fas fa-times-circle text-danger me-2"></i>Field size limited to 32KB (64KB with request)</li>
+                                        <li class="mb-2"><i class="fas fa-times-circle text-danger me-2"></i>TimeGenerated must be valid ADX format</li>
+                                        <li class="mb-2"><i class="fas fa-times-circle text-danger me-2"></i>Data older than 2 days gets overridden</li>
+                                    </ul>
+                                    <div class="alert alert-danger mt-3">
+                                        <i class="fas fa-clock me-2"></i>
+                                        <strong>Required TimeGenerated Column:</strong> All tables must include a TimeGenerated column of type DateTime that maps to $.time JSON path in Shoebox.
+                                    </div>
+                                    <div class="alert alert-warning mt-3">
+                                        <i class="fas fa-ban me-2"></i>
+                                        <strong>Column Restrictions:</strong>
+                                        <ul class="mb-0 mt-2">
+                                            <li><strong>System-added columns:</strong> Do not include Type, TenantId, _ResourceId, _SubscriptionId</li>
+                                            <li><strong>Reserved names:</strong> Avoid resource, resourceid, resourcename, resourcetype, subscriptionid, tenantid</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Structure Guide -->
+            <div class="row mb-5">
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow h-100">
+                        <div class="card-body p-4">
+                            <h4 class="card-title text-primary mb-4">
+                                <i class="fas fa-folder-tree me-2"></i>Required Folder Structure
+                            </h4>
+                            <pre class="bg-dark text-light p-3 rounded">
+Content/
+└── NGSchemas/
+    └── MyTeamsFolder/
+        ├── KQL/
+        │   ├── Transforms/
+        │   │   └── *.kql
+        │   ├── Queries/
+        │   │   └── *.kql
+        │   └── Functions/
+        │       └── *.kql
+        ├── SampleInputRecords/
+        │   └── *.json
+        ├── SampleOutputRecords/
+        │   └── *.json
+        ├── [xyz].manifest.json
+        └── owners.txt
+                            </pre>
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Important:</strong> No whitespace or line-breaks in manifest paths - causes EV2 deployment errors
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow h-100">
+                        <div class="card-body p-4">
+                            <h4 class="card-title text-primary mb-4">
+                                <i class="fas fa-list-check me-2"></i>File Requirements
+                            </h4>
+                            <div class="mb-3">
+                                <h6 class="fw-bold text-success">Manifest File:</h6>
+                                <small>Must end with .manifest.json and contain all schema definitions</small>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="fw-bold text-success">Descriptions:</h6>
+                                <small>Must start with capital letter and end with period</small>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="fw-bold text-success">File References:</h6>
+                                <small>All KQL and sample files must be referenced in manifest</small>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="fw-bold text-success">Schema Version:</h6>
+                                <small>Must use simplifiedSchemaVersion "3"</small>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="fw-bold text-success">Sample Data:</h6>
+                                <small>Must be valid JSON arrays matching schema structure</small>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="fw-bold text-danger">Required TimeGenerated Column:</h6>
+                                <small>All tables must include a TimeGenerated column of type DateTime that maps to $.time JSON path</small>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="fw-bold text-danger">Forbidden System Columns:</h6>
+                                <small>Do not include Type, TenantId, _ResourceId, _SubscriptionId - these are added automatically by the ingestion pipeline</small>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="fw-bold text-danger">Reserved Column Names:</h6>
+                                <small>Avoid: resource, resourceid, resourcename, resourcetype, subscriptionid, tenantid - these are reserved and will be blocked</small>
+                            </div>
+                            <div class="mb-3">
+                                <h6 class="fw-bold text-warning">Dynamic Type Usage:</h6>
+                                <small>While supported, Dynamic types should be avoided when possible. Promote fields to top-level columns for better query performance and user experience.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deployment & Testing -->
+            <div class="row mb-5">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow h-100">
+                        <div class="card-body p-4">
+                            <h4 class="card-title text-primary mb-4">
+                                <i class="fas fa-rocket me-2"></i>Deployment Process
+                            </h4>
+                            <div class="deployment-step mb-3">
+                                <h6 class="fw-bold text-info">1. Validation</h6>
+                                <p class="small mb-2">Use this tool to validate your schema package before deployment</p>
+                            </div>
+                            <div class="deployment-step mb-3">
+                                <h6 class="fw-bold text-info">2. Testing</h6>
+                                <p class="small mb-2">Test in canary workspace before production deployment</p>
+                            </div>
+                            <div class="deployment-step mb-3">
+                                <h6 class="fw-bold text-info">3. Deployment</h6>
+                                <p class="small mb-2">Deploy through EV2 pipeline to all supported regions</p>
+                            </div>
+                            <div class="deployment-step mb-3">
+                                <h6 class="fw-bold text-info">4. Verification</h6>
+                                <p class="small mb-2">Schema becomes visible ~12 hours after ingestion</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow h-100">
+                        <div class="card-body p-4">
+                            <h4 class="card-title text-primary mb-4">
+                                <i class="fas fa-bug me-2"></i>Common Issues & Solutions
+                            </h4>
+                            <div class="issue-item mb-3">
+                                <h6 class="fw-bold text-warning">Schema Not Visible</h6>
+                                <p class="small mb-2">Wait 12 hours after ingestion. Check deployment logs and regional availability.</p>
+                            </div>
+                            <div class="issue-item mb-3">
+                                <h6 class="fw-bold text-warning">Ingestion Failures</h6>
+                                <p class="small mb-2">Verify TimeGenerated format, dataTypeId registration, and field size limits.</p>
+                            </div>
+                            <div class="issue-item mb-3">
+                                <h6 class="fw-bold text-warning">Deployment Errors</h6>
+                                <p class="small mb-2">Check folder structure, manifest syntax, and remove path whitespace.</p>
+                            </div>
+                            <div class="issue-item mb-3">
+                                <h6 class="fw-bold text-warning">Legacy Migration</h6>
+                                <p class="small mb-2">Contact team for migration flag setup when moving from legacy workflows.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Best Practices -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="card border-0 shadow">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-primary mb-4">
+                                <i class="fas fa-lightbulb me-2"></i>Best Practices & Tips
+                            </h3>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h5 class="text-success mb-3">
+                                        <i class="fas fa-database me-2"></i>Data Design
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Design tables for query performance</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Use appropriate data types</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Consider data retention requirements</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Plan for future schema evolution</li>
+                                    </ul>
+                                    <div class="alert alert-info mt-3">
+                                        <h6 class="fw-bold mb-2"><i class="fas fa-columns me-2"></i>Column Guidelines:</h6>
+                                        <ul class="small mb-0">
+                                            <li><strong>Required:</strong> TimeGenerated (DateTime)</li>
+                                            <li><strong>Forbidden:</strong> Type, TenantId, _ResourceId, _SubscriptionId</li>
+                                            <li><strong>Reserved:</strong> resource*, subscriptionid, tenantid</li>
+                                        </ul>
+                                    </div>
+                                    <div class="alert alert-warning mt-3">
+                                        <h6 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Dynamic Type Warning:</h6>
+                                        <ul class="small mb-0">
+                                            <li><strong>Avoid Dynamic types when possible</strong></li>
+                                            <li><strong>Promote fields to top-level columns for better performance</strong></li>
+                                            <li><strong>Top-level fields improve query authoring experience</strong></li>
+                                            <li><strong>Use Dynamic only when data structure is truly variable</strong></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <h5 class="text-info mb-3">
+                                        <i class="fas fa-code me-2"></i>KQL Transforms
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Keep transforms simple and efficient</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Test thoroughly with sample data</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Handle edge cases and null values</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Document complex logic clearly</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h5 class="text-warning mb-3">
+                                        <i class="fas fa-shield-alt me-2"></i>Compliance
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Follow Azure compliance standards</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Implement proper data classification</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Consider privacy and security requirements</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Document data lineage and usage</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support & Resources -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-0 shadow">
+                        <div class="card-body p-4">
+                            <h3 class="card-title text-primary mb-4">
+                                <i class="fas fa-question-circle me-2"></i>Support & Resources
+                            </h3>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5 class="text-info mb-3">
+                                        <i class="fas fa-users me-2"></i>Get Help
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <i class="fas fa-comments me-2"></i>
+                                            <strong>Teams Channel:</strong> AzureLogsOnboarding
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-envelope me-2"></i>
+                                            <strong>Email:</strong> General - AzureLogsOnboarding
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-bug me-2"></i>
+                                            <strong>Pipeline Issues:</strong> OneBranch Pipeline Support
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5 class="text-success mb-3">
+                                        <i class="fas fa-book me-2"></i>Documentation
+                                    </h5>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <i class="fas fa-external-link-alt me-2"></i>
+                                            <a href="https://eng.ms/docs/cloud-ai-platform/azure-edge-platform-aep/aep-health-standards/observability/azure-log-analytics/ambackend/la-schema-onboarding-guide" target="_blank">
+                                                Complete Onboarding Guide
+                                            </a>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-chart-line me-2"></i>
+                                            <a href="https://msit.powerbi.com/groups/9d1a6fe1-7baf-46cb-93bb-06c53448a87e/reports/525a98e5-a4ec-451a-816c-e2040a096a71" target="_blank">
+                                                Schema Deployment Dashboard
+                                            </a>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-file-code me-2"></i>
+                                            <a href="https://docs.microsoft.com/azure/data-explorer/kusto/query/" target="_blank">
+                                                KQL Reference Documentation
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container text-center">
+            <p class="mb-2">
+                <i class="fas fa-shield-alt me-2"></i>
+                Azure Log Analytics Schema Validator - Ensuring Quality Schema Onboarding
+            </p>
+            <p class="mb-0 text-white">
+                <small>
+                    <i class="fas fa-code me-2"></i>
+                    Developed by <strong class="text-white">Oren Salzberg</strong>
+                </small>
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

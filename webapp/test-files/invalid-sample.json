@@ -1,0 +1,5 @@
+{
+  "time": "2024-01-15T10:30:00Z",
+  "operationName": "Microsoft.Storage/storageAccounts/read",
+  "properties": "This is not an array as required"
+}

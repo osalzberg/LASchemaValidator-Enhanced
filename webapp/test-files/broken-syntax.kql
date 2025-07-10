@@ -1,0 +1,6 @@
+source
+| project
+    TimeGenerated = todatetime(["timestamp"]),
+    // This is an invalid KQL with syntax error
+    TestValue = tostring(properties.value
+    // Missing closing parenthesis above

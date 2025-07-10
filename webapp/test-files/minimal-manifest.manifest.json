@@ -1,0 +1,39 @@
+{
+  "type": "Microsoft.Resources/MinimalTestResource",
+  "displayName": "Minimal Test Resource",
+  "description": "Demonstrates minimal valid manifest with empty queries and functions.",
+  "simplifiedSchemaVersion": "3",
+  "tables": [
+    {
+      "name": "MinimalTable",
+      "description": "Minimal test table with required fields only.",
+      "dataTypeId": "MINIMAL_LOGS",
+      "artifactVersion": 1,
+      "input": [
+        {
+          "name": "time",
+          "type": "DateTime"
+        },
+        {
+          "name": "properties",
+          "type": "String"
+        }
+      ],
+      "transformFilePath": "KQL/MinimalTransform.kql",
+      "columns": [
+        {
+          "name": "TimeGenerated",
+          "description": "Timestamp when the event was generated.",
+          "type": "DateTime"
+        },
+        {
+          "name": "Properties",
+          "description": "Event properties in JSON format.",
+          "type": "String"
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "queries": []
+}
