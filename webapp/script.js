@@ -2702,3 +2702,15 @@ function clearFiles() {
     }
     
 }
+
+    const folderInput = document.getElementById('folderInput');
+    if (fileInput) fileInput.value = '';
+    if (folderInput) folderInput.value = '';
+    
+    // Hide results if shown
+    const results = document.getElementById('results');
+    if (results) {
+        results.style.display = 'none';
+    }
+    
+}
