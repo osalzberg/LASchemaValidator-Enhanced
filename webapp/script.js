@@ -134,7 +134,12 @@ function toggleGuide() {
         button.classList.remove('btn-outline-primary');
         button.classList.add('btn-outline-danger');
         
-        // Don't automatically scroll - let user choose when to scroll
+        // Auto-scroll to the guide section
+        setTimeout(() => {
+            guideSection.scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }, 100);
     } else {
         // Hide the guide
         guideSection.classList.remove('show');
@@ -182,7 +187,12 @@ function toggleValidation() {
         button.classList.remove('btn-primary');
         button.classList.add('btn-outline-danger');
         
-        // Don't automatically scroll - let user choose when to scroll
+        // Auto-scroll to the upload section
+        setTimeout(() => {
+            uploadSection.scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }, 100);
     } else {
         // Hide the upload section
         uploadSection.classList.remove('show');
@@ -206,6 +216,114 @@ function toggleValidation() {
                 behavior: 'smooth' 
             });
         }
+    }
+}
+
+// Functions with auto-scroll for main buttons
+function startValidationWithScroll() {
+    const uploadSection = document.getElementById('upload-section');
+    const button = document.querySelector('button[onclick="startValidationWithScroll()"]');
+    
+    if (!uploadSection) {
+        return;
+    }
+    
+    if (!button) {
+        return;
+    }
+    
+    if (uploadSection.style.display === 'none' || uploadSection.style.display === '') {
+        // Show the upload section
+        uploadSection.style.display = 'block';
+        uploadSection.classList.remove('hide');
+        uploadSection.classList.add('show');
+        
+        // Update button
+        button.innerHTML = '<i class="fas fa-times me-2"></i>Hide Validation';
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-outline-danger');
+        
+        // Auto-scroll to the upload section
+        setTimeout(() => {
+            uploadSection.scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }, 100);
+    } else {
+        // Hide the upload section
+        uploadSection.classList.remove('show');
+        uploadSection.classList.add('hide');
+        
+        // Update button
+        button.innerHTML = '<i class="fas fa-upload me-2"></i>Start Validation';
+        button.classList.remove('btn-outline-danger');
+        button.classList.add('btn-primary');
+        
+        // Hide after animation completes
+        setTimeout(() => {
+            uploadSection.style.display = 'none';
+            uploadSection.classList.remove('hide');
+        }, 300);
+        
+        // Scroll back to the hero section
+        const heroSection = document.querySelector('.hero-section');
+        if (heroSection) {
+            heroSection.scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }
+    }
+}
+
+function viewGuideWithScroll() {
+    const guideSection = document.getElementById('guide-section');
+    const button = document.querySelector('button[onclick="viewGuideWithScroll()"]');
+    
+    if (!guideSection) {
+        return;
+    }
+    
+    if (!button) {
+        return;
+    }
+    
+    if (guideSection.style.display === 'none' || guideSection.style.display === '') {
+        // Show the guide
+        guideSection.style.display = 'block';
+        guideSection.classList.remove('hide');
+        guideSection.classList.add('show');
+        
+        // Update button
+        button.innerHTML = '<i class="fas fa-times me-2"></i>Hide Guide';
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-outline-danger');
+        
+        // Auto-scroll to the guide section
+        setTimeout(() => {
+            guideSection.scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }, 100);
+    } else {
+        // Hide the guide
+        guideSection.classList.remove('show');
+        guideSection.classList.add('hide');
+        
+        // Update button
+        button.innerHTML = '<i class="fas fa-book me-2"></i>View Guide';
+        button.classList.remove('btn-outline-danger');
+        button.classList.add('btn-outline-primary');
+        
+        // Hide after animation completes
+        setTimeout(() => {
+            guideSection.style.display = 'none';
+            guideSection.classList.remove('hide');
+        }, 300);
+        
+        // Scroll back to the hero section
+        document.querySelector('.hero-section').scrollIntoView({ 
+            behavior: 'smooth' 
+        });
     }
 }
 
@@ -2010,7 +2128,6 @@ function highlightFileContent(content, location, problemItem) {
                                                     <span class="badge bg-success">DateTime</span>
                                                     <span class="badge bg-success">Int</span>
                                                     <span class="badge bg-success">Double</span>
-                                                    <span class="badge bg-success">Bool</span>
                                                 </div>
                                             </div>
                                         ` : ''}
@@ -2390,6 +2507,8 @@ window.dropHandler = dropHandler;
 window.handleFiles = handleFiles;
 window.toggleGuide = toggleGuide;
 window.toggleValidation = toggleValidation;
+window.startValidationWithScroll = startValidationWithScroll;
+window.viewGuideWithScroll = viewGuideWithScroll;
 window.showValidationAndScroll = showValidationAndScroll;
 
 // Make function globally accessible
