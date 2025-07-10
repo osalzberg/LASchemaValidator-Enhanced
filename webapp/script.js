@@ -134,12 +134,7 @@ function toggleGuide() {
         button.classList.remove('btn-outline-primary');
         button.classList.add('btn-outline-danger');
         
-        // Scroll to the guide section smoothly
-        setTimeout(() => {
-            guideSection.scrollIntoView({ 
-                behavior: 'smooth' 
-            });
-        }, 100);
+        // Don't automatically scroll - let user choose when to scroll
     } else {
         // Hide the guide
         guideSection.classList.remove('show');
@@ -187,12 +182,7 @@ function toggleValidation() {
         button.classList.remove('btn-primary');
         button.classList.add('btn-outline-danger');
         
-        // Scroll to the upload section smoothly
-        setTimeout(() => {
-            uploadSection.scrollIntoView({ 
-                behavior: 'smooth' 
-            });
-        }, 100);
+        // Don't automatically scroll - let user choose when to scroll
     } else {
         // Hide the upload section
         uploadSection.classList.remove('show');
