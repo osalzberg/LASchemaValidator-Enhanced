@@ -134,7 +134,12 @@ function toggleGuide() {
         button.classList.remove('btn-outline-primary');
         button.classList.add('btn-outline-danger');
         
-        // Don't automatically scroll - let user choose when to scroll
+        // Auto-scroll to the guide section
+        setTimeout(() => {
+            guideSection.scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }, 100);
     } else {
         // Hide the guide
         guideSection.classList.remove('show');
@@ -182,7 +187,12 @@ function toggleValidation() {
         button.classList.remove('btn-primary');
         button.classList.add('btn-outline-danger');
         
-        // Don't automatically scroll - let user choose when to scroll
+        // Auto-scroll to the upload section
+        setTimeout(() => {
+            uploadSection.scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }, 100);
     } else {
         // Hide the upload section
         uploadSection.classList.remove('show');
@@ -212,7 +222,7 @@ function toggleValidation() {
 // Functions with auto-scroll for main buttons
 function startValidationWithScroll() {
     const uploadSection = document.getElementById('upload-section');
-    const button = document.querySelector('button[onclick="startValidationWithScroll()"]');
+    const button = document.getElementById('startValidationBtn');
     
     if (!uploadSection) {
         return;
@@ -267,7 +277,7 @@ function startValidationWithScroll() {
 
 function viewGuideWithScroll() {
     const guideSection = document.getElementById('guide-section');
-    const button = document.querySelector('button[onclick="viewGuideWithScroll()"]');
+    const button = document.getElementById('viewGuideBtn');
     
     if (!guideSection) {
         return;
@@ -2691,18 +2701,6 @@ function clearFiles() {
     
     // Clear file inputs
     const fileInput = document.getElementById('fileInput');
-    const folderInput = document.getElementById('folderInput');
-    if (fileInput) fileInput.value = '';
-    if (folderInput) folderInput.value = '';
-    
-    // Hide results if shown
-    const results = document.getElementById('results');
-    if (results) {
-        results.style.display = 'none';
-    }
-    
-}
-
     const folderInput = document.getElementById('folderInput');
     if (fileInput) fileInput.value = '';
     if (folderInput) folderInput.value = '';
