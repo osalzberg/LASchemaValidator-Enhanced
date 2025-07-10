@@ -1342,7 +1342,7 @@ function validateColumn(column, index, tableContext, result) {
     }
     
     // Validate data type (column types for Log Analytics tables)
-    const validTypes = ['String', 'Int', 'BigInt', 'SmallInt', 'TinyInt', 'Float', 'Double', 'Bool', 'DateTime', 'Binary', 'Dynamic'];
+    const validTypes = ['String', 'Int', 'BigInt', 'SmallInt', 'TinyInt', 'Float', 'Double', 'Bool', 'DateTime', 'Guid', 'Binary', 'Dynamic'];
     if (column.type && !validTypes.includes(column.type)) {
         result.issues.push({
             message: `${columnContext}: Invalid data type '${column.type}'`,
@@ -1352,7 +1352,7 @@ function validateColumn(column, index, tableContext, result) {
             currentValue: column.type,
             expectedValue: `One of: ${validTypes.join(', ')}`,
             severity: 'error',
-            suggestion: `Change the column data type from "${column.type}" to one of the valid types. Note that "Guid" should be "String" for Log Analytics columns.`
+            suggestion: `Change the column data type from "${column.type}" to one of the valid types.`
         });
         result.status = 'fail';
     }
