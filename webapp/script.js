@@ -1,38 +1,117 @@
-// Azure Log Analytics Schema Validator - JavaScript
+/**
+ * ===============================================================================
+ * AZURE LOG ANALYTICS SCHEMA VALIDATOR - COMPREHENSIVE JAVASCRIPT ENGINE
+ * ===============================================================================
+ * 
+ * OVERVIEW:
+ * This is the core JavaScript engine for validating Azure Log Analytics schema files.
+ * It implements Microsoft's official validation requirements for NGSchema (dedicated schema)
+ * format and provides an enhanced user experience with detailed error reporting.
+ * 
+ * BUSINESS PURPOSE:
+ * Azure Log Analytics requires specific schema formats for log ingestion. This validator
+ * helps teams ensure their schema packages meet all Microsoft requirements before deployment,
+ * preventing costly validation failures in production.
+ * 
+ * KEY FEATURES:
+ * ✓ Validates manifest files (.manifest.json) - Main schema definitions
+ * ✓ Validates transform manifest files (.transform.manifest.json) - Data transformation definitions  
+ * ✓ Validates KQL files (.kql) - Kusto Query Language transforms and functions
+ * ✓ Validates sample data files (.json) - Input/output test data
+ * ✓ Analyzes complete folder structures for proper organization
+ * ✓ Provides detailed error reporting with fix suggestions
+ * ✓ Implements Microsoft's NGSchema v3 requirements
+ * ✓ Detects performance issues (e.g., Dynamic type usage)
+ * ✓ Interactive UI with progress tracking and drill-down capabilities
+ * 
+ * TECHNICAL ARCHITECTURE:
+ * 1. File Upload & Processing: Drag-drop, file selection, and folder upload support
+ * 2. Validation Engine: Comprehensive rule checking against Microsoft requirements  
+ * 3. Results Display: Interactive accordion UI with detailed error reporting
+ * 4. Performance Optimizations: Efficient DOM manipulation and memory management
+ * 
+ * MICROSOFT AZURE INTEGRATION:
+ * - Implements official NGSchema v3 validation rules
+ * - Checks for required TimeGenerated columns (DateTime type)
+ * - Validates against forbidden system columns (Type, TenantId, etc.)
+ * - Enforces column naming restrictions and data type requirements
+ * - Provides Dynamic type performance warnings with alternatives
+ * 
+ * TEAM GUIDANCE:
+ * - This code follows Azure design patterns and Microsoft's validation requirements
+ * - All validation rules are based on official Microsoft documentation
+ * - Error messages include specific suggestions for fixing common issues
+ * - The UI provides both high-level summaries and detailed drill-down capabilities
+ * ===============================================================================
+ */
 
-// Global variables
+// ===== GLOBAL STATE MANAGEMENT =====
+// These variables maintain application state throughout the validation process
+
+/** 
+ * @type {File[]} uploadedFiles - Array of files selected for validation
+ * Contains File objects with metadata like name, size, and relative paths
+ */
 let uploadedFiles = [];
+
+/** 
+ * @type {Object[]} validationResults - Array of validation results for each processed file
+ * Each result contains: filename, type, status, issues[], warnings[], originalContent
+ */
 let validationResults = [];
 
-// Initialize the application
+// ===== APPLICATION INITIALIZATION =====
+// This section handles the startup sequence and initial setup of the application
+
+/**
+ * Main application initialization function
+ * Called when the DOM is fully loaded to set up all components
+ * 
+ * BOOTSTRAP SEQUENCE:
+ * 1. Check for required HTML elements
+ * 2. Set up event listeners for user interactions
+ * 3. Initialize UI components (tooltips, animations)
+ * 4. Configure file upload handlers
+ * 5. Set up drag & drop functionality
+ * 6. Enable keyboard shortcuts for accessibility
+ */
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
 });
 
+/**
+ * Initialize the complete application
+ * Sets up all event listeners, UI components, and initial state
+ * 
+ * TEAM NOTE: This is the entry point for all app functionality.
+ * If adding new features, register them here to ensure proper initialization.
+ */
 function initializeApp() {
     
-    // Check if required elements exist
+    // Check if required elements exist in the DOM
+    // These elements are defined in index.html and are critical for app functionality
     const uploadSection = document.getElementById('upload-section');
     const guideSection = document.getElementById('guide-section');
     const validationBtn = document.querySelector('button[onclick="toggleValidation()"]');
     const guideBtn = document.querySelector('button[onclick="toggleGuide()"]');
     
     
-    // Add event listeners
+    // Set up all event listeners for user interactions
     setupEventListeners();
     
-    // Initialize tooltips
+    // Initialize Bootstrap tooltips for enhanced UX
     initializeTooltips();
     
-    // Set up file input handler
+    // Configure file upload input handlers (both single files and folders)
     setupFileInput();
     
-    // Set up document-level drag and drop prevention
+    // Prevent unwanted drag & drop behavior outside upload areas
     setupDragDropPrevention();
     
-    // Set up keyboard shortcuts
+    // Enable keyboard shortcuts for power users (V = validation, G = guide, ESC = close)
     setupKeyboardShortcuts();
     
+    // Get reference to validate button for later use
     const validateBtn = document.getElementById('validateBtn');
     
 }
@@ -655,58 +734,85 @@ function disableValidateButton() {
     validateBtn.disabled = true;
 }
 
-// Main validation function
+// ===== CORE VALIDATION ENGINE =====
+// This section contains the main validation logic that implements Microsoft's Azure Log Analytics requirements
+
+/**
+ * Main validation orchestrator function
+ * Coordinates the entire validation process from start to finish
+ * 
+ * VALIDATION PIPELINE:
+ * 1. Input validation (ensure files are selected)
+ * 2. UI preparation (progress bars, animations)
+ * 3. File-by-file validation with real-time progress updates
+ * 4. Folder structure analysis (if applicable)
+ * 5. Results compilation and presentation
+ * 6. Error handling and user feedback
+ * 
+ * MICROSOFT COMPLIANCE:
+ * - Implements NGSchema v3 validation rules
+ * - Validates against official Azure Log Analytics requirements
+ * - Provides detailed error messages with fix suggestions
+ * 
+ * TEAM NOTE: This is the main entry point for validation.
+ * All validation rules are defined in the individual validator functions below.
+ */
 async function validateFiles() {
     
+    // Guard clause: Ensure files are selected before proceeding
     if (uploadedFiles.length === 0) {
         showAlert('Please select files to validate.', 'warning');
         return;
     }
     
     
-    // Start button animation
-    startValidationAnimation();
-    
-    showValidationProgress();
+    // Initialize UI feedback systems
+    startValidationAnimation();  // Button animation for user feedback
+    showValidationProgress();    // Progress bar and file counter
     
     try {
-        // Process each file
+        // MAIN VALIDATION LOOP
+        // Process each uploaded file individually to provide granular feedback
         const results = [];
         for (let i = 0; i < uploadedFiles.length; i++) {
-            // Update current file display
+            // Update UI to show current file being processed
             updateCurrentFile(i, uploadedFiles[i]);
             
-            // Update progress bar
+            // Update progress bar (percentage based on files processed)
             updateProgress((i / uploadedFiles.length) * 100);
             
-            // Validate the current file
+            // Validate the current file against Microsoft requirements
             const result = await validateFile(uploadedFiles[i]);
             results.push(result);
         }
         
-        // Update final progress and current file display
+        // Finalize progress indication
         updateProgress(100);
         const fileDisplayElement = document.getElementById('current-file-display');
         if (fileDisplayElement) {
             fileDisplayElement.innerHTML = `<strong>Validation completed!</strong>`;
         }
         
-        // Add folder structure analysis if we have files with relative paths
+        // FOLDER STRUCTURE ANALYSIS
+        // If files have relative paths (indicating folder upload), analyze folder structure
+        // This validates Azure Log Analytics package organization requirements
         const hasfolderStructure = uploadedFiles.some(file => file.webkitRelativePath || file.relativePath);
         if (hasfolderStructure) {
             if (fileDisplayElement) {
                 fileDisplayElement.innerHTML = `<strong>Analyzing folder structure...</strong>`;
             }
             const folderAnalysis = analyzeFolderStructure(uploadedFiles);
-            results.unshift(folderAnalysis); // Add folder analysis at the beginning
+            results.unshift(folderAnalysis); // Add folder analysis at the beginning for prominence
         }
         
+        // Present comprehensive results to user
         displayValidationResults(results);
         
-        // Stop button animation
+        // Complete validation with success feedback
         stopValidationAnimation(true);
         
     } catch (error) {
+        // Handle any unexpected errors during validation
         hideValidationProgress();
         stopValidationAnimation(false);
         showAlert('An error occurred during validation: ' + error.message, 'danger');
