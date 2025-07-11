@@ -33,9 +33,6 @@ function initializeApp() {
     // Set up keyboard shortcuts
     setupKeyboardShortcuts();
     
-    // Test if validateFiles function is accessible
-    
-    // Test button click
     const validateBtn = document.getElementById('validateBtn');
     
 }
@@ -2311,7 +2308,6 @@ function showFileContent(resultIndex, location) {
     const result = results[resultIndex];
     
     if (!result || !result.originalContent) {
-        alert('File content not available');
         return;
     }
     
@@ -2321,7 +2317,6 @@ function showFileContent(resultIndex, location) {
     const problemItem = issue || warning;
     
     if (!problemItem) {
-        alert('Could not find the specific issue or warning for this location');
         return;
     }
     
@@ -2782,7 +2777,7 @@ function escapeHtml(text) {
 }
 
 function applyFix(resultIndex, location) {
-    alert('Auto-fix functionality would modify your file. For now, please manually apply the suggested changes.');
+    showAlert('Auto-fix functionality would modify your file. For now, please manually apply the suggested changes.', 'info');
 }
 
 function showAlert(message, type) {
@@ -2804,21 +2799,16 @@ function showAlert(message, type) {
 
 // Interactive validation cards functionality
 function toggleValidationDetails(validationType) {
-    alert('Function called for: ' + validationType);
-    
     const detailsElement = document.getElementById(validationType + '-details');
     
     if (!detailsElement) {
-        alert('Element not found: ' + validationType + '-details');
         return;
     }
     
     if (detailsElement.style.display === 'none') {
         detailsElement.style.display = 'block';
-        alert('Showing details for: ' + validationType);
     } else {
         detailsElement.style.display = 'none';
-        alert('Hiding details for: ' + validationType);
     }
 }
 
@@ -2892,16 +2882,6 @@ window.showValidationAndScroll = showValidationAndScroll;
 
 // Make function globally accessible
 window.toggleValidationDetails = toggleValidationDetails;
-
-// Test function immediately
-document.addEventListener('DOMContentLoaded', function() {
-});
-
-// Test function accessibility
-window.testToggle = function() {
-    toggleValidationDetails('folder');
-};
-
 
 function setupKeyboardShortcuts() {
     // Add keyboard shortcuts
