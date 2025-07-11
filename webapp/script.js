@@ -1702,20 +1702,108 @@ async function validateKQLFile(file, result) {
 async function validateJSONFile(file, result) {
     const content = await readFileContent(file);
     
+    // Store original content for drill-down
+    result.originalContent = content;
+    
     try {
         const json = JSON.parse(content);
+        result.parsedContent = json;
+        
+        // Determine file type based on filename patterns
+        const fileName = file.name.toLowerCase();
+        const isSampleFile = fileName.includes('sample') || fileName.includes('input') || fileName.includes('output');
+        const isInputSample = fileName.includes('input') || fileName.includes('sampleinput');
+        const isOutputSample = fileName.includes('output') || fileName.includes('sampleoutput');
         
         // Check if it's an array (required for sample data)
         if (!Array.isArray(json)) {
-            result.issues.push('JSON file must contain an array of sample records');
+            const fileTypeContext = isSampleFile ? 
+                (isInputSample ? 'sample input records file' : 
+                 isOutputSample ? 'sample output records file' : 'sample data file') : 
+                'JSON data file';
+            
+            result.issues.push({
+                message: `JSON file must contain an array of sample records`,
+                type: 'invalid_json_structure',
+                field: 'file_content',
+                location: 'entire_file',
+                currentValue: Array.isArray(json) ? 'array' : (typeof json === 'object' ? 'object' : typeof json),
+                expectedValue: 'array',
+                severity: 'error',
+                fileType: fileTypeContext,
+                suggestion: `According to Microsoft Azure Log Analytics documentation, ${fileTypeContext} must contain a JSON array of log records. Wrap your JSON object in square brackets to create an array, or add multiple sample records for better validation coverage.`,
+                microsoftRequirement: 'Your sample file should contain JSON list of message objects. If the file contains a single log entry, it should be framed as a list with a single item.',
+                fixInstructions: isSampleFile ? 
+                    'Convert your JSON object to an array by wrapping it in square brackets []. This ensures proper validation and compatibility with Azure Log Analytics ingestion pipeline.' :
+                    'Ensure your JSON file contains an array structure for proper data processing.'
+            });
             result.status = 'fail';
         } else if (json.length === 0) {
-            result.warnings.push('JSON array is empty');
+            result.warnings.push({
+                message: 'JSON array is empty - no sample records provided',
+                type: 'empty_sample_data',
+                field: 'file_content',
+                location: 'entire_file',
+                currentValue: '0 records',
+                severity: 'warning',
+                fileType: isSampleFile ? 'sample data file' : 'JSON data file',
+                suggestion: 'Add at least one sample record to the array. Multiple entries are recommended if your log entries vary by data they provide, to cover possible variations.',
+                microsoftRequirement: 'At least one log message is required per file, but multiple entries could be present.'
+            });
+        } else {
+            // Additional validation for sample files
+            if (isSampleFile) {
+                // Check if records look like proper log entries
+                const hasValidRecords = json.every(record => 
+                    typeof record === 'object' && record !== null && !Array.isArray(record)
+                );
+                
+                if (!hasValidRecords) {
+                    result.warnings.push({
+                        message: 'Some array elements are not valid log record objects',
+                        type: 'invalid_record_structure',
+                        field: 'array_elements',
+                        location: 'array_content',
+                        severity: 'warning',
+                        fileType: fileTypeContext,
+                        suggestion: 'Each element in the array should be a JSON object representing a log record. Ensure all elements are properly formatted log entries.',
+                        microsoftRequirement: 'Each array element should represent a complete log entry payload.'
+                    });
+                }
+                
+                // Check for TimeGenerated field in output samples (recommended)
+                if (isOutputSample) {
+                    const hasTimeGenerated = json.some(record => 
+                        record && typeof record === 'object' && 'TimeGenerated' in record
+                    );
+                    
+                    if (!hasTimeGenerated) {
+                        result.warnings.push({
+                            message: 'Output sample records should include TimeGenerated field',
+                            type: 'missing_timegenerated',
+                            field: 'TimeGenerated',
+                            location: 'sample_records',
+                            severity: 'warning',
+                            fileType: 'sample output records file',
+                            suggestion: 'Output sample records should include the TimeGenerated field as it is required for all Log Analytics tables. This helps validate the complete transformation output.',
+                            microsoftRequirement: 'TimeGenerated column is required for all Log Analytics tables and must map to the $.time JSON path in Shoebox.'
+                        });
+                    }
+                }
+            }
         }
         
     } catch (error) {
         result.status = 'fail';
-        result.issues.push('Invalid JSON format: ' + error.message);
+        result.issues.push({
+            message: 'Invalid JSON format: ' + error.message,
+            type: 'json_syntax_error',
+            field: 'file',
+            location: 'entire_file',
+            severity: 'error',
+            suggestion: 'Fix the JSON syntax errors in the file. Common issues include missing commas, unmatched brackets, or invalid characters. Use a JSON validator to identify and fix syntax problems.',
+            fixInstructions: 'Check for missing commas, unmatched brackets, invalid escape sequences, or trailing commas which are not allowed in JSON.'
+        });
     }
     
     return result;
