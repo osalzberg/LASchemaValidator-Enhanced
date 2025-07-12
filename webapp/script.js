@@ -3133,6 +3133,11 @@ function generateFixedLine(originalLine, problemItem, location) {
             }
             
             fixedLine = originalLine.replace(`"${currentValue}"`, `"${fixedValue}"`);
+        } else if (problemItem.type === 'incorrect_capitalization') {
+            // Fix capitalization issues for data types like "dynamic" -> "Dynamic"
+            const currentValue = problemItem.currentValue;
+            const expectedValue = problemItem.expectedValue || (currentValue.charAt(0).toUpperCase() + currentValue.slice(1));
+            fixedLine = originalLine.replace(`"${currentValue}"`, `"${expectedValue}"`);
         } else if (problemItem.type === 'invalid_value') {
             // Fix invalid values
             const currentValue = problemItem.currentValue;
@@ -3167,7 +3172,7 @@ function generateFixedLine(originalLine, problemItem, location) {
         } else if (problemItem.type === 'missing_field') {
             // For missing fields, suggest adding the field
             const fieldName = problemItem.field;
-            const suggestedValue = generateFixedValue(issue);
+            const suggestedValue = generateFixedValue(problemItem);
             if (suggestedValue) {
                 // Add the field to the line (simplified approach)
                 const indent = originalLine.match(/^(\s*)/)[0];
@@ -3198,6 +3203,9 @@ function generateFixedValue(problemItem) {
         }
         
         return fixedValue;
+    } else if (problemItem.type === 'incorrect_capitalization' && problemItem.currentValue) {
+        // Handle capitalization fixes for data types like "dynamic" -> "Dynamic"
+        return problemItem.expectedValue || (problemItem.currentValue.charAt(0).toUpperCase() + problemItem.currentValue.slice(1));
     } else if (problemItem.type === 'invalid_value') {
         const currentValue = problemItem.currentValue;
         
