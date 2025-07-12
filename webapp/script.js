@@ -2972,7 +2972,31 @@ function showFileContent(resultIndex, location) {
         modal.className = 'modal fade';
         modal.style.zIndex = '9999'; // Ensure it appears on top
         
-        const closeButtonHandler = `document.getElementById('${modalId}').remove();`;
+        const closeButtonHandler = `closeFileContentModal('${modalId}')`;
+        
+        // Store cleanup function globally for the close button
+        window.closeFileContentModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            
+            // Remove the modal using Bootstrap's method if available
+            const bootstrapModal = bootstrap?.Modal?.getInstance(modal);
+            if (bootstrapModal) {
+                bootstrapModal.hide();
+            }
+            
+            // Remove modal and cleanup
+            modal.remove();
+            
+            // Ensure backdrop is removed
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // Remove modal-open class from body
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        };
         
         modal.innerHTML = `
             <div class="modal-dialog modal-xl">
@@ -3083,10 +3107,17 @@ function showFileContent(resultIndex, location) {
         // Add escape key to close
         const escapeHandler = function(e) {
             if (e.key === 'Escape') {
-                modal.remove();
+                closeFileContentModal(modalId);
                 document.removeEventListener('keydown', escapeHandler);
             }
         };
+        
+        // Proper modal cleanup function
+        const closeModal = function() {
+            closeFileContentModal(modalId);
+            document.removeEventListener('keydown', escapeHandler);
+        };
+        
         document.addEventListener('keydown', escapeHandler);
         
         // Scroll to problematic line after a short delay
@@ -4022,7 +4053,31 @@ function showFixSuggestion(resultIndex, location) {
         modal.className = 'modal fade';
         modal.style.zIndex = '10000'; // Ensure it appears above file content modal
         
-        const closeButtonHandler = `document.getElementById('${modalId}').remove();`;
+        const closeButtonHandler = `closeFixSuggestionModal('${modalId}')`;
+        
+        // Store cleanup function globally for the close button
+        window.closeFixSuggestionModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            
+            // Remove the modal using Bootstrap's method if available
+            const bootstrapModal = bootstrap?.Modal?.getInstance(modal);
+            if (bootstrapModal) {
+                bootstrapModal.hide();
+            }
+            
+            // Remove modal and cleanup
+            modal.remove();
+            
+            // Ensure backdrop is removed
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // Remove modal-open class from body
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        };
         const isWarning = problemItem.severity === 'warning';
         const fixedValue = generateFixedValue(problemItem);
         
