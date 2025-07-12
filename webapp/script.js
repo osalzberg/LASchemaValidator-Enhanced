@@ -1574,20 +1574,29 @@ function validateTable(table, index, result) {
             table.columns.forEach((column, colIndex) => {
                 // Enhanced error handling for column.name.toLowerCase()
                 try {
-                    if (!column.name || typeof column.name !== 'string') {
+                    // Check if column has either standard name or transform pattern
+                    const hasStandardName = column.name && typeof column.name === 'string';
+                    const hasTransformPattern = column.transformName && column.physicalName && column.logicalName;
+                    
+                    if (!hasStandardName && !hasTransformPattern) {
                         result.issues.push({
                             message: `${tableContext}: Column ${colIndex + 1} has invalid or missing name`,
                             type: 'invalid_column_name',
                             field: `columns[${colIndex}].name`,
                             location: `${tableLocation}.columns[${colIndex}].name`,
                             currentValue: column.name ? typeof column.name : 'undefined',
-                            expectedValue: 'valid string',
+                            expectedValue: 'valid string name or transform pattern',
                             severity: 'error',
-                            suggestion: 'Ensure each column has a valid string name property.',
-                            microsoftRequirement: 'All columns must have valid string names for Azure Log Analytics validation.'
+                            suggestion: 'Ensure each column has either a valid string name property OR the complete transform pattern (transformName, physicalName, logicalName).',
+                            microsoftRequirement: 'All columns must have valid string names or use the transform pattern for Azure Log Analytics validation.'
                         });
                         result.status = 'fail';
                         return; // Skip further processing for this column
+                    }
+                    
+                    // Only check reserved names for standard columns (not transform pattern)
+                    if (!hasStandardName) {
+                        return; // Skip reserved name check for transform pattern columns
                     }
                     
                     if (reservedColumns.includes(column.name.toLowerCase())) {
