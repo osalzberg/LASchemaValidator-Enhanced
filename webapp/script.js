@@ -64,27 +64,48 @@ let validationResults = [];
 // This section handles the startup sequence and initial setup of the application
 
 /**
- * Main application initialization function
- * Called when the DOM is fully loaded to set up all components
+ * 🚀 APPLICATION STARTUP TRIGGER
+ * This is the very first thing that happens when someone opens your validator webpage
  * 
- * BOOTSTRAP SEQUENCE:
- * 1. Check for required HTML elements
- * 2. Set up event listeners for user interactions
- * 3. Initialize UI components (tooltips, animations)
- * 4. Configure file upload handlers
- * 5. Set up drag & drop functionality
- * 6. Enable keyboard shortcuts for accessibility
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * Think of this as the "power button" for your app. When someone loads the webpage,
+ * this automatically detects that everything is ready and kicks off the initialization process.
+ * 
+ * BUSINESS VALUE:
+ * Ensures the app is fully ready before users can interact with it, preventing errors
+ * and providing a smooth experience from the moment they arrive.
+ * 
+ * TECHNICAL DETAILS:
+ * - Waits for DOM (webpage structure) to be completely loaded
+ * - Calls initializeApp() to set up all the interactive features
+ * - This is a standard web development pattern for app initialization
  */
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
 });
 
 /**
- * Initialize the complete application
- * Sets up all event listeners, UI components, and initial state
+ * 🏗️ MAIN APP INITIALIZATION ENGINE
+ * This is the "setup crew" that prepares everything your users will interact with
  * 
- * TEAM NOTE: This is the entry point for all app functionality.
- * If adding new features, register them here to ensure proper initialization.
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * Imagine setting up a complex workspace - this function is like having a team that:
+ * - Connects all the buttons and controls
+ * - Sets up drag-and-drop zones for files
+ * - Prepares help tooltips and keyboard shortcuts
+ * - Makes sure everything works smoothly together
+ * 
+ * BUSINESS VALUE:
+ * Creates a professional, polished user experience that feels intuitive and responsive.
+ * Users can immediately start validating their Azure files without confusion.
+ * 
+ * SETUP SEQUENCE:
+ * 1. Check for required HTML elements (safety check)
+ * 2. Connect all interactive buttons and controls
+ * 3. Initialize helpful tooltips and animations
+ * 4. Set up file upload capabilities (drag-drop + browse)
+ * 5. Enable keyboard shortcuts for power users
+ * 6. Prepare validation tools for immediate use
  */
 function initializeApp() {
     
@@ -116,6 +137,23 @@ function initializeApp() {
     
 }
 
+/**
+ * 🔗 EVENT LISTENER COORDINATOR
+ * This connects user actions (clicks, changes) to the functions that handle them
+ * 
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * Think of this as the "receptionist" for your app - it listens for when users interact
+ * with different parts of the interface and makes sure the right functions get called.
+ * 
+ * USER INTERACTIONS HANDLED:
+ * - Radio button selections (manifest, KQL, samples, etc.)
+ * - File type changes that update upload instructions
+ * - Button clicks for toggling sections
+ * 
+ * BUSINESS VALUE:
+ * Creates a responsive interface where every click and selection does exactly what
+ * the user expects, making the app feel professional and intuitive.
+ */
 function setupEventListeners() {
     // Upload type radio buttons
     const uploadTypeRadios = document.querySelectorAll('input[name="uploadType"]');
@@ -129,6 +167,24 @@ function setupEventListeners() {
     
 }
 
+/**
+ * 🛡️ DRAG & DROP SECURITY GUARD
+ * Prevents unwanted file drops that could break the user experience
+ * 
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * Imagine you have a special drop zone for files, but you don't want users accidentally
+ * dropping files anywhere else on the page. This function acts like a security guard
+ * that says "only drop files in the designated area!"
+ * 
+ * BUSINESS VALUE:
+ * Prevents user frustration from accidentally dropping files in wrong places.
+ * Ensures files only get processed when dropped in the correct upload area.
+ * 
+ * TECHNICAL DETAILS:
+ * - Blocks default browser behavior for drag events outside upload zones
+ * - Allows normal drag-drop functionality within the designated upload area
+ * - Prevents browser from trying to open dropped files as new pages
+ */
 function setupDragDropPrevention() {
     // Prevent default drag behaviors on document
     document.addEventListener('dragenter', function(e) {
@@ -148,6 +204,23 @@ function setupDragDropPrevention() {
     });
 }
 
+/**
+ * 💡 HELPFUL TOOLTIP ACTIVATOR
+ * Sets up those handy little popup tips that appear when you hover over certain elements
+ * 
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * You know those helpful little bubbles that pop up when you hover over buttons or icons
+ * to tell you what they do? This function turns on that feature for your entire app.
+ * 
+ * BUSINESS VALUE:
+ * Makes the app more user-friendly by providing instant help and explanations.
+ * Reduces the need for external documentation - help is built right into the interface.
+ * 
+ * TECHNICAL DETAILS:
+ * - Uses Bootstrap's tooltip component if available
+ * - Safely handles cases where Bootstrap isn't loaded
+ * - Automatically finds all elements marked for tooltips and activates them
+ */
 function initializeTooltips() {
     // Initialize Bootstrap tooltips if available
     try {
@@ -161,6 +234,24 @@ function initializeTooltips() {
     }
 }
 
+/**
+ * 📁 FILE INPUT CONNECTOR
+ * Links the file selection buttons to the file processing system
+ * 
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * This connects the "Browse Files" and "Select Folder" buttons to the actual file processing.
+ * When someone clicks these buttons and selects files, this function makes sure those
+ * files get sent to the validation system.
+ * 
+ * BUSINESS VALUE:
+ * Provides multiple ways for users to upload files (individual files or entire folders),
+ * making the tool flexible for different workflow preferences.
+ * 
+ * FILE HANDLING CAPABILITIES:
+ * - Individual file selection (for single manifest or KQL files)
+ * - Folder selection (for complete Azure schema packages)
+ * - Automatic forwarding to the main file processing function
+ */
 function setupFileInput() {
     const fileInput = document.getElementById('fileInput');
     const folderInput = document.getElementById('folderInput');
@@ -174,19 +265,65 @@ function setupFileInput() {
     });
 }
 
-// Navigation functions
+// ===== NAVIGATION & USER INTERFACE FUNCTIONS =====
+// These functions handle user interactions with the main interface elements
+
+/**
+ * 🔼 SMOOTH SCROLL TO UPLOAD SECTION
+ * Takes users directly to the file upload area with a smooth scrolling animation
+ * 
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * When someone wants to upload files for validation, this function smoothly scrolls
+ * the page to the upload section so they can see exactly where to drop their files.
+ * 
+ * BUSINESS VALUE:
+ * Improves user experience by eliminating confusion about where to upload files.
+ * Provides visual guidance that makes the tool feel more professional and user-friendly.
+ */
 function scrollToUpload() {
     document.getElementById('upload-section').scrollIntoView({ 
         behavior: 'smooth' 
     });
 }
 
+/**
+ * 📚 SMOOTH SCROLL TO HELP GUIDE
+ * Takes users directly to the documentation and help section
+ * 
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * If someone needs help understanding Azure Log Analytics validation, this function
+ * smoothly scrolls to the comprehensive guide section with examples and tutorials.
+ * 
+ * BUSINESS VALUE:
+ * Reduces support requests by making help easily accessible.
+ * Helps users learn the tool quickly without external documentation.
+ */
 function scrollToGuide() {
     document.getElementById('guide-section').scrollIntoView({ 
         behavior: 'smooth' 
     });
 }
 
+/**
+ * 📖 INTERACTIVE GUIDE TOGGLE
+ * Shows/hides the comprehensive help guide with smooth animations
+ * 
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * This is like having a built-in help system that appears and disappears smoothly.
+ * Users can toggle the guide on when they need help, and off when they want to focus
+ * on validation. The button text changes to show what action is available.
+ * 
+ * BUSINESS VALUE:
+ * Provides contextual help without cluttering the interface.
+ * Users can access detailed Azure Log Analytics guidance whenever needed.
+ * 
+ * USER EXPERIENCE FEATURES:
+ * - Smooth show/hide animations
+ * - Button text updates ("View Guide" ↔ "Hide Guide")
+ * - Auto-scroll to guide when opened
+ * - Returns to main area when closed
+ * - Visual button color changes for clear feedback
+ */
 function toggleGuide() {
     const guideSection = document.getElementById('guide-section');
     const button = document.getElementById('viewGuideBtn');
@@ -239,6 +376,27 @@ function toggleGuide() {
     }
 }
 
+/**
+ * 🔧 INTERACTIVE VALIDATION SECTION TOGGLE
+ * Shows/hides the main file upload and validation area with smooth animations
+ * 
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * This is the main "work area" toggle - it reveals the file upload zone where users
+ * can drag-drop files or browse for Azure schema files to validate. When hidden,
+ * it keeps the interface clean and focused.
+ * 
+ * BUSINESS VALUE:
+ * Provides a clean, uncluttered interface that only shows tools when needed.
+ * Users can focus on learning first (with the guide) then switch to validation mode.
+ * 
+ * USER EXPERIENCE FEATURES:
+ * - Smooth show/hide animations with CSS transitions
+ * - Dynamic button text updates ("Start Validation" ↔ "Hide Validation")
+ * - Button color changes (blue → red) for clear visual feedback
+ * - Auto-scroll to validation area when opened
+ * - Returns to hero section when closed
+ * - Maintains state during file upload process
+ */
 function toggleValidation() {
     const uploadSection = document.getElementById('upload-section');
     const button = document.querySelector('button[onclick="toggleValidation()"]');
@@ -1423,8 +1581,40 @@ function validateTable(table, index, result) {
     const tableContext = `Table ${index + 1}`;
     const tableLocation = `tables[${index}]`;
     
-    // Required fields based on official documentation
-    const requiredFields = ['name', 'description', 'dataTypeId', 'artifactVersion', 'input', 'transformFilePath', 'columns'];
+    // Check for table name - either standard 'name' OR transform pattern (workflowName + transformName + physicalName + logicalName)
+    const hasStandardName = table.name;
+    const hasTransformPattern = table.workflowName && table.transformName && table.physicalName && table.logicalName;
+    
+    if (!hasStandardName && !hasTransformPattern) {
+        result.issues.push({
+            message: `${tableContext}: Missing required field 'name' or transform pattern (workflowName, transformName, physicalName, logicalName)`,
+            type: 'missing_field',
+            field: 'name',
+            location: `${tableLocation}.name`,
+            severity: 'error',
+            suggestion: `Add either a 'name' field OR the complete transform pattern with 'workflowName', 'transformName', 'physicalName', and 'logicalName' fields for table type changes.`,
+            microsoftRequirement: 'Tables must have either a standard "name" field or use the transform pattern (workflowName, transformName, physicalName, logicalName) when changing table types in Azure Log Analytics.'
+        });
+        result.status = 'fail';
+    }
+    
+    // Add informational note for transform pattern usage
+    if (hasTransformPattern && !hasStandardName) {
+        if (!result.warnings) result.warnings = [];
+        result.warnings.push({
+            message: `${tableContext}: Using transform pattern for table type change`,
+            type: 'info',
+            field: 'workflowName',
+            location: `${tableLocation}.workflowName`,
+            severity: 'info',
+            suggestion: `This table is using the Microsoft Azure transform pattern for changing table types. This allows multiple tables to share the same physical table while having different logical names.`,
+            microsoftRequirement: 'When using transform pattern, multiple tables can map to the same physical table with different logical representations.',
+            currentValue: `${table.workflowName} -> ${table.physicalName} (${table.logicalName})`
+        });
+    }
+    
+    // Required fields based on official documentation (excluding name since it can be replaced by transform pattern)
+    const requiredFields = ['description', 'dataTypeId', 'artifactVersion', 'input', 'transformFilePath', 'columns'];
     requiredFields.forEach(field => {
         if (!table[field]) {
             result.issues.push({
