@@ -969,10 +969,15 @@ async function validateFiles() {
         }
         
         // FOLDER STRUCTURE ANALYSIS
-        // If files have relative paths (indicating folder upload), analyze folder structure
-        // This validates Azure Log Analytics package organization requirements
+        // Only run folder analysis if:
+        // 1. Files have relative paths (indicating folder upload)
+        // 2. There are multiple files (single file doesn't need folder analysis)
+        // 3. Files are from different directories or organized in a folder structure
         const hasfolderStructure = uploadedFiles.some(file => file.webkitRelativePath || file.relativePath);
-        if (hasfolderStructure) {
+        const hasMultipleFiles = uploadedFiles.length > 1;
+        const shouldAnalyzeFolder = hasfolderStructure && hasMultipleFiles;
+        
+        if (shouldAnalyzeFolder) {
             if (fileDisplayElement) {
                 fileDisplayElement.innerHTML = `<strong>Analyzing folder structure...</strong>`;
             }
