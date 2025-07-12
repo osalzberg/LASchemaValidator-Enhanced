@@ -2914,91 +2914,187 @@ function toggleWarningDetails(detailsId, button) {
 }
 
 function showFileContent(resultIndex, location) {
-    const results = validationResults; // Assuming this is stored globally
-    const result = results[resultIndex];
+    console.log('showFileContent called with:', { resultIndex, location });
     
-    if (!result || !result.originalContent) {
-        return;
-    }
-    
-    // Find the specific issue or warning for this location
-    const issue = result.issues.find(issue => issue.location === location);
-    const warning = result.warnings ? result.warnings.find(warning => warning.location === location) : null;
-    const problemItem = issue || warning;
-    
-    if (!problemItem) {
-        return;
-    }
-    
-    // Create a modal to show the file content
-    const modalId = 'fileContentModal';
-    let modal = document.getElementById(modalId);
-    
-    if (!modal) {
+    // Enhanced error handling and logging
+    try {
+        const results = validationResults; // Assuming this is stored globally
+        
+        if (!results) {
+            console.error('validationResults is not available');
+            showAlert('Validation results not available. Please run validation first.', 'warning');
+            return;
+        }
+        
+        const result = results[resultIndex];
+        
+        if (!result) {
+            console.error('Result not found at index:', resultIndex);
+            showAlert('File result not found. Please try again.', 'warning');
+            return;
+        }
+        
+        if (!result.originalContent) {
+            console.error('No original content available for result:', result);
+            showAlert('File content not available for viewing.', 'warning');
+            return;
+        }
+        
+        // Find the specific issue or warning for this location
+        const issue = result.issues ? result.issues.find(issue => issue.location === location) : null;
+        const warning = result.warnings ? result.warnings.find(warning => warning.location === location) : null;
+        const problemItem = issue || warning;
+        
+        if (!problemItem) {
+            console.warn('Problem item not found for location:', location);
+            // Still show content even if specific problem item isn't found
+        }
+        
+        console.log('Creating modal for file content...');
+        
+        // Create a modal to show the file content
+        const modalId = 'fileContentModal';
+        let modal = document.getElementById(modalId);
+        
+        // Remove existing modal if it exists to avoid conflicts
+        if (modal) {
+            modal.remove();
+        }
+        
+        // Create new modal
         modal = document.createElement('div');
         modal.id = modalId;
         modal.className = 'modal fade';
+        modal.style.zIndex = '9999'; // Ensure it appears on top
+        
+        const closeButtonHandler = `document.getElementById('${modalId}').remove();`;
+        
         modal.innerHTML = `
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">File Content - ${result.filename}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-file-code me-2"></i>File Content - ${escapeHtml(result.filename)}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" onclick="${closeButtonHandler}" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <small class="text-muted">Issue location: <code>${location}</code></small>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    ${issue ? 'Issue' : 'Warning'} location: <code>${escapeHtml(location)}</code>
+                                </small>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="copyFileContentToClipboard('${resultIndex}')">
+                                        <i class="fas fa-copy me-1"></i>Copy Content
+                                    </button>
+                                    <button type="button" class="btn btn-outline-info" onclick="downloadFileContent('${resultIndex}', '${escapeHtml(result.filename)}')">
+                                        <i class="fas fa-download me-1"></i>Download
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div id="fileContentContainer"></div>
+                        <div id="fileContentContainer" class="border rounded" style="max-height: 600px; overflow-y: auto;">
+                            <!-- Content will be inserted here -->
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-secondary" onclick="${closeButtonHandler}">
+                            <i class="fas fa-times me-1"></i>Close
+                        </button>
                         ${problemItem && problemItem.suggestion ? `
-                            <button type="button" class="btn btn-success" onclick="applyFix('${resultIndex}', '${location}')">
-                                <i class="fas fa-magic"></i> Apply Suggested Fix
+                            <button type="button" class="btn btn-success" onclick="showFixSuggestion('${resultIndex}', '${escapeHtml(location)}')">
+                                <i class="fas fa-lightbulb me-1"></i>View Fix Suggestion
                             </button>
                         ` : ''}
                     </div>
                 </div>
             </div>
         `;
+        
         document.body.appendChild(modal);
-    }
-    
-    // Update the modal content
-    const container = document.getElementById('fileContentContainer');
-    container.innerHTML = highlightFileContent(result.originalContent, location, problemItem);
-    
-    document.querySelector('#fileContentModal .modal-title').textContent = `File Content - ${result.filename}`;
-    document.querySelector('#fileContentModal .text-muted').innerHTML = `${issue ? 'Issue' : 'Warning'} location: <code>${location}</code>`;
-    
-    // Show the modal
-    try {
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const bootstrapModal = new bootstrap.Modal(modal);
-            bootstrapModal.show();
-            
-            // Scroll to problematic line after modal is fully shown
-            modal.addEventListener('shown.bs.modal', function() {
-                scrollToProblematicLine(location, problemItem);
-            }, { once: true }); // Use once to avoid multiple event listeners
-        } else {
-            modal.style.display = 'block';
-            modal.classList.add('show');
-            
-           
-            setTimeout(() => {
-                scrollToProblematicLine(location, problemItem);
-            }, 300);
+        console.log('Modal created and added to DOM');
+        
+        // Update the modal content
+        const container = document.getElementById('fileContentContainer');
+        if (container) {
+            try {
+                container.innerHTML = highlightFileContent(result.originalContent, location, problemItem);
+                console.log('File content highlighted and inserted');
+            } catch (error) {
+                console.error('Error highlighting file content:', error);
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Unable to highlight content. Showing raw content.
+                    </div>
+                    <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code>${escapeHtml(result.originalContent)}</code></pre>
+                `;
+            }
         }
-    } catch (error) {
+        
+        // Show the modal with multiple fallback methods
+        console.log('Attempting to show modal...');
+        
+        // Method 1: Try Bootstrap Modal
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            try {
+                console.log('Using Bootstrap modal');
+                const bootstrapModal = new bootstrap.Modal(modal, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true
+                });
+                bootstrapModal.show();
+                
+                // Scroll to problematic line after modal is fully shown
+                modal.addEventListener('shown.bs.modal', function() {
+                    console.log('Modal shown, scrolling to problematic line');
+                    setTimeout(() => scrollToProblematicLine(location, problemItem), 100);
+                }, { once: true });
+                
+                console.log('Bootstrap modal shown successfully');
+                return;
+            } catch (error) {
+                console.error('Bootstrap modal failed:', error);
+                // Fall through to fallback method
+            }
+        }
+        
+        // Method 2: Fallback - Manual modal display
+        console.log('Using fallback modal display');
         modal.style.display = 'block';
         modal.classList.add('show');
+        modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
         
-        // Scroll to problematic line after a short delay for fallback modals
+        // Add backdrop click to close
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+        
+        // Add escape key to close
+        const escapeHandler = function(e) {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        // Scroll to problematic line after a short delay
         setTimeout(() => {
+            console.log('Scrolling to problematic line (fallback)');
             scrollToProblematicLine(location, problemItem);
         }, 300);
+        
+        console.log('Fallback modal displayed successfully');
+        
+    } catch (error) {
+        console.error('Critical error in showFileContent:', error);
+        showAlert('An error occurred while trying to display file content: ' + error.message, 'danger');
     }
 }
 
@@ -3776,4 +3872,314 @@ function clearFiles() {
     
     // Clear validation results
     clearValidationResults();
+}
+
+// Enhanced helper functions for the improved file content viewer
+
+function copyFileContentToClipboard(resultIndex) {
+    console.log('copyFileContentToClipboard called with:', resultIndex);
+    
+    try {
+        const results = validationResults;
+        if (!results || !results[resultIndex]) {
+            showAlert('File content not available for copying.', 'warning');
+            return;
+        }
+        
+        const result = results[resultIndex];
+        if (!result.originalContent) {
+            showAlert('File content not available for copying.', 'warning');
+            return;
+        }
+        
+        // Use the Clipboard API if available, fallback to older methods
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(result.originalContent).then(() => {
+                showAlert('File content copied to clipboard successfully!', 'success');
+            }).catch((error) => {
+                console.error('Clipboard API failed:', error);
+                fallbackCopyToClipboard(result.originalContent);
+            });
+        } else {
+            fallbackCopyToClipboard(result.originalContent);
+        }
+        
+    } catch (error) {
+        console.error('Error copying to clipboard:', error);
+        showAlert('Failed to copy file content to clipboard.', 'danger');
+    }
+}
+
+function fallbackCopyToClipboard(text) {
+    try {
+        // Create a temporary textarea element
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        
+        // Select and copy the text
+        textarea.select();
+        textarea.setSelectionRange(0, 99999); // For mobile devices
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        
+        if (successful) {
+            showAlert('File content copied to clipboard successfully!', 'success');
+        } else {
+            throw new Error('execCommand failed');
+        }
+    } catch (error) {
+        console.error('Fallback copy failed:', error);
+        showAlert('Unable to copy to clipboard. Please manually select and copy the content.', 'warning');
+    }
+}
+
+function downloadFileContent(resultIndex, filename) {
+    console.log('downloadFileContent called with:', { resultIndex, filename });
+    
+    try {
+        const results = validationResults;
+        if (!results || !results[resultIndex]) {
+            showAlert('File content not available for download.', 'warning');
+            return;
+        }
+        
+        const result = results[resultIndex];
+        if (!result.originalContent) {
+            showAlert('File content not available for download.', 'warning');
+            return;
+        }
+        
+        // Create a Blob with the file content
+        const blob = new Blob([result.originalContent], { type: 'text/plain' });
+        
+        // Create a download link
+        const url = URL.createObjectURL(blob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = filename || 'file-content.txt';
+        downloadLink.style.display = 'none';
+        
+        // Trigger download
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        // Clean up the object URL
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        
+        showAlert('File download started successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        showAlert('Failed to download file content.', 'danger');
+    }
+}
+
+function showFixSuggestion(resultIndex, location) {
+    console.log('showFixSuggestion called with:', { resultIndex, location });
+    
+    try {
+        const results = validationResults;
+        if (!results || !results[resultIndex]) {
+            showAlert('Fix suggestion not available.', 'warning');
+            return;
+        }
+        
+        const result = results[resultIndex];
+        
+        // Find the specific issue or warning for this location
+        const issue = result.issues ? result.issues.find(issue => issue.location === location) : null;
+        const warning = result.warnings ? result.warnings.find(warning => warning.location === location) : null;
+        const problemItem = issue || warning;
+        
+        if (!problemItem || !problemItem.suggestion) {
+            showAlert('No fix suggestion available for this issue.', 'warning');
+            return;
+        }
+        
+        // Create fix suggestion modal
+        const modalId = 'fixSuggestionModal';
+        let modal = document.getElementById(modalId);
+        
+        // Remove existing modal if it exists
+        if (modal) {
+            modal.remove();
+        }
+        
+        // Create new modal
+        modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'modal fade';
+        modal.style.zIndex = '10000'; // Ensure it appears above file content modal
+        
+        const closeButtonHandler = `document.getElementById('${modalId}').remove();`;
+        const isWarning = problemItem.severity === 'warning';
+        const fixedValue = generateFixedValue(problemItem);
+        
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-${isWarning ? 'warning' : 'success'} text-${isWarning ? 'dark' : 'white'}">
+                        <h5 class="modal-title">
+                            <i class="fas fa-lightbulb me-2"></i>${isWarning ? 'Performance Improvement Suggestion' : 'Fix Suggestion'}
+                        </h5>
+                        <button type="button" class="btn-close ${isWarning ? '' : 'btn-close-white'}" onclick="${closeButtonHandler}" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-${isWarning ? 'warning' : 'info'} mb-4">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-${isWarning ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                                ${isWarning ? 'Performance Issue Detected' : 'Issue Found'}
+                            </h6>
+                            <p class="mb-0">${problemItem.message}</p>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-${isWarning ? 'warning' : 'danger'}">
+                                    <i class="fas fa-${isWarning ? 'exclamation-triangle' : 'times'} me-1"></i>Current Implementation
+                                </h6>
+                                <div class="p-3 bg-light border border-${isWarning ? 'warning' : 'danger'} rounded mb-3">
+                                    <small class="text-muted d-block mb-1">Location: <code>${location}</code></small>
+                                    ${problemItem.currentValue ? `<code class="text-${isWarning ? 'warning' : 'danger'}">${escapeHtml(problemItem.currentValue)}</code>` : '<em>See issue description above</em>'}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6 class="text-success">
+                                    <i class="fas fa-check me-1"></i>${isWarning ? 'Recommended Approach' : 'Suggested Fix'}
+                                </h6>
+                                <div class="p-3 bg-light border border-success rounded mb-3">
+                                    ${fixedValue ? `<code class="text-success">${escapeHtml(fixedValue)}</code>` : '<em>See suggestion below</em>'}
+                                    ${isWarning && problemItem.type === 'performance_warning' ? `
+                                        <div class="mt-2">
+                                            <small class="text-success d-block"><strong>Alternative types:</strong></small>
+                                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                                <span class="badge bg-success">String</span>
+                                                <span class="badge bg-success">DateTime</span>
+                                                <span class="badge bg-success">Int</span>
+                                                <span class="badge bg-success">Double</span>
+                                                <span class="badge bg-success">Bool</span>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6><i class="fas fa-lightbulb me-2"></i>How to Fix This:</h6>
+                            <div class="alert alert-${isWarning ? 'warning' : 'success'} py-2">
+                                ${problemItem.suggestion}
+                            </div>
+                        </div>
+                        
+                        ${problemItem.microsoftRequirement ? `
+                            <div class="mb-4">
+                                <h6><i class="fas fa-microsoft me-2"></i>Microsoft Azure Requirement:</h6>
+                                <blockquote class="blockquote-sm bg-light p-3 border-start border-4 border-primary">
+                                    ${problemItem.microsoftRequirement}
+                                </blockquote>
+                            </div>
+                        ` : ''}
+                        
+                        ${problemItem.fixInstructions ? `
+                            <div class="mb-4">
+                                <h6><i class="fas fa-tools me-2"></i>Step-by-Step Instructions:</h6>
+                                <div class="alert alert-success py-2">
+                                    <strong>${problemItem.fixInstructions}</strong>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${isWarning && problemItem.type === 'performance_warning' ? `
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Performance Impact</h6>
+                                <p class="mb-2">Dynamic fields can impact query performance and make queries more complex. Consider these benefits of using specific data types:</p>
+                                <ul class="mb-0">
+                                    <li><strong>Better Query Performance:</strong> Specific types allow for optimized storage and faster queries</li>
+                                    <li><strong>Improved User Experience:</strong> Users get better IntelliSense and query suggestions</li>
+                                    <li><strong>Type Safety:</strong> Prevents runtime errors from type mismatches</li>
+                                    <li><strong>Storage Efficiency:</strong> More efficient data compression and storage</li>
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="${closeButtonHandler}">
+                            <i class="fas fa-times me-1"></i>Close
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="copyFixSuggestion('${escapeHtml(problemItem.suggestion)}', '${fixedValue}')">
+                            <i class="fas fa-copy me-1"></i>Copy Fix Instructions
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        console.log('Fix suggestion modal created');
+        
+        // Show the modal
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            try {
+                const bootstrapModal = new bootstrap.Modal(modal);
+                bootstrapModal.show();
+                console.log('Bootstrap fix suggestion modal shown');
+            } catch (error) {
+                console.error('Bootstrap modal failed:', error);
+                showFallbackModal(modal);
+            }
+        } else {
+            showFallbackModal(modal);
+        }
+        
+    } catch (error) {
+        console.error('Error showing fix suggestion:', error);
+        showAlert('Failed to display fix suggestion.', 'danger');
+    }
+}
+
+function showFallbackModal(modal) {
+    modal.style.display = 'block';
+    modal.classList.add('show');
+    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    
+    // Add backdrop click to close
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    // Add escape key to close
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+    
+    console.log('Fallback fix suggestion modal shown');
+}
+
+function copyFixSuggestion(suggestion, fixedValue) {
+    const textToCopy = `Fix Suggestion:\n${suggestion}\n\n${fixedValue ? `Suggested Value: ${fixedValue}` : ''}`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            showAlert('Fix instructions copied to clipboard!', 'success');
+        }).catch((error) => {
+            console.error('Clipboard API failed:', error);
+            fallbackCopyToClipboard(textToCopy);
+        });
+    } else {
+        fallbackCopyToClipboard(textToCopy);
+    }
 }
