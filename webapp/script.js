@@ -1656,9 +1656,26 @@ function validateColumn(column, index, tableContext, result) {
     const columnContext = `${tableContext}, Column ${index + 1}`;
     const columnLocation = `${tableContext.replace(' ', '').toLowerCase()}.columns[${index}]`;
     
-    // Required fields
-    const requiredFields = ['name', 'type', 'description'];
-    requiredFields.forEach(field => {
+    // Check for column name - either standard 'name' OR transform pattern (transformName + physicalName + logicalName)
+    const hasStandardName = column.name;
+    const hasTransformPattern = column.transformName && column.physicalName && column.logicalName;
+    
+    if (!hasStandardName && !hasTransformPattern) {
+        result.issues.push({
+            message: `${columnContext}: Missing required field 'name' or transform pattern (transformName, physicalName, logicalName)`,
+            type: 'missing_field',
+            field: 'name',
+            location: `${columnLocation}.name`,
+            severity: 'error',
+            suggestion: `Add either a 'name' field OR the complete transform pattern with 'transformName', 'physicalName', and 'logicalName' fields for column type changes.`,
+            microsoftRequirement: 'Columns must have either a standard "name" field or use the transform pattern (transformName, physicalName, logicalName) when changing column types in Azure Log Analytics.'
+        });
+        result.status = 'fail';
+    }
+    
+    // Validate other required fields
+    const otherRequiredFields = ['type', 'description'];
+    otherRequiredFields.forEach(field => {
         if (!column[field]) {
             result.issues.push({
                 message: `${columnContext}: Missing required field '${field}'`,
@@ -1671,6 +1688,21 @@ function validateColumn(column, index, tableContext, result) {
             result.status = 'fail';
         }
     });
+    
+    // Add informational note for transform pattern usage
+    if (hasTransformPattern && !hasStandardName) {
+        if (!result.warnings) result.warnings = [];
+        result.warnings.push({
+            message: `${columnContext}: Using transform pattern for column type change`,
+            type: 'info',
+            field: 'transformName',
+            location: `${columnLocation}.transformName`,
+            severity: 'info',
+            suggestion: `This column is using the Microsoft Azure transform pattern for changing column types. Ensure the table has "isChangeColumnInternalNameAllowed": true property.`,
+            microsoftRequirement: 'When using transform pattern, users won\'t be able to query data ingested before this change and should be notified.',
+            currentValue: `${column.transformName} -> ${column.physicalName}`
+        });
+    }
     
     // Validate description
     if (column.description) {
