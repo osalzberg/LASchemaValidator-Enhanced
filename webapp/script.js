@@ -863,7 +863,7 @@ function createFileListItem(file, index, isInFolder = false) {
 function getFileIcon(filename) {
     // Enhanced error handling for undefined filename
     if (!filename || typeof filename !== 'string') {
-        console.error('getFileIcon: filename is undefined or not a string:', filename);
+        // Return appropriate error icon without logging sensitive data
         return { icon: 'fas fa-exclamation-triangle', class: 'error', type: 'Invalid File' };
     }
     
@@ -1828,7 +1828,7 @@ function validateTable(table, index, result) {
                     try {
                         return col.name.toLowerCase() === 'tenantid';
                     } catch (error) {
-                        console.error('Error processing column name for tenantid check:', error);
+                        // Silent error handling - unable to process column name
                         return false;
                     }
                 });
@@ -2173,7 +2173,7 @@ async function validateKQLFile(file, result) {
         const kqlKeywords = ['let', 'datatable', 'extend', 'project', 'where', 'summarize', 'join', 'union'];
         const hasKQLKeywords = kqlKeywords.some(keyword => {
             if (typeof content !== 'string') {
-                console.error('validateKQLFile: content is not a string:', typeof content, content);
+                // Silent error handling - content is not a string
                 return false;
             }
             return content.toLowerCase().includes(keyword);
@@ -3294,7 +3294,7 @@ function findColumnInLines(lines, columnIndex, problemItem) {
         }
         
     } catch (error) {
-        console.error('Error finding column in lines:', error);
+        // Silent error handling - unable to find column in lines
     }
     
     return null;
