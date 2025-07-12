@@ -836,7 +836,7 @@ footer {
 /* Problem Line Styling */
 .problem-line {
     background-color: #fff5f5 !important;
-    border-left-color: #dc3545 !important;
+    border-left: 4px solid #dc3545 !important;
     animation: highlightProblem 2s ease-in-out;
 }
 
@@ -884,8 +884,31 @@ footer {
 /* Fix Line Styling */
 .fix-line {
     background-color: #f0fff4 !important;
-    border-left-color: #28a745 !important;
+    border-left: 4px solid #28a745 !important;
     animation: highlightFix 2s ease-in-out;
+}
+
+@keyframes highlightFix {
+    0% { 
+        background-color: #f0fff4;
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    }
+    25% { 
+        background-color: #d4edda;
+        box-shadow: 0 0 10px 5px rgba(40, 167, 69, 0.4);
+    }
+    50% { 
+        background-color: #c3e6cb;
+        box-shadow: 0 0 20px 10px rgba(40, 167, 69, 0.3);
+    }
+    75% { 
+        background-color: #d4edda;
+        box-shadow: 0 0 10px 5px rgba(40, 167, 69, 0.4);
+    }
+    100% { 
+        background-color: #f0fff4;
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+    }
 }
 
 .fix-line .line-number.fix-number {

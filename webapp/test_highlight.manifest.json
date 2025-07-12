@@ -1,0 +1,20 @@
+[
+    {
+        "simplifiedSchemaVersion": 3,
+        "name": "TestTable",
+        "displayName": "Test Table",
+        "description": "test description without capital or period",
+        "columns": [
+            {
+                "name": "TimeGenerated",
+                "type": "DateTime",
+                "description": "Time when the event was generated"
+            },
+            {
+                "name": "TestColumn",
+                "type": "String",
+                "description": "test column description"
+            }
+        ]
+    }
+]

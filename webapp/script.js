@@ -3148,6 +3148,14 @@ function highlightFileContent(content, location, problemItem) {
         // Find the line that contains the problematic field
         const problemLine = findProblemLine(lines, location, problemItem);
         
+        // Debug output to help troubleshoot
+        console.log('Highlighting file content:', {
+            location,
+            problemItem,
+            problemLine,
+            hasCurrentValue: problemItem && problemItem.currentValue
+        });
+        
         let highlightedContent = '';
         
         lines.forEach((line, index) => {
@@ -3155,7 +3163,7 @@ function highlightFileContent(content, location, problemItem) {
             const isProblematicLine = problemLine && problemLine.lineNumber === lineNumber;
             
             if (isProblematicLine) {
-                // Highlight the problematic line
+                // Highlight the problematic line in red
                 highlightedContent += `<div class="code-line problem-line ${problemType}-line" id="problematic-line-${lineNumber}" data-line="${lineNumber}" data-column-index="${problemItem.columnIndex || ''}">`;
                 highlightedContent += `<span class="line-number ${problemType}-number">${lineNumber}</span>`;
                 highlightedContent += `<span class="line-content">${escapeHtml(line)}</span>`;
@@ -3169,9 +3177,11 @@ function highlightFileContent(content, location, problemItem) {
                 highlightedContent += `</span>`;
                 highlightedContent += '</div>';
                 
-                // Add suggested fix or type recommendations
+                // Add suggested fix or type recommendations in green
                 if (problemItem && (problemItem.suggestion || problemItem.currentValue)) {
                     const fixedLine = generateFixedLine(line, problemItem, location);
+                    console.log('Generated fixed line:', { originalLine: line, fixedLine, problemItem });
+                    
                     if (fixedLine && fixedLine !== line) {
                         highlightedContent += `<div class="code-line fix-line">`;
                         highlightedContent += `<span class="line-number fix-number">+${lineNumber}</span>`;
@@ -3181,6 +3191,19 @@ function highlightFileContent(content, location, problemItem) {
                         highlightedContent += `<span class="fix-text">${isWarning ? 'SUGGESTED' : 'FIXED'}</span>`;
                         highlightedContent += `</span>`;
                         highlightedContent += '</div>';
+                    } else {
+                        // If no fixed line generated, show a generic fix suggestion
+                        console.log('No fixed line generated, showing suggestion');
+                        if (problemItem.suggestion) {
+                            highlightedContent += `<div class="code-line fix-line">`;
+                            highlightedContent += `<span class="line-number fix-number">!</span>`;
+                            highlightedContent += `<span class="line-content"><em>Fix: ${problemItem.suggestion}</em></span>`;
+                            highlightedContent += `<span class="fix-indicator">`;
+                            highlightedContent += `<i class="fas fa-lightbulb"></i> `;
+                            highlightedContent += `<span class="fix-text">SUGGESTION</span>`;
+                            highlightedContent += `</span>`;
+                            highlightedContent += '</div>';
+                        }
                     }
                 }
                 
@@ -3284,25 +3307,42 @@ function highlightFileContent(content, location, problemItem) {
 function findProblemLine(lines, location, problemItem) {
     if (!problemItem) return null;
     
+    console.log('Finding problem line for:', { location, problemItem });
+    
     // Parse the location to understand what we're looking for
     const locationParts = location.split('.');
     let searchTerm = '';
     
     if (location.includes('description')) {
-        searchTerm = '"description"';
         // For description errors, we want to find the line with the actual description content
-        // Look for the description field and its value
+        console.log('Looking for description field');
+        
+        // Check if this is a column description
+        if (location.includes('columns[')) {
+            const colIndex = location.match(/columns\[(\d+)\]/)?.[1];
+            if (colIndex !== undefined) {
+                console.log(`Looking for column ${colIndex} description`);
+                return findColumnDescriptionLine(lines, parseInt(colIndex), problemItem);
+            }
+        }
+        
+        // For root-level description
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             if (line.includes('"description"') && line.includes(':')) {
+                console.log(`Found description line ${i + 1}: ${line}`);
                 // Check if this line contains the problematic description value
                 if (problemItem && problemItem.currentValue && line.includes(problemItem.currentValue)) {
+                    console.log('Found line with problematic value');
                     return { lineNumber: i + 1, line: line };
                 }
                 // If no specific value match, return the description field line
+                console.log('Returning description field line');
                 return { lineNumber: i + 1, line: line };
             }
         }
+        // Fallback to searching for description term
+        searchTerm = '"description"';
     } else if (location.includes('simplifiedSchemaVersion')) {
         searchTerm = '"simplifiedSchemaVersion"';
     } else if (location.includes('input[]')) {
@@ -3445,6 +3485,71 @@ function findColumnInLines(lines, columnIndex, problemItem) {
     return null;
 }
 
+function findColumnDescriptionLine(lines, columnIndex, problemItem) {
+    try {
+        let inColumnsArray = false;
+        let currentColumnIndex = -1;
+        let braceDepth = 0;
+        let inColumnObject = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // Check if we're entering the columns array
+            if (line.includes('"columns"') && line.includes('[')) {
+                inColumnsArray = true;
+                continue;
+            }
+            
+            if (!inColumnsArray) continue;
+            
+            // Track brace depth to understand object structure
+            const openBraces = (line.match(/\{/g) || []).length;
+            const closeBraces = (line.match(/\}/g) || []).length;
+            
+            // If we find an opening brace, we might be starting a new column object
+            if (openBraces > 0 && !inColumnObject) {
+                currentColumnIndex++;
+                inColumnObject = true;
+                braceDepth = openBraces - closeBraces;
+            } else if (inColumnObject) {
+                braceDepth += openBraces - closeBraces;
+                
+                // Check if this is the column we're looking for and we're still in it
+                if (currentColumnIndex === columnIndex && braceDepth > 0) {
+                    // Look for the description field in this column
+                    if (line.includes('"description"') && line.includes(':')) {
+                        console.log(`Found column ${columnIndex} description line ${i + 1}: ${line}`);
+                        // Check if this line contains the problematic description value
+                        if (problemItem && problemItem.currentValue && line.includes(problemItem.currentValue)) {
+                            console.log('Found line with problematic description value');
+                            return { lineNumber: i + 1, line: lines[i], columnIndex: columnIndex };
+                        }
+                        // Return the description field line for this column
+                        return { lineNumber: i + 1, line: lines[i], columnIndex: columnIndex };
+                    }
+                }
+                
+                // If we've closed all braces for this column, we're done with it
+                if (braceDepth <= 0) {
+                    inColumnObject = false;
+                }
+            }
+            
+            // Check if we're leaving the columns array
+            if (line.includes(']') && inColumnsArray) {
+                break;
+            }
+        }
+        
+        console.log(`Could not find column ${columnIndex} description line`);
+        return null;
+    } catch (error) {
+        console.error('Error finding column description line:', error);
+        return null;
+    }
+}
+
 function generateFixedLine(originalLine, problemItem, location) {
     if (!problemItem) return null;
     
@@ -3467,13 +3572,17 @@ function generateFixedLine(originalLine, problemItem, location) {
                 fixedValue = fixedValue + '.';
             }
             
-            // Replace the description value in the line
-            fixedLine = originalLine.replace(`"${currentValue}"`, `"${fixedValue}"`);
-            
-            // Also try without quotes in case the format is different
-            if (fixedLine === originalLine) {
+            // Replace the description value in the line with multiple patterns
+            // Pattern 1: "description": "value"
+            if (originalLine.includes(`"${currentValue}"`)) {
+                fixedLine = originalLine.replace(`"${currentValue}"`, `"${fixedValue}"`);
+            }
+            // Pattern 2: value without quotes (unlikely but possible)
+            else if (originalLine.includes(currentValue)) {
                 fixedLine = originalLine.replace(currentValue, fixedValue);
             }
+            
+            console.log('Description fix applied:', { originalLine, fixedLine, currentValue, fixedValue });
         } else if (problemItem.type === 'incorrect_capitalization') {
             // Fix capitalization issues for data types like "dynamic" -> "Dynamic"
             const currentValue = problemItem.currentValue;
