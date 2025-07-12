@@ -703,6 +703,12 @@ function createFileListItem(file, index, isInFolder = false) {
 }
 
 function getFileIcon(filename) {
+    // Enhanced error handling for undefined filename
+    if (!filename || typeof filename !== 'string') {
+        console.error('getFileIcon: filename is undefined or not a string:', filename);
+        return { icon: 'fas fa-exclamation-triangle', class: 'error', type: 'Invalid File' };
+    }
+    
     const extension = filename.split('.').pop().toLowerCase();
     
     if (filename.includes('.transform.manifest.json')) {
@@ -1566,31 +1572,91 @@ function validateTable(table, index, result) {
             // Check for reserved column names that are blocked
             const reservedColumns = ['resource', 'resourceid', 'resourcename', 'resourcetype', 'subscriptionid'];
             table.columns.forEach((column, colIndex) => {
-                if (reservedColumns.includes(column.name.toLowerCase())) {
+                // Enhanced error handling for column.name.toLowerCase()
+                try {
+                    if (!column.name || typeof column.name !== 'string') {
+                        result.issues.push({
+                            message: `${tableContext}: Column ${colIndex + 1} has invalid or missing name`,
+                            type: 'invalid_column_name',
+                            field: `columns[${colIndex}].name`,
+                            location: `${tableLocation}.columns[${colIndex}].name`,
+                            currentValue: column.name ? typeof column.name : 'undefined',
+                            expectedValue: 'valid string',
+                            severity: 'error',
+                            suggestion: 'Ensure each column has a valid string name property.',
+                            microsoftRequirement: 'All columns must have valid string names for Azure Log Analytics validation.'
+                        });
+                        result.status = 'fail';
+                        return; // Skip further processing for this column
+                    }
+                    
+                    if (reservedColumns.includes(column.name.toLowerCase())) {
+                        result.issues.push({
+                            message: `${tableContext}: Column name "${column.name}" is reserved and will be blocked at validation`,
+                            type: 'reserved_column_name',
+                            field: `columns[${colIndex}].name`,
+                            location: `${tableLocation}.columns[${colIndex}].name`,
+                            currentValue: column.name,
+                            severity: 'error',
+                            suggestion: `Choose a different name for the "${column.name}" column. Reserved names: resource, resourceid, resourcename, resourcetype, subscriptionid.`
+                        });
+                        result.status = 'fail';
+                    }
+                } catch (error) {
                     result.issues.push({
-                        message: `${tableContext}: Column name "${column.name}" is reserved and will be blocked at validation`,
-                        type: 'reserved_column_name',
+                        message: `${tableContext}: Error processing column ${colIndex + 1} name - ${error.message}`,
+                        type: 'column_name_processing_error',
                         field: `columns[${colIndex}].name`,
                         location: `${tableLocation}.columns[${colIndex}].name`,
-                        currentValue: column.name,
                         severity: 'error',
-                        suggestion: `Choose a different name for the "${column.name}" column. Reserved names: resource, resourceid, resourcename, resourcetype, subscriptionid.`
+                        currentValue: column.name,
+                        expectedValue: 'valid string',
+                        suggestion: 'Ensure the column name is a valid string that can be processed.',
+                        microsoftRequirement: 'Column names must be valid strings for Azure Log Analytics processing.',
+                        fixInstructions: 'Check the column name for invalid characters or encoding issues.',
+                        errorDetails: `JavaScript error: ${error.message}`
                     });
                     result.status = 'fail';
                 }
             });
             
             // Check for tenantid column (special case - will be overridden by system)
-            const tenantIdColumn = table.columns.find(col => col.name.toLowerCase() === 'tenantid');
-            if (tenantIdColumn) {
+            try {
+                const tenantIdColumn = table.columns.find(col => {
+                    if (!col.name || typeof col.name !== 'string') {
+                        return false; // Skip invalid column names
+                    }
+                    try {
+                        return col.name.toLowerCase() === 'tenantid';
+                    } catch (error) {
+                        console.error('Error processing column name for tenantid check:', error);
+                        return false;
+                    }
+                });
+                
+                if (tenantIdColumn) {
+                    result.issues.push({
+                        message: `${tableContext}: Column "tenantid" is reserved and its value will be overridden by the system (contains workspaceId, not tenantId)`,
+                        type: 'reserved_overridden_column',
+                        field: 'tenantid',
+                        location: `${tableLocation}.columns.tenantid`,
+                        currentValue: tenantIdColumn.name,
+                        severity: 'error',
+                        suggestion: 'Remove the "tenantid" column from your schema. If you need tenant information, use a different column name. Note that the system-provided tenantid actually contains the workspaceId.'
+                    });
+                    result.status = 'fail';
+                }
+            } catch (error) {
                 result.issues.push({
-                    message: `${tableContext}: Column "tenantid" is reserved and its value will be overridden by the system (contains workspaceId, not tenantId)`,
-                    type: 'reserved_overridden_column',
-                    field: 'tenantid',
-                    location: `${tableLocation}.columns.tenantid`,
-                    currentValue: tenantIdColumn.name,
+                    message: `${tableContext}: Error checking for reserved tenantid column - ${error.message}`,
+                    type: 'tenantid_check_error',
+                    field: 'columns',
+                    location: `${tableLocation}.columns`,
                     severity: 'error',
-                    suggestion: 'Remove the "tenantid" column from your schema. If you need tenant information, use a different column name. Note that the system-provided tenantid actually contains the workspaceId.'
+                    suggestion: 'Check that all column names are valid strings.',
+                    microsoftRequirement: 'Column validation requires all column names to be processable as strings.',
+                    fixInstructions: 'Ensure all columns have valid string names.',
+                    errorDetails: `JavaScript error: ${error.message}`
                 });
                 result.status = 'fail';
             }
@@ -1828,18 +1894,79 @@ function validateQuery(query, index, result) {
 async function validateKQLFile(file, result) {
     const content = await readFileContent(file);
     
+    // Enhanced error handling for undefined content
+    if (content === undefined || content === null) {
+        result.status = 'fail';
+        result.issues.push({
+            message: 'Invalid KQL file: Cannot read file content (content is undefined)',
+            type: 'undefined_content_error',
+            field: 'file_content',
+            location: 'entire_file',
+            severity: 'error',
+            currentValue: 'undefined',
+            expectedValue: 'valid KQL content',
+            suggestion: 'Ensure the KQL file contains valid text content. The file may be corrupted or empty.',
+            microsoftRequirement: 'KQL files must contain valid Kusto Query Language syntax for data transformation.',
+            fixInstructions: 'Check that the file is not corrupted and contains valid KQL syntax. Re-upload the file if necessary.'
+        });
+        return result;
+    }
+    
     // Basic KQL syntax validation
     if (content.trim() === '') {
-        result.issues.push('KQL file is empty');
+        result.issues.push({
+            message: 'KQL file is empty',
+            type: 'empty_file_error',
+            field: 'file_content',
+            location: 'entire_file',
+            severity: 'error',
+            currentValue: 'empty file',
+            expectedValue: 'valid KQL content',
+            suggestion: 'Add KQL syntax to the file. Include transformation logic, queries, or function definitions.',
+            microsoftRequirement: 'KQL files must contain valid Kusto Query Language syntax for data transformation.',
+            fixInstructions: 'Add proper KQL syntax such as: let, extend, project, where, summarize, join, or union statements.'
+        });
         result.status = 'fail';
     }
     
-    // Check for common KQL keywords
-    const kqlKeywords = ['let', 'datatable', 'extend', 'project', 'where', 'summarize', 'join', 'union'];
-    const hasKQLKeywords = kqlKeywords.some(keyword => content.toLowerCase().includes(keyword));
-    
-    if (!hasKQLKeywords) {
-        result.warnings.push('File does not appear to contain standard KQL syntax');
+    // Enhanced error handling for content.toLowerCase()
+    try {
+        // Check for common KQL keywords
+        const kqlKeywords = ['let', 'datatable', 'extend', 'project', 'where', 'summarize', 'join', 'union'];
+        const hasKQLKeywords = kqlKeywords.some(keyword => {
+            if (typeof content !== 'string') {
+                console.error('validateKQLFile: content is not a string:', typeof content, content);
+                return false;
+            }
+            return content.toLowerCase().includes(keyword);
+        });
+        
+        if (!hasKQLKeywords) {
+            result.warnings.push({
+                message: 'File does not appear to contain standard KQL syntax',
+                type: 'missing_kql_syntax_warning',
+                field: 'file_content',
+                location: 'entire_file',
+                severity: 'warning',
+                suggestion: 'Verify that the file contains valid KQL syntax. Common KQL keywords include: let, extend, project, where, summarize, join, union.',
+                microsoftRequirement: 'KQL files should contain valid Kusto Query Language syntax for Azure Log Analytics data transformation.'
+            });
+        }
+    } catch (error) {
+        result.status = 'fail';
+        result.issues.push({
+            message: `Invalid KQL file: Error processing content - ${error.message}`,
+            type: 'content_processing_error',
+            field: 'file_content',
+            location: 'entire_file',
+            severity: 'error',
+            currentValue: typeof content,
+            expectedValue: 'string',
+            suggestion: 'Ensure the KQL file contains valid text content. The file may be corrupted or contain invalid characters.',
+            microsoftRequirement: 'KQL files must contain valid Kusto Query Language syntax as plain text.',
+            fixInstructions: 'Check the file encoding and ensure it contains valid text. Re-create the file if necessary with proper KQL syntax.',
+            errorDetails: `JavaScript error: ${error.message}`
+        });
     }
     
     return result;
@@ -1851,12 +1978,51 @@ async function validateJSONFile(file, result) {
     // Store original content for drill-down
     result.originalContent = content;
     
+    // Enhanced error handling for undefined file name
+    if (!file || !file.name || typeof file.name !== 'string') {
+        result.status = 'fail';
+        result.issues.push({
+            message: 'Invalid JSON file: File name is undefined or invalid',
+            type: 'undefined_filename_error',
+            field: 'file_name',
+            location: 'file_metadata',
+            severity: 'error',
+            currentValue: file ? (file.name ? typeof file.name : 'undefined') : 'null',
+            expectedValue: 'valid filename string',
+            suggestion: 'Ensure the file has a valid name. The file object may be corrupted.',
+            microsoftRequirement: 'All files must have valid names for Azure Log Analytics validation.',
+            fixInstructions: 'Re-upload the file or check that the file is not corrupted.'
+        });
+        return result;
+    }
+    
     try {
         const json = JSON.parse(content);
         result.parsedContent = json;
         
+        // Enhanced error handling for file.name.toLowerCase()
+        let fileName;
+        try {
+            fileName = file.name.toLowerCase();
+        } catch (error) {
+            result.status = 'fail';
+            result.issues.push({
+                message: `Invalid JSON file: Error processing filename - ${error.message}`,
+                type: 'filename_processing_error',
+                field: 'file_name',
+                location: 'file_metadata',
+                severity: 'error',
+                currentValue: file.name,
+                expectedValue: 'valid filename string',
+                suggestion: 'Ensure the file has a valid name that can be processed. The filename may contain invalid characters.',
+                microsoftRequirement: 'File names must be valid strings for Azure Log Analytics processing.',
+                fixInstructions: 'Rename the file with a valid filename and re-upload.',
+                errorDetails: `JavaScript error: ${error.message}`
+            });
+            return result;
+        }
+        
         // Determine file type based on filename patterns
-        const fileName = file.name.toLowerCase();
         const isSampleFile = fileName.includes('sample') || fileName.includes('input') || fileName.includes('output');
         const isInputSample = fileName.includes('input') || fileName.includes('sampleinput');
         const isOutputSample = fileName.includes('output') || fileName.includes('sampleoutput');
