@@ -2503,7 +2503,7 @@ function createIssueCard(issue, resultIndex, issueIndex, result) {
                             <div class="fix-instructions mb-3">
                                 <h6><i class="fas fa-tools me-1"></i>Fix Instructions:</h6>
                                 <div class="alert alert-success py-2">
-                                    ${issue.fixInstructions}
+                                    <strong>${issue.fixInstructions}</strong>
                                 </div>
                             </div>
                         ` : ''}
