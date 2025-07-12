@@ -31,15 +31,11 @@ Successfully moved the Enhanced Azure Log Analytics Schema Validator to a new Gi
 - **Alternative Type Suggestions**: Recommended data types provided
 - **Enhanced Styling**: Distinct visual treatment applied
 
-## 🧪 Testing Files Included
-
-### Test Files Available
-1. **`test_dynamic_with_warnings.manifest.json`** - Comprehensive test with multiple Dynamic types
-2. **`quick_test_dynamic.manifest.json`** - Simple test file for quick validation
+## 🧪 Testing
 
 ### How to Test
 1. Visit: https://happy-water-01a48df10.2.azurestaticapps.net
-2. Upload either test file
+2. Upload your own manifest files or create test files
 3. Click "Validate Schema"
 4. Click "View Details" on Dynamic type warnings
 5. See enhanced interactive functionality
@@ -59,7 +55,7 @@ Successfully moved the Enhanced Azure Log Analytics Schema Validator to a new Gi
 
 ## 📋 Repository Structure
 
-```
+```text
 LASchemaValidator-Enhanced/
 ├── .github/workflows/
 │   └── azure-static-web-apps-happy-water-01a48df10.yml
@@ -67,11 +63,11 @@ LASchemaValidator-Enhanced/
 │   ├── index.html (Enhanced UI)
 │   ├── script.js (Enhanced with Dynamic type warnings)
 │   ├── style.css (Enhanced styling)
-│   └── test files and assets
+│   └── staticwebapp.config.json
+├── docs/ (Official documentation)
 ├── README.md (Updated with new features)
 ├── DYNAMIC_TYPE_FEATURE_SUMMARY.md
-├── test_dynamic_with_warnings.manifest.json
-└── quick_test_dynamic.manifest.json
+└── MIGRATION_COMPLETE.md
 ```
 
 ## 🎉 Key Achievements

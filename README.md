@@ -33,12 +33,9 @@ A comprehensive solution for Azure Log Analytics schema onboarding that combines
 To test the enhanced Dynamic type warning functionality:
 
 1. Visit the live application: https://happy-water-01a48df10.2.azurestaticapps.net
-2. Upload the included `example_dynamic_warnings.manifest.json` file (located in the webapp folder)
+2. Upload any of your own manifest files, or create a test file to see the validation in action
 3. Click "Validate Schema" to see the enhanced warnings
 4. Click "View Details" on any Dynamic type warning to see the expanded information
-
-### Alternative Test File
-You can also use the `quick_test_dynamic.manifest.json` file in the root directory for a simpler test case.
 
 ## ⚙️ Deployment
 
@@ -77,9 +74,8 @@ This enhanced version is deployed to Azure Static Web Apps with:
 │   ├── index.html                           # Main application
 │   ├── script.js                           # Enhanced validation logic
 │   ├── style.css                           # Enhanced styling
-│   ├── example_dynamic_warnings.manifest.json # Test file with Dynamic types
 │   └── staticwebapp.config.json            # Azure Static Web App config
-├── quick_test_dynamic.manifest.json        # Simple test file
+├── docs/                                   # Official documentation
 ├── README.md                               # This file
 ├── MIGRATION_COMPLETE.md                   # Migration summary
 └── .github/workflows/                      # GitHub Actions CI/CD

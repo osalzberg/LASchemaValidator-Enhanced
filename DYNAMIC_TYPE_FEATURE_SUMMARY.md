@@ -42,9 +42,9 @@ if (warning.includes('dynamic')) {
 ```
 
 ### Testing
-- Created `test_dynamic_with_warnings.manifest.json` with sample dynamic type columns
-- Verified warning display and interactive functionality
+- Verified warning display and interactive functionality with custom test manifests
 - Confirmed proper styling and responsive behavior
+- Tested dynamic type detection across different file types
 
 ### Deployment
 - Enhanced validator deployed to Azure Static Web App
