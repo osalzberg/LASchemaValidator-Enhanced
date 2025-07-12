@@ -1838,7 +1838,11 @@ async function validateJSONFile(file, result) {
                 microsoftRequirement: 'Your sample file should contain JSON list of message objects. If the file contains a single log entry, it should be framed as a list with a single item.',
                 fixInstructions: isSampleFile ? 
                     'Convert your JSON object to an array by wrapping it in square brackets []. This ensures proper validation and compatibility with Azure Log Analytics ingestion pipeline.' :
-                    'Ensure your JSON file contains an array structure for proper data processing.'
+                    'Ensure your JSON file contains an array structure for proper data processing.',
+                examples: {
+                    incorrect: typeof json === 'object' ? JSON.stringify(json, null, 2) : String(json),
+                    correct: typeof json === 'object' ? JSON.stringify([json], null, 2) : `[${String(json)}]`
+                }
             });
             result.status = 'fail';
         } else if (json.length === 0) {
@@ -2229,6 +2233,50 @@ function createIssueCard(issue, resultIndex, issueIndex, result) {
                             </div>
                         ` : ''}
                         
+                        ${typeof issue === 'object' && issue.microsoftRequirement ? `
+                            <div class="microsoft-requirement mb-3">
+                                <h6><i class="fas fa-microsoft me-1"></i>Microsoft Azure Requirement:</h6>
+                                <blockquote class="blockquote-sm">
+                                    ${issue.microsoftRequirement}
+                                </blockquote>
+                            </div>
+                        ` : ''}
+                        
+                        ${typeof issue === 'object' && issue.fixInstructions ? `
+                            <div class="fix-instructions mb-3">
+                                <h6><i class="fas fa-tools me-1"></i>Fix Instructions:</h6>
+                                <div class="alert alert-success py-2">
+                                    ${issue.fixInstructions}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${typeof issue === 'object' && issue.examples ? `
+                            <div class="json-structure-comparison mb-3">
+                                <h6><i class="fas fa-code me-1"></i>JSON Structure Comparison:</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="incorrect-structure">
+                                            <h6><i class="fas fa-times me-1"></i>Incorrect Structure</h6>
+                                            <pre><code>${escapeHtml(issue.examples.incorrect)}</code></pre>
+                                            <div class="explanation">
+                                                This is a JSON object, but Azure Log Analytics requires an array of records.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="correct-structure">
+                                            <h6><i class="fas fa-check me-1"></i>Correct Structure</h6>
+                                            <pre><code>${escapeHtml(issue.examples.correct)}</code></pre>
+                                            <div class="explanation">
+                                                This is a JSON array containing the same data, which is the required format.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
                         ${typeof issue === 'object' && issue.currentValue ? `
                             <div class="row mb-3">
                                 <div class="col-md-6">
@@ -2311,6 +2359,15 @@ function createWarningCard(warning, resultIndex, warningIndex, result) {
                                 <div class="alert alert-warning py-2 mb-3">
                                     <i class="fas fa-lightbulb me-2"></i>
                                     <strong>Best Practice:</strong> ${warningSuggestion}
+                                </div>
+                            ` : ''}
+                            
+                            ${typeof warning === 'object' && warning.microsoftRequirement ? `
+                                <div class="microsoft-requirement mb-3">
+                                    <h6><i class="fas fa-microsoft me-1"></i>Microsoft Azure Requirement:</h6>
+                                    <blockquote class="blockquote-sm">
+                                        ${warning.microsoftRequirement}
+                                    </blockquote>
                                 </div>
                             ` : ''}
                             
