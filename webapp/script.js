@@ -562,6 +562,17 @@ function handleFiles(files) {
     
     displayFileList();
     enableValidateButton();
+    
+    // Auto-scroll to the validate button after files are loaded
+    setTimeout(() => {
+        const validateBtn = document.getElementById('validateBtn');
+        if (validateBtn) {
+            validateBtn.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }, 300); // Small delay to ensure file list is rendered
 }
 
 // Function to clear validation results and reset UI when new files are selected
