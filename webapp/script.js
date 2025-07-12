@@ -1732,6 +1732,7 @@ function validateColumn(column, index, tableContext, result) {
             type: 'missing_field',
             field: 'name',
             location: `${columnLocation}.name`,
+            columnIndex: index,
             severity: 'error',
             suggestion: `Add either a 'name' field OR the complete transform pattern with 'transformName', 'physicalName', and 'logicalName' fields for column type changes.`,
             microsoftRequirement: 'Columns must have either a standard "name" field or use the transform pattern (transformName, physicalName, logicalName) when changing column types in Azure Log Analytics.'
@@ -2786,12 +2787,16 @@ function highlightFileContent(content, location, problemItem) {
             
             if (isProblematicLine) {
                 // Highlight the problematic line
-                highlightedContent += `<div class="code-line problem-line ${problemType}-line" id="problematic-line-${lineNumber}" data-line="${lineNumber}">`;
+                highlightedContent += `<div class="code-line problem-line ${problemType}-line" id="problematic-line-${lineNumber}" data-line="${lineNumber}" data-column-index="${problemItem.columnIndex || ''}">`;
                 highlightedContent += `<span class="line-number ${problemType}-number">${lineNumber}</span>`;
                 highlightedContent += `<span class="line-content">${escapeHtml(line)}</span>`;
                 highlightedContent += `<span class="problem-indicator ${problemType}-indicator">`;
                 highlightedContent += `<i class="fas fa-${isWarning ? 'exclamation-triangle' : 'times-circle'}"></i> `;
-                highlightedContent += `<span class="problem-text">${isWarning ? 'WARNING' : 'ERROR'}</span>`;
+                highlightedContent += `<span class="problem-text">${isWarning ? 'WARNING' : 'ERROR'}`;
+                if (problemItem.columnIndex !== undefined) {
+                    highlightedContent += ` - Column ${problemItem.columnIndex + 1}`;
+                }
+                highlightedContent += `</span>`;
                 highlightedContent += `</span>`;
                 highlightedContent += '</div>';
                 
@@ -2923,10 +2928,11 @@ function findProblemLine(lines, location, problemItem) {
         if (inputIndex) {
             searchTerm = '"input"';
         }
-    } else if (location.includes('columns[]')) {
+    } else if (location.includes('columns[')) {
+        // Enhanced column finding logic
         const colIndex = location.match(/columns\[(\d+)\]/)?.[1];
-        if (colIndex) {
-            searchTerm = '"columns"';
+        if (colIndex !== undefined) {
+            return findColumnInLines(lines, parseInt(colIndex), problemItem);
         }
     } else if (location.includes('type')) {
         searchTerm = '"type"';
@@ -2961,10 +2967,97 @@ function findProblemLine(lines, location, problemItem) {
                 return {
                     lineNumber: i + 1,
                     line: lines[i],
-                    searchTerm: issue.currentValue
+                    searchTerm: problemItem.currentValue
                 };
             }
         }
+    }
+    
+    return null;
+}
+
+function findColumnInLines(lines, columnIndex, problemItem) {
+    try {
+        let inColumnsArray = false;
+        let currentColumnIndex = -1;
+        let braceDepth = 0;
+        let inColumnObject = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // Check if we're entering the columns array
+            if (line.includes('"columns"') && line.includes('[')) {
+                inColumnsArray = true;
+                continue;
+            }
+            
+            if (!inColumnsArray) continue;
+            
+            // Track brace depth to understand object structure
+            const openBraces = (line.match(/\{/g) || []).length;
+            const closeBraces = (line.match(/\}/g) || []).length;
+            
+            // If we find an opening brace, we might be starting a new column object
+            if (openBraces > 0 && !inColumnObject) {
+                currentColumnIndex++;
+                inColumnObject = true;
+                braceDepth = openBraces - closeBraces;
+                
+                // Check if this is the column we're looking for
+                if (currentColumnIndex === columnIndex) {
+                    // Look for the specific field in this column
+                    if (problemItem.field === 'name' || line.includes('"name"')) {
+                        return {
+                            lineNumber: i + 1,
+                            line: lines[i],
+                            searchTerm: `Column ${columnIndex + 1}`,
+                            columnIndex: columnIndex
+                        };
+                    }
+                }
+            } else if (inColumnObject) {
+                braceDepth += openBraces - closeBraces;
+                
+                // Check if this is the column we're looking for and we're still in it
+                if (currentColumnIndex === columnIndex && braceDepth > 0) {
+                    // Look for the specific field issue
+                    if (problemItem.field === 'name' || line.includes('"name"')) {
+                        return {
+                            lineNumber: i + 1,
+                            line: lines[i],
+                            searchTerm: `Column ${columnIndex + 1} name`,
+                            columnIndex: columnIndex
+                        };
+                    }
+                }
+                
+                // If we've closed all braces for this column, we're done with it
+                if (braceDepth <= 0) {
+                    inColumnObject = false;
+                }
+            }
+            
+            // Check if we're leaving the columns array
+            if (line.includes(']') && inColumnsArray) {
+                break;
+            }
+        }
+        
+        // Fallback: if we can't find the exact column, return the columns array start
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('"columns"')) {
+                return {
+                    lineNumber: i + 1,
+                    line: lines[i],
+                    searchTerm: `Column ${columnIndex + 1} (approximate)`,
+                    columnIndex: columnIndex
+                };
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error finding column in lines:', error);
     }
     
     return null;
