@@ -1699,16 +1699,35 @@ function validateInputField(inputField, index, tableContext, result) {
     // Validate input data type
     const validInputTypes = ['Bool', 'SByte', 'Byte', 'Short', 'UShort', 'Int', 'UInt', 'Long', 'ULong', 'Float', 'Double', 'String', 'DateTime', 'Guid', 'Dynamic'];
     if (inputField.type && !validInputTypes.includes(inputField.type)) {
-        result.issues.push({
-            message: `${inputContext}: Invalid input data type '${inputField.type}'`,
-            type: 'invalid_value',
-            field: 'type',
-            location: `${inputLocation}.type`,
-            currentValue: inputField.type,
-            expectedValue: `One of: ${validInputTypes.join(', ')}`,
-            severity: 'error',
-            suggestion: `Change the input data type from "${inputField.type}" to one of the valid types.`
-        });
+        // Check if this is a lowercase version of a valid type
+        const capitalizedType = inputField.type.charAt(0).toUpperCase() + inputField.type.slice(1);
+        const isLowercaseValidType = validInputTypes.includes(capitalizedType);
+        
+        if (isLowercaseValidType) {
+            result.issues.push({
+                message: `${inputContext}: Input data type '${inputField.type}' should start with capital letter`,
+                type: 'incorrect_capitalization',
+                field: 'type',
+                location: `${inputLocation}.type`,
+                currentValue: inputField.type,
+                expectedValue: capitalizedType,
+                severity: 'error',
+                suggestion: `Change "${inputField.type}" to "${capitalizedType}" - Azure Log Analytics requires data types to start with a capital letter.`,
+                microsoftRequirement: 'Azure Log Analytics input data types must start with a capital letter (e.g., "String" not "string").',
+                fixInstructions: `Simply capitalize the first letter: "${inputField.type}" → "${capitalizedType}"`
+            });
+        } else {
+            result.issues.push({
+                message: `${inputContext}: Invalid input data type '${inputField.type}'`,
+                type: 'invalid_value',
+                field: 'type',
+                location: `${inputLocation}.type`,
+                currentValue: inputField.type,
+                expectedValue: `One of: ${validInputTypes.join(', ')}`,
+                severity: 'error',
+                suggestion: `Change the input data type from "${inputField.type}" to one of the valid types.`
+            });
+        }
         result.status = 'fail';
     }
     
@@ -1788,16 +1807,35 @@ function validateColumn(column, index, tableContext, result) {
     // Validate data type (column types for Log Analytics tables)
     const validTypes = ['String', 'Int', 'BigInt', 'SmallInt', 'TinyInt', 'Float', 'Double', 'Bool', 'DateTime', 'Guid', 'Binary', 'Dynamic'];
     if (column.type && !validTypes.includes(column.type)) {
-        result.issues.push({
-            message: `${columnContext}: Invalid data type '${column.type}'`,
-            type: 'invalid_value',
-            field: 'type',
-            location: `${columnLocation}.type`,
-            currentValue: column.type,
-            expectedValue: `One of: ${validTypes.join(', ')}`,
-            severity: 'error',
-            suggestion: `Change the column data type from "${column.type}" to one of the valid types.`
-        });
+        // Check if this is a lowercase version of a valid type
+        const capitalizedType = column.type.charAt(0).toUpperCase() + column.type.slice(1);
+        const isLowercaseValidType = validTypes.includes(capitalizedType);
+        
+        if (isLowercaseValidType) {
+            result.issues.push({
+                message: `${columnContext}: Column data type '${column.type}' should start with capital letter`,
+                type: 'incorrect_capitalization',
+                field: 'type',
+                location: `${columnLocation}.type`,
+                currentValue: column.type,
+                expectedValue: capitalizedType,
+                severity: 'error',
+                suggestion: `Change "${column.type}" to "${capitalizedType}" - Azure Log Analytics requires data types to start with a capital letter.`,
+                microsoftRequirement: 'Azure Log Analytics column data types must start with a capital letter (e.g., "String" not "string").',
+                fixInstructions: `Simply capitalize the first letter: "${column.type}" → "${capitalizedType}"`
+            });
+        } else {
+            result.issues.push({
+                message: `${columnContext}: Invalid data type '${column.type}'`,
+                type: 'invalid_value',
+                field: 'type',
+                location: `${columnLocation}.type`,
+                currentValue: column.type,
+                expectedValue: `One of: ${validTypes.join(', ')}`,
+                severity: 'error',
+                suggestion: `Change the column data type from "${column.type}" to one of the valid types.`
+            });
+        }
         result.status = 'fail';
     }
     
