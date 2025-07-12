@@ -3290,6 +3290,19 @@ function findProblemLine(lines, location, problemItem) {
     
     if (location.includes('description')) {
         searchTerm = '"description"';
+        // For description errors, we want to find the line with the actual description content
+        // Look for the description field and its value
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.includes('"description"') && line.includes(':')) {
+                // Check if this line contains the problematic description value
+                if (problemItem && problemItem.currentValue && line.includes(problemItem.currentValue)) {
+                    return { lineNumber: i + 1, line: line };
+                }
+                // If no specific value match, return the description field line
+                return { lineNumber: i + 1, line: line };
+            }
+        }
     } else if (location.includes('simplifiedSchemaVersion')) {
         searchTerm = '"simplifiedSchemaVersion"';
     } else if (location.includes('input[]')) {
@@ -3444,17 +3457,23 @@ function generateFixedLine(originalLine, problemItem, location) {
             const currentValue = problemItem.currentValue;
             let fixedValue = currentValue;
             
-            // Capitalize first letter
+            // Capitalize first letter if needed
             if (!currentValue.charAt(0).match(/[A-Z]/)) {
                 fixedValue = currentValue.charAt(0).toUpperCase() + currentValue.slice(1);
             }
             
-            // Add period at the end
+            // Add period at the end if needed
             if (!fixedValue.endsWith('.')) {
                 fixedValue = fixedValue + '.';
             }
             
+            // Replace the description value in the line
             fixedLine = originalLine.replace(`"${currentValue}"`, `"${fixedValue}"`);
+            
+            // Also try without quotes in case the format is different
+            if (fixedLine === originalLine) {
+                fixedLine = originalLine.replace(currentValue, fixedValue);
+            }
         } else if (problemItem.type === 'incorrect_capitalization') {
             // Fix capitalization issues for data types like "dynamic" -> "Dynamic"
             const currentValue = problemItem.currentValue;
