@@ -2081,7 +2081,7 @@ function validateFunction(func, index, result) {
     
     // Validate description
     if (func.description) {
-        validateDescription(func.description, `${functionContext} description`, result);
+        validateDescription(func.description, `${functionContext} description`, result, `functions[${index}].description`);
     }
     
     // Validate parameters (optional string)
@@ -2122,7 +2122,7 @@ function validateQuery(query, index, result) {
     
     // Validate description
     if (query.description) {
-        validateDescription(query.description, `${queryContext} description`, result);
+        validateDescription(query.description, `${queryContext} description`, result, `queries[${index}].description`);
     }
     
     // Validate categories (optional array)
