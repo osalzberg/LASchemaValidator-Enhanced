@@ -2504,6 +2504,10 @@ function displayValidationResults(results) {
     
     const overallStatus = failedFiles > 0 ? 'fail' : 'pass';
     
+    // Group issues and warnings by type
+    const groupedIssues = groupValidationIssuesByType(results);
+    const groupedWarnings = groupValidationWarningsByType(results);
+    
     let html = `
         <div class="validation-results-container">
             <!-- Overall Status Card -->
@@ -2536,18 +2540,19 @@ function displayValidationResults(results) {
                                                 <div class="stat-number text-success">${passedFiles}</div>
                                                 <div class="stat-label">Passed</div>
                                             </div>
-                                        </div>                        <div class="col-3">
-                            <div class="summary-stat-box">
-                                <div class="stat-number text-danger">${failedFiles}</div>
-                                <div class="stat-label">Failed</div>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="summary-stat-box">
-                                <div class="stat-number text-warning">${warningFiles}</div>
-                                <div class="stat-label">Warnings</div>
-                            </div>
-                        </div>
+                                        </div>
+                                        <div class="col-3">
+                                            <div class="summary-stat-box">
+                                                <div class="stat-number text-danger">${failedFiles}</div>
+                                                <div class="stat-label">Failed</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-3">
+                                            <div class="summary-stat-box">
+                                                <div class="stat-number text-warning">${warningFiles}</div>
+                                                <div class="stat-label">Warnings</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2556,13 +2561,36 @@ function displayValidationResults(results) {
                 </div>
             </div>
             
-            <!-- Detailed Results -->
+            <!-- Issues and Warnings Grouped by Type -->
+            ${(totalIssues > 0 || totalWarnings > 0) ? `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Issues & Warnings by Category
+                                    <span class="badge bg-danger ms-2">${totalIssues} errors</span>
+                                    <span class="badge bg-warning ms-2">${totalWarnings} warnings</span>
+                                </h5>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="accordion" id="issuesWarningsAccordion">
+                                    ${createGroupedIssuesHTML(groupedIssues, 'issues')}
+                                    ${createGroupedWarningsHTML(groupedWarnings, 'warnings')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- Detailed Results by File -->
             <div class="row">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header bg-white">
                             <h5 class="mb-0">
-                                <i class="fas fa-list-alt me-2"></i>Detailed Validation Results
+                                <i class="fas fa-list-alt me-2"></i>Detailed Validation Results by File
                                 <span class="badge bg-secondary ms-2">${totalFiles} files analyzed</span>
                             </h5>
                         </div>
@@ -2584,6 +2612,72 @@ function displayValidationResults(results) {
     `;
     
     resultsDiv.innerHTML = html;
+}
+
+function groupValidationIssuesByType(results) {
+    const grouped = {};
+    
+    results.forEach((result, resultIndex) => {
+        if (result.issues && result.issues.length > 0) {
+            result.issues.forEach((issue, issueIndex) => {
+                const issueType = typeof issue === 'object' ? (issue.type || 'unknown') : 'general';
+                const issueCategory = getIssueCategoryName(issueType);
+                
+                if (!grouped[issueCategory]) {
+                    grouped[issueCategory] = {
+                        type: issueCategory,
+                        count: 0,
+                        items: [],
+                        icon: getIssueCategoryIcon(issueType),
+                        description: getIssueCategoryDescription(issueType)
+                    };
+                }
+                
+                grouped[issueCategory].count++;
+                grouped[issueCategory].items.push({
+                    issue: issue,
+                    fileName: result.filename,
+                    resultIndex: resultIndex,
+                    issueIndex: issueIndex
+                });
+            });
+        }
+    });
+    
+    return grouped;
+}
+
+function groupValidationWarningsByType(results) {
+    const grouped = {};
+    
+    results.forEach((result, resultIndex) => {
+        if (result.warnings && result.warnings.length > 0) {
+            result.warnings.forEach((warning, warningIndex) => {
+                const warningType = typeof warning === 'object' ? (warning.type || 'unknown') : 'general';
+                const warningCategory = getWarningCategoryName(warningType);
+                
+                if (!grouped[warningCategory]) {
+                    grouped[warningCategory] = {
+                        type: warningCategory,
+                        count: 0,
+                        items: [],
+                        icon: getWarningCategoryIcon(warningType),
+                        description: getWarningCategoryDescription(warningType)
+                    };
+                }
+                
+                grouped[warningCategory].count++;
+                grouped[warningCategory].items.push({
+                    warning: warning,
+                    fileName: result.filename,
+                    resultIndex: resultIndex,
+                    warningIndex: warningIndex
+                });
+            });
+        }
+    });
+    
+    return grouped;
 }
 
 function createResultAccordionItem(result, index) {
@@ -4508,5 +4602,236 @@ function copyFixSuggestion(suggestion, fixedValue) {
         });
     } else {
         fallbackCopyToClipboard(textToCopy);
+    }
+}
+
+function getIssueCategoryName(type) {
+    const categoryMap = {
+        'missing_field': 'Missing Required Fields',
+        'invalid_value': 'Invalid Values',
+        'formatting_error': 'Formatting Errors',
+        'incorrect_capitalization': 'Capitalization Issues',
+        'invalid_type': 'Invalid Data Types',
+        'forbidden_system_column': 'Forbidden System Columns',
+        'reserved_column_name': 'Reserved Column Names',
+        'json_syntax_error': 'JSON Syntax Errors',
+        'invalid_json_structure': 'Invalid JSON Structure',
+        'missing_required_column': 'Missing Required Columns',
+        'invalid_column_type': 'Invalid Column Types',
+        'folder_structure': 'Folder Structure Issues',
+        'unknown': 'Other Issues'
+    };
+    
+    return categoryMap[type] || 'Other Issues';
+}
+
+function getWarningCategoryName(type) {
+    const categoryMap = {
+        'performance_warning': 'Performance Warnings',
+        'naming_convention_warning': 'Naming Convention Issues',
+        'info': 'Informational Notes',
+        'missing_timegenerated': 'TimeGenerated Field Issues',
+        'empty_sample_data': 'Sample Data Issues',
+        'invalid_record_structure': 'Record Structure Issues',
+        'missing_kql_syntax_warning': 'KQL Syntax Issues',
+        'unknown': 'Other Warnings'
+    };
+    
+    return categoryMap[type] || 'Other Warnings';
+}
+
+function getIssueCategoryIcon(type) {
+    const iconMap = {
+        'missing_field': 'fas fa-exclamation-circle',
+        'invalid_value': 'fas fa-times-circle',
+        'formatting_error': 'fas fa-spell-check',
+        'incorrect_capitalization': 'fas fa-font',
+        'invalid_type': 'fas fa-code',
+        'forbidden_system_column': 'fas fa-ban',
+        'reserved_column_name': 'fas fa-lock',
+        'json_syntax_error': 'fas fa-bug',
+        'invalid_json_structure': 'fas fa-sitemap',
+        'missing_required_column': 'fas fa-table',
+        'invalid_column_type': 'fas fa-columns',
+        'folder_structure': 'fas fa-folder-open',
+        'unknown': 'fas fa-question-circle'
+    };
+    
+    return iconMap[type] || 'fas fa-question-circle';
+}
+
+function getWarningCategoryIcon(type) {
+    const iconMap = {
+        'performance_warning': 'fas fa-tachometer-alt',
+        'naming_convention_warning': 'fas fa-tag',
+        'info': 'fas fa-info-circle',
+        'missing_timegenerated': 'fas fa-clock',
+        'empty_sample_data': 'fas fa-database',
+        'invalid_record_structure': 'fas fa-list-alt',
+        'missing_kql_syntax_warning': 'fas fa-search',
+        'unknown': 'fas fa-exclamation-triangle'
+    };
+    
+    return iconMap[type] || 'fas fa-exclamation-triangle';
+}
+
+function getIssueCategoryDescription(type) {
+    const descriptionMap = {
+        'missing_field': 'Required fields that are missing from your schema files',
+        'invalid_value': 'Field values that do not meet Azure Log Analytics requirements',
+        'formatting_error': 'Text formatting issues like capitalization and punctuation',
+        'incorrect_capitalization': 'Data type and field names with incorrect capitalization',
+        'invalid_type': 'Invalid or unsupported data types for Azure Log Analytics',
+        'forbidden_system_column': 'Columns that are automatically added by Azure and should not be defined',
+        'reserved_column_name': 'Column names that are reserved by Azure Log Analytics',
+        'json_syntax_error': 'JSON files with syntax errors that prevent parsing',
+        'invalid_json_structure': 'JSON files with incorrect structure for Azure Log Analytics',
+        'missing_required_column': 'Required columns like TimeGenerated that are missing',
+        'invalid_column_type': 'Column data types that are invalid for the specified usage',
+        'folder_structure': 'Issues with the organization and structure of your schema package',
+        'unknown': 'Other validation issues that need attention'
+    };
+    
+    return descriptionMap[type] || 'Other validation issues that need attention';
+}
+
+function getWarningCategoryDescription(type) {
+    const descriptionMap = {
+        'performance_warning': 'Potential performance issues that could affect query speed',
+        'naming_convention_warning': 'Naming patterns that don\'t follow Azure best practices',
+        'info': 'Informational notes about your schema configuration',
+        'missing_timegenerated': 'TimeGenerated field configuration suggestions',
+        'empty_sample_data': 'Sample data files that are empty or have no records',
+        'invalid_record_structure': 'Sample records that don\'t follow proper structure',
+        'missing_kql_syntax_warning': 'KQL files that may not contain valid query syntax',
+        'unknown': 'Other warnings and suggestions for improvement'
+    };
+    
+    return descriptionMap[type] || 'Other warnings and suggestions for improvement';
+}
+
+function createGroupedIssuesHTML(groupedIssues, type) {
+    if (!groupedIssues || Object.keys(groupedIssues).length === 0) {
+        return '';
+    }
+    
+    let html = '';
+    const sortedCategories = Object.keys(groupedIssues).sort();
+    
+    sortedCategories.forEach((category, index) => {
+        const group = groupedIssues[category];
+        const accordionId = `${type}-${index}`;
+        
+        html += `
+            <div class="accordion-item border-danger">
+                <h2 class="accordion-header" id="heading-${accordionId}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${accordionId}">
+                        <i class="${group.icon} text-danger me-3"></i>
+                        <div class="flex-grow-1">
+                            <strong>${group.type}</strong>
+                            <span class="badge bg-danger ms-2">${group.count}</span>
+                            <div class="small text-muted">${group.description}</div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse-${accordionId}" class="accordion-collapse collapse" data-bs-parent="#issuesWarningsAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+                            ${group.items.map(item => `
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border-danger h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-danger">
+                                                <i class="fas fa-file me-1"></i>${item.fileName}
+                                            </h6>
+                                            <p class="card-text">${typeof item.issue === 'string' ? item.issue : item.issue.message}</p>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="expandFileResult(${item.resultIndex})">
+                                                <i class="fas fa-eye me-1"></i>View Details
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    return html;
+}
+
+function createGroupedWarningsHTML(groupedWarnings, type) {
+    if (!groupedWarnings || Object.keys(groupedWarnings).length === 0) {
+        return '';
+    }
+    
+    let html = '';
+    const sortedCategories = Object.keys(groupedWarnings).sort();
+    
+    sortedCategories.forEach((category, index) => {
+        const group = groupedWarnings[category];
+        const accordionId = `${type}-${index}`;
+        
+        html += `
+            <div class="accordion-item border-warning">
+                <h2 class="accordion-header" id="heading-${accordionId}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${accordionId}">
+                        <i class="${group.icon} text-warning me-3"></i>
+                        <div class="flex-grow-1">
+                            <strong>${group.type}</strong>
+                            <span class="badge bg-warning ms-2">${group.count}</span>
+                            <div class="small text-muted">${group.description}</div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse-${accordionId}" class="accordion-collapse collapse" data-bs-parent="#issuesWarningsAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+                            ${group.items.map(item => `
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border-warning h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-warning">
+                                                <i class="fas fa-file me-1"></i>${item.fileName}
+                                            </h6>
+                                            <p class="card-text">${typeof item.warning === 'string' ? item.warning : item.warning.message}</p>
+                                            <button class="btn btn-sm btn-outline-warning" onclick="expandFileResult(${item.resultIndex})">
+                                                <i class="fas fa-eye me-1"></i>View Details
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    return html;
+}
+
+function expandFileResult(resultIndex) {
+    // Find the accordion item for this result and expand it
+    const accordionItem = document.querySelector(`#collapse${resultIndex}`);
+    if (accordionItem) {
+        // Use Bootstrap's collapse API if available
+        if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+            const collapse = new bootstrap.Collapse(accordionItem, { show: true });
+        } else {
+            // Fallback: manually show the accordion
+            accordionItem.classList.add('show');
+        }
+        
+        // Scroll to the expanded item
+        setTimeout(() => {
+            accordionItem.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }, 300);
     }
 }
