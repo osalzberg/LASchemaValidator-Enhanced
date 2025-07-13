@@ -3444,24 +3444,19 @@ function findProblemLine(lines, location, problemItem) {
 
 function findColumnInLines(lines, columnIndex, problemItem) {
     try {
-        let inColumnsArray = false;
-        let currentColumnIndex = -1;
-        let braceDepth = 0;
-        let inColumnObject = false;
-        
-        // Special handling for TenantId column issue - search for the actual TenantId field
+        // Special handling for TenantId column issue - search for the actual TenantId field first
         if (problemItem && problemItem.type === 'forbidden_system_column' && problemItem.currentValue === 'TenantId') {
             console.log('Looking for TenantId column specifically');
             
-            // First, try to find the exact line with "TenantId"
+            // First, try to find the exact line with "TenantId" and "name" field
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                if (line.includes('"TenantId"') && line.includes('"name"')) {
-                    console.log(`Found TenantId column at line ${i + 1}: ${line}`);
+                if (line.includes('"name"') && line.includes('"TenantId"')) {
+                    console.log(`Found TenantId column name field at line ${i + 1}: ${line}`);
                     return {
                         lineNumber: i + 1,
                         line: line,
-                        searchTerm: 'TenantId column definition',
+                        searchTerm: 'TenantId column name field',
                         columnIndex: columnIndex
                     };
                 }
@@ -3482,13 +3477,20 @@ function findColumnInLines(lines, columnIndex, problemItem) {
             }
         }
         
-        // General column finding logic for other issues
+        // Enhanced general column finding logic that correctly tracks column positions
+        let inColumnsArray = false;
+        let currentColumnIndex = -1;
+        let braceDepth = 0;
+        let inColumnObject = false;
+        let columnStartLine = -1;
+        
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             
             // Check if we're entering the columns array
             if (line.includes('"columns"') && line.includes('[')) {
                 inColumnsArray = true;
+                console.log(`Found columns array start at line ${i + 1}`);
                 continue;
             }
             
@@ -3498,48 +3500,58 @@ function findColumnInLines(lines, columnIndex, problemItem) {
             const openBraces = (line.match(/\{/g) || []).length;
             const closeBraces = (line.match(/\}/g) || []).length;
             
-            // If we find an opening brace, we might be starting a new column object
-            if (openBraces > 0 && !inColumnObject) {
+            // If we find an opening brace that starts a new object (not nested), we're starting a new column
+            if (openBraces > 0 && braceDepth === 0) {
                 currentColumnIndex++;
                 inColumnObject = true;
+                columnStartLine = i + 1;
                 braceDepth = openBraces - closeBraces;
+                
+                console.log(`Found column ${currentColumnIndex} starting at line ${columnStartLine}, target column: ${columnIndex}`);
                 
                 // Check if this is the column we're looking for
                 if (currentColumnIndex === columnIndex) {
-                    // Look for the specific field in this column
-                    if (problemItem.field === 'name' || line.includes('"name"')) {
-                        return {
-                            lineNumber: i + 1,
-                            line: lines[i],
-                            searchTerm: `Column ${columnIndex + 1}`,
-                            columnIndex: columnIndex
-                        };
+                    console.log(`Found target column ${columnIndex} at line ${columnStartLine}`);
+                    
+                    // Look for the name field within this column object
+                    let searchStart = i;
+                    let searchEnd = i + 20; // Look ahead up to 20 lines for the name field
+                    
+                    for (let j = searchStart; j < Math.min(searchEnd, lines.length); j++) {
+                        const searchLine = lines[j];
+                        if (searchLine.includes('"name"') && searchLine.includes(':')) {
+                            console.log(`Found name field for column ${columnIndex} at line ${j + 1}: ${searchLine}`);
+                            return {
+                                lineNumber: j + 1,
+                                line: lines[j],
+                                searchTerm: `Column ${columnIndex + 1} name field`,
+                                columnIndex: columnIndex
+                            };
+                        }
                     }
+                    
+                    // If no name field found, return the column start
+                    return {
+                        lineNumber: columnStartLine,
+                        line: lines[i],
+                        searchTerm: `Column ${columnIndex + 1} start`,
+                        columnIndex: columnIndex
+                    };
                 }
             } else if (inColumnObject) {
+                // Update brace depth while inside a column object
                 braceDepth += openBraces - closeBraces;
-                
-                // Check if this is the column we're looking for and we're still in it
-                if (currentColumnIndex === columnIndex && braceDepth > 0) {
-                    // Look for the specific field issue
-                    if (problemItem.field === 'name' || line.includes('"name"')) {
-                        return {
-                            lineNumber: i + 1,
-                            line: lines[i],
-                            searchTerm: `Column ${columnIndex + 1} name`,
-                            columnIndex: columnIndex
-                        };
-                    }
-                }
                 
                 // If we've closed all braces for this column, we're done with it
                 if (braceDepth <= 0) {
                     inColumnObject = false;
+                    console.log(`Finished processing column ${currentColumnIndex}`);
                 }
             }
             
             // Check if we're leaving the columns array
-            if (line.includes(']') && inColumnsArray) {
+            if (line.includes(']') && inColumnsArray && braceDepth === 0) {
+                console.log(`Reached end of columns array at line ${i + 1}`);
                 break;
             }
         }
@@ -3547,10 +3559,11 @@ function findColumnInLines(lines, columnIndex, problemItem) {
         // Fallback: if we can't find the exact column, return the columns array start
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].includes('"columns"')) {
+                console.log(`Fallback: returning columns array start at line ${i + 1}`);
                 return {
                     lineNumber: i + 1,
                     line: lines[i],
-                    searchTerm: `Column ${columnIndex + 1} (approximate)`,
+                    searchTerm: `Column ${columnIndex + 1} (columns array)`,
                     columnIndex: columnIndex
                 };
             }

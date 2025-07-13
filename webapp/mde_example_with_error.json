@@ -1,0 +1,503 @@
+{
+  "type": "Microsoft.SecurityInsights/MDE",
+  "displayName": "Azure Sentinel MDE",
+  "description": "All Microsoft Defender for Endpoints (MDE) tables related to Azure Sentinel.",
+  "tags": {},
+  "properties": {},
+  "simplifiedSchemaVersion": "3",
+  "icmTeam": "Microsoft Azure Sentinel/Data Collection and Processing",
+  "contactDL": "asipolarbearseng@microsoft.com",
+  "relatedTables": [],
+  "relatedFunctions": [],
+  "tables": [
+    {
+      "name": "DeviceNetworkInfo",
+      "description": "Microsoft Defender for Endpoints (MDE) device network information table. This table contains Network properties of machines, including adapters, IP and MAC addresses, as well as connected networks and domains.",
+      "categories": [
+        "security"
+      ],
+      "dataTypeId": "TENANTMICROSOFTWINDOWSDEFENDERATP_ADVANCEDHUNTINGDEVICENETWORKINFO",
+      "artifactVersion": 11,
+      "isTroubleshootingAllowed": true,
+      "intelligencePacks": [
+        "SecurityInsights"
+      ],
+      "isResourceCentric": false,
+      "tableState": "Production",
+      "isChangeColumnInternalNameAllowed": true,
+      "isLakeAllowed": true,
+      "input": [
+        {
+          "name": "time",
+          "type": "DateTime"
+        },
+        {
+          "name": "tenantId",
+          "type": "String"
+        },
+        {
+          "name": "operationName",
+          "type": "String"
+        },
+        {
+          "name": "category",
+          "type": "String"
+        },
+        {
+          "name": "properties",
+          "type": "Dynamic"
+        }
+      ],
+      "transformFilePath": "KQL/DeviceNetworkInfoTransform.kql",
+      "columns": [
+        {
+          "transformName": "ConnectedNetworks",
+          "physicalName": "ConnectedNetworks_Dynamic",
+          "logicalName": "ConnectedNetworks",
+          "type": "Dynamic",
+          "description": "Networks that the adapter is connected to. Each JSON element in the array contains the network name, category (public, private or domain), a description, and a flag indicating if it is connected publicly to the internet."
+        },
+        {
+          "transformName": "DefaultGateways",
+          "physicalName": "DefaultGateways_Dynamic",
+          "logicalName": "DefaultGateways",
+          "type": "Dynamic",
+          "description": "Default gateway addresses in JSON array format."
+        },
+        {
+          "name": "DeviceId",
+          "type": "String",
+          "description": "Unique identifier for the device in the service.",
+          "dataTypeHint": "GUID"
+        },
+        {
+          "name": "DeviceName",
+          "type": "String",
+          "description": "Fully qualified domain name (FQDN) of the device."
+        },
+        {
+          "transformName": "DnsAddresses",
+          "physicalName": "DnsAddresses_Dynamic",
+          "logicalName": "DnsAddresses",
+          "type": "Dynamic",
+          "description": "DNS server addresses in JSON array format."
+        },
+        {
+          "transformName": "IPAddresses",
+          "physicalName": "IPAddresses_Dynamic",
+          "logicalName": "IPAddresses",
+          "type": "Dynamic",
+          "description": "JSON array containing all the IP addresses assigned to the adapter, along with their respective subnet prefix and the IP class (RFC 1918 & RFC 4291)."
+        },
+        {
+          "name": "IPv4Dhcp",
+          "type": "String",
+          "description": "IPv4 address of the configured DHCP server.",
+          "dataTypeHint": "IP"
+        },
+        {
+          "name": "IPv6Dhcp",
+          "type": "String",
+          "description": "IPv6 address of the configured DHCP server.",
+          "dataTypeHint": "IP"
+        },
+        {
+          "name": "MacAddress",
+          "type": "String",
+          "description": "MAC address of the network adapter."
+        },
+        {
+          "name": "MachineGroup",
+          "type": "String",
+          "description": "The machine-group which this machine is associated to. This group is used by role-based access control to determine access to the machine."
+        },
+        {
+          "name": "NetworkAdapterName",
+          "type": "String",
+          "description": "Name of the network adapter."
+        },
+        {
+          "name": "NetworkAdapterStatus",
+          "type": "String",
+          "description": "Operational status of the network adapter."
+        },
+        {
+          "name": "NetworkAdapterType",
+          "type": "String",
+          "description": "Network adapter type."
+        },
+        {
+          "name": "ReportId",
+          "type": "BigInt",
+          "description": "Event identifier based on a repeating counter. To identify unique events, this column must be used in conjunction with the DeviceName and/or Timestamp columns."
+        },
+        {
+          "name": "TimeGenerated",
+          "type": "DateTime",
+          "description": "Date and time the event was recorded by the MDE agent on the endpoint.",
+          "isDefaultDisplay": true
+        },
+        {
+          "name": "Timestamp",
+          "type": "DateTime",
+          "description": "Date and time the event was recorded by the MDE agent on the endpoint. This is identical to TimeGenerated and added for query portability from MDE Advanced Hunting.",
+          "isHidden": true,
+          "isDefaultDisplay": false
+        },
+        {
+          "name": "TunnelType",
+          "type": "String",
+          "description": "Tunneling protocol, when the interface is used for this purpose, for example 6to4, Teredo, ISATAP, PPTP, SSTP, and SSH."
+        },
+        {
+          "name": "NetworkAdapterVendor",
+          "type": "String",
+          "description": "Name of the manufacturer or vendor of the network adapter."
+        }
+      ],
+      "sampleInputRecordsFilePath": "SampleInputRecords/DeviceNetworkInfoSample.json"
+    },
+    {
+      "name": "DeviceNetworkEvents",
+      "description": "Microsoft Defender for Endpoints (MDE) device network events table. This table contains contains information about network connections and related events initiated by processes running on the endpoint.",
+      "categories": [
+        "security"
+      ],
+      "dataTypeId": "TENANTMICROSOFTWINDOWSDEFENDERATP_ADVANCEDHUNTINGDEVICENETWORKEVENTS",
+      "artifactVersion": 13,
+      "isTroubleshootingAllowed": true,
+      "tags": {},
+      "properties": {},
+      "intelligencePacks": [
+        "SecurityInsights"
+      ],
+      "isResourceCentric": false,
+      "tableState": "Production",
+      "isLakeAllowed": true,
+      "input": [
+        {
+          "name": "time",
+          "type": "DateTime"
+        },
+        {
+          "name": "tenantId",
+          "type": "String"
+        },
+        {
+          "name": "operationName",
+          "type": "String"
+        },
+        {
+          "name": "category",
+          "type": "String"
+        },
+        {
+          "name": "properties",
+          "type": "Dynamic"
+        }
+      ],
+      "transformFilePath": "KQL/DeviceNetworkEventsTransform.kql",
+      "columns": [
+        {
+          "name": "ActionType",
+          "type": "String",
+          "description": "Type of activity that triggered the event."
+        },
+        {
+          "name": "AdditionalFields",
+          "type": "Dynamic",
+          "description": "Additional information about the entity or event."
+        },
+        {
+          "name": "AppGuardContainerId",
+          "type": "String",
+          "description": "Identifier for the virtualized container used by Application Guard to isolate browser activity."
+        },
+        {
+          "name": "DeviceId",
+          "type": "String",
+          "description": "Unique identifier for the device in the service.",
+          "dataTypeHint": "GUID"
+        },
+        {
+          "name": "DeviceName",
+          "type": "String",
+          "description": "Fully qualified domain name (FQDN) of the device."
+        },
+        {
+          "name": "InitiatingProcessAccountDomain",
+          "type": "String",
+          "description": "Domain of the account that ran the initiating process."
+        },
+        {
+          "name": "InitiatingProcessAccountName",
+          "type": "String",
+          "description": "User name of the account that ran the initiating process."
+        },
+        {
+          "name": "InitiatingProcessAccountObjectId",
+          "type": "String",
+          "description": "Azure AD object ID of the user account that ran the initiating process.",
+          "dataTypeHint": "GUID"
+        },
+        {
+          "name": "InitiatingProcessAccountSid",
+          "type": "String",
+          "description": "Security Identifier (SID) of the account that ran the initiating process."
+        },
+        {
+          "name": "InitiatingProcessAccountUpn",
+          "type": "String",
+          "description": "User principal name (UPN) of the account that ran the initiating process."
+        },
+        {
+          "name": "InitiatingProcessCommandLine",
+          "type": "String",
+          "description": "Command line used to run the initiating process."
+        },
+        {
+          "name": "InitiatingProcessFileName",
+          "type": "String",
+          "description": "Name of the initiating process."
+        },
+        {
+          "name": "InitiatingProcessFolderPath",
+          "type": "String",
+          "description": "Folder containing the initiating process (image file)."
+        },
+        {
+          "name": "InitiatingProcessId",
+          "type": "BigInt",
+          "description": "Process ID (PID) of the initiating process."
+        },
+        {
+          "name": "InitiatingProcessIntegrityLevel",
+          "type": "String",
+          "description": "Integrity level of the initiating process. Windows assigns integrity levels to processes based on certain characteristics, such as if they were launched from an internet download. These integrity levels influence permissions to resources.."
+        },
+        {
+          "name": "InitiatingProcessMD5",
+          "type": "String",
+          "description": "MD5 hash of the initiating process (image file)."
+        },
+        {
+          "name": "InitiatingProcessParentFileName",
+          "type": "String",
+          "description": "Name of the parent process that spawned the initiating process."
+        },
+        {
+          "name": "InitiatingProcessParentId",
+          "type": "BigInt",
+          "description": "Process ID (PID) of the parent process that spawned the initiating process."
+        },
+        {
+          "name": "InitiatingProcessSHA1",
+          "type": "String",
+          "description": "SHA-1 hash of the initiating process (image file)."
+        },
+        {
+          "name": "InitiatingProcessSHA256",
+          "type": "String",
+          "description": "SHA-256 hash of the initiating process (image file). In some cases this column may not be populated - please use the InitiatingProcessSHA1 column instead."
+        },
+        {
+          "name": "InitiatingProcessTokenElevation",
+          "type": "String",
+          "description": "Token type indicating the presence or absence of User Access Control (UAC) privilege elevation applied to the initiating process."
+        },
+        {
+          "name": "InitiatingProcessFileSize",
+          "type": "BigInt",
+          "description": "Size of the file (bytes) that ran the process responsible for the event."
+        },
+        {
+          "name": "InitiatingProcessVersionInfoCompanyName",
+          "type": "String",
+          "description": "The company name in version information (image file) responsible for the event."
+        },
+        {
+          "name": "InitiatingProcessVersionInfoProductName",
+          "type": "String",
+          "description": "The product name in version information (image file) responsible for the event."
+        },
+        {
+          "name": "InitiatingProcessVersionInfoProductVersion",
+          "type": "String",
+          "description": "The product version in version information (image file) responsible for the event."
+        },
+        {
+          "name": "InitiatingProcessVersionInfoInternalFileName",
+          "type": "String",
+          "description": "The internal file name in version information (image file) responsible for the event."
+        },
+        {
+          "name": "InitiatingProcessVersionInfoOriginalFileName",
+          "type": "String",
+          "description": "The original file name in version information (image file) responsible for the event."
+        },
+        {
+          "name": "InitiatingProcessVersionInfoFileDescription",
+          "type": "String",
+          "description": "The description in version information (image file) responsible for the event."
+        },
+        {
+          "name": "LocalIP",
+          "type": "String",
+          "description": "IP address assigned to the local machine used during communication.",
+          "dataTypeHint": "IP"
+        },
+        {
+          "name": "LocalIPType",
+          "type": "String",
+          "description": "Type of IP address, for example Public, Private, Reserved, Loopback, Teredo, FourToSixMapping, and Broadcast."
+        },
+        {
+          "name": "LocalPort",
+          "type": "Int",
+          "description": "TCP port on the local machine used during communication."
+        },
+        {
+          "name": "MachineGroup",
+          "type": "String",
+          "description": "Machine group of the machine. This group is used by role-based access control to determine access to the machine."
+        },
+        {
+          "name": "Protocol",
+          "type": "String",
+          "description": "IP protocol used, whether TCP or UDP."
+        },
+        {
+          "name": "RemoteIP",
+          "type": "String",
+          "description": "IP address that was being connected to.",
+          "dataTypeHint": "IP"
+        },
+        {
+          "name": "RemoteIPType",
+          "type": "String",
+          "description": "Type of IP address, for example Public, Private, Reserved, Loopback, Teredo, FourToSixMapping, and Broadcast."
+        },
+        {
+          "name": "RemotePort",
+          "type": "Int",
+          "description": "TCP port on the remote device that was being connected to."
+        },
+        {
+          "name": "RemoteUrl",
+          "type": "String",
+          "description": "URL or fully qualified domain name (FQDN) that was being connected to.",
+          "dataTypeHint": "URI"
+        },
+        {
+          "name": "ReportId",
+          "type": "BigInt",
+          "description": "Event identifier based on a repeating counter. To identify unique events, this column must be used in conjunction with the ComputerName and EventTime columns.."
+        },
+        {
+          "name": "TimeGenerated",
+          "type": "DateTime",
+          "description": "Date and time the event was recorded by the MDE agent on the endpoint.",
+          "isDefaultDisplay": true
+        },
+        {
+          "name": "Timestamp",
+          "type": "DateTime",
+          "description": "Date and time the event was recorded by the MDE agent on the endpoint. This is identical to TimeGenerated and added for query portability from MDE Advanced Hunting.",
+          "isHidden": true,
+          "isDefaultDisplay": false
+        },
+        {
+          "name": "InitiatingProcessParentCreationTime",
+          "type": "DateTime",
+          "description": "Date and time when the parent of the process responsible for the event was started."
+        },
+        {
+          "name": "InitiatingProcessCreationTime",
+          "type": "DateTime",
+          "description": "Date and time when the process that initiated the event was started."
+        },
+        {
+          "name": "InitiatingProcessSessionId",
+          "type": "BigInt",
+          "description": "Windows session ID of the initiating process."
+        },
+        {
+          "name": "IsInitiatingProcessRemoteSession",
+          "type": "Bool",
+          "description": "Indicates whether the initiating process was run under a remote desktop protocol (RDP) session (true) or locally (false)."
+        },
+        {
+          "name": "InitiatingProcessRemoteSessionDeviceName",
+          "type": "String",
+          "description": "Device name of the remote device from which the initiating process's RDP session was initiated."
+        },
+        {
+          "name": "InitiatingProcessRemoteSessionIP",
+          "type": "String",
+          "description": "IP address of the remote device from which the initiating process's RDP session was initiated."
+        },
+        {
+          "name": "InitiatingProcessUniqueId",
+          "type": "String",
+          "description": "Unique identifier of the initiating process; this is equal to the Process Start Key in Windows devices.",
+          "dataTypeHint": "GUID"
+        }
+      ],
+      "sampleInputRecordsFilePath": "SampleInputRecords/DeviceNetworkEventsSample.json",
+      "sampleOutputRecordsFilePath": "SampleOutputRecords/DeviceNetworkEventsSample.json"
+    },
+    {
+      "name": "DeviceProcessEvents",
+      "description": "Microsoft Defender for Endpoints (MDE) device process events table. This table contains contains information about process creation and related events on the endpoint.",
+      "categories": [
+        "security"
+      ],
+      "isLakeAllowed": true,
+      "dataTypeId": "TENANTMICROSOFTWINDOWSDEFENDERATP_ADVANCEDHUNTINGDEVICEPROCESSEVENTS",
+      "artifactVersion": 16,
+      "isTroubleshootingAllowed": true,
+      "tags": {},
+      "properties": {},
+      "intelligencePacks": [
+        "SecurityInsights"
+      ],
+      "isResourceCentric": false,
+      "tableState": "Production",
+      "input": [
+        {
+          "name": "time",
+          "type": "DateTime"
+        },
+        {
+          "name": "tenantId",
+          "type": "String"
+        },
+        {
+          "name": "operationName",
+          "type": "String"
+        },
+        {
+          "name": "category",
+          "type": "String"
+        },
+        {
+          "name": "properties",
+          "type": "Dynamic"
+        }
+      ],
+      "transformFilePath": "KQL/DeviceProcessEventsTransform.kql",
+      "columns": [
+        {
+          "name": "AccountDomain",
+          "type": "String",
+          "description": "Domain of the account."
+        },
+        {
+          "name": "AccountName",
+          "type": "String",
+          "description": "User name of the account."
+        }
+      ]
+    }
+  ]
+}
