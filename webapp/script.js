@@ -1979,8 +1979,8 @@ function validateColumn(column, index, tableContext, result) {
         }
     });
     
-    // Add informational note for transform pattern usage
-    if (hasTransformPattern && !hasStandardName) {
+    // Add informational note for transform pattern usage (only if actually using transform pattern)
+    if (hasTransformPattern && !hasStandardName && column.transformName && column.physicalName && column.logicalName) {
         if (!result.warnings) result.warnings = [];
         result.warnings.push({
             message: `${columnContext}: Using transform pattern for column type change`,
@@ -2901,6 +2901,15 @@ function createWarningCard(warning, resultIndex, warningIndex, result) {
                                         </button>
                                     </div>
                                 ` : ''}
+                            ` : ''}
+                            
+                            ${result.originalContent ? `
+                                <div class="mb-3">
+                                    <h6>File Content Preview:</h6>
+                                    <button class="btn btn-sm btn-secondary" onclick="showFileContent('${resultIndex}', '${warningLocation}')">
+                                        <i class="fas fa-file-code me-1"></i> View File Content & Fix
+                                    </button>
+                                </div>
                             ` : ''}
                         </div>
                     </div>
