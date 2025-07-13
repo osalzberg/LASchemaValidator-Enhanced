@@ -3449,6 +3449,40 @@ function findColumnInLines(lines, columnIndex, problemItem) {
         let braceDepth = 0;
         let inColumnObject = false;
         
+        // Special handling for TenantId column issue - search for the actual TenantId field
+        if (problemItem && problemItem.type === 'forbidden_system_column' && problemItem.currentValue === 'TenantId') {
+            console.log('Looking for TenantId column specifically');
+            
+            // First, try to find the exact line with "TenantId"
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (line.includes('"TenantId"') && line.includes('"name"')) {
+                    console.log(`Found TenantId column at line ${i + 1}: ${line}`);
+                    return {
+                        lineNumber: i + 1,
+                        line: line,
+                        searchTerm: 'TenantId column definition',
+                        columnIndex: columnIndex
+                    };
+                }
+            }
+            
+            // Fallback: look for any line containing TenantId
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (line.includes('TenantId')) {
+                    console.log(`Found TenantId reference at line ${i + 1}: ${line}`);
+                    return {
+                        lineNumber: i + 1,
+                        line: line,
+                        searchTerm: 'TenantId reference',
+                        columnIndex: columnIndex
+                    };
+                }
+            }
+        }
+        
+        // General column finding logic for other issues
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             
@@ -3523,7 +3557,7 @@ function findColumnInLines(lines, columnIndex, problemItem) {
         }
         
     } catch (error) {
-        // Silent error handling - unable to find column in lines
+        console.error('Error in findColumnInLines:', error);
     }
     
     return null;
