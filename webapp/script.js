@@ -4737,15 +4737,15 @@ function createGroupedIssuesHTML(groupedIssues, type) {
                 <div id="collapse-${accordionId}" class="accordion-collapse collapse" data-bs-parent="#issuesWarningsAccordion">
                     <div class="accordion-body">
                         <div class="row">
-                            ${group.items.map(item => `
+                            ${group.items.map((item, itemIndex) => `
                                 <div class="col-md-6 mb-3">
-                                    <div class="card border-danger h-100">
+                                    <div id="category-card-${item.resultIndex}-issue-${item.issueIndex}" class="card border-danger h-100">
                                         <div class="card-body">
                                             <h6 class="card-title text-danger">
                                                 <i class="fas fa-file me-1"></i>${item.fileName}
                                             </h6>
                                             <p class="card-text">${typeof item.issue === 'string' ? item.issue : item.issue.message}</p>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="expandFileResult(${item.resultIndex})">
+                                            <button class="btn btn-sm btn-outline-danger" onclick="showCategoryItemDetails(${item.resultIndex}, 'issue', ${item.issueIndex})">
                                                 <i class="fas fa-eye me-1"></i>View Details
                                             </button>
                                         </div>
