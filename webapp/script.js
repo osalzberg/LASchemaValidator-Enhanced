@@ -2101,12 +2101,20 @@ function validateFunction(func, index, result) {
 
 function validateQuery(query, index, result) {
     const queryContext = `Query ${index + 1}`;
+    const queryLocation = `queries[${index}]`;
     
     // Required fields based on official documentation
     const requiredFields = ['displayName', 'description', 'bodyFilePath'];
     requiredFields.forEach(field => {
         if (!query[field]) {
-            result.issues.push(`${queryContext}: Missing required field '${field}'`);
+            result.issues.push({
+                message: `${queryContext}: Missing required field '${field}'`,
+                type: 'missing_field',
+                field: field,
+                location: `${queryLocation}.${field}`,
+                severity: 'error',
+                suggestion: `Add the required field "${field}" to ${queryContext}.`
+            });
             result.status = 'fail';
         }
     });
@@ -2115,20 +2123,38 @@ function validateQuery(query, index, result) {
     if (query.id !== undefined) {
         const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (!guidRegex.test(query.id)) {
-            result.issues.push(`${queryContext}: id should be a valid GUID`);
+            result.issues.push({
+                message: `${queryContext}: id should be a valid GUID`,
+                type: 'invalid_format',
+                field: 'id',
+                location: `${queryLocation}.id`,
+                currentValue: query.id,
+                expectedValue: 'Valid GUID format',
+                severity: 'error',
+                suggestion: `Change the id to a valid GUID format (e.g., "12345678-1234-1234-1234-123456789012").`
+            });
             result.status = 'fail';
         }
     }
     
     // Validate description
     if (query.description) {
-        validateDescription(query.description, `${queryContext} description`, result, `queries[${index}].description`);
+        validateDescription(query.description, `${queryContext} description`, result, `${queryLocation}.description`);
     }
     
     // Validate categories (optional array)
     if (query.categories !== undefined) {
         if (!Array.isArray(query.categories)) {
-            result.issues.push(`${queryContext}: categories must be an array`);
+            result.issues.push({
+                message: `${queryContext}: categories must be an array`,
+                type: 'invalid_type',
+                field: 'categories',
+                location: `${queryLocation}.categories`,
+                currentValue: typeof query.categories,
+                expectedValue: 'array',
+                severity: 'error',
+                suggestion: `Change the categories field to an array format.`
+            });
             result.status = 'fail';
         }
     }
