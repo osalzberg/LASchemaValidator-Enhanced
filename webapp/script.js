@@ -3315,33 +3315,42 @@ function findProblemLine(lines, location, problemItem) {
     
     if (location.includes('description')) {
         // For description errors, we want to find the line with the actual description content
-        console.log('Looking for description field');
+        console.log('Looking for description field with value:', problemItem.currentValue);
         
-        // Check if this is a column description
-        if (location.includes('columns[')) {
-            const colIndex = location.match(/columns\[(\d+)\]/)?.[1];
-            if (colIndex !== undefined) {
-                console.log(`Looking for column ${colIndex} description`);
-                return findColumnDescriptionLine(lines, parseInt(colIndex), problemItem);
-            }
-        }
-        
-        // For root-level description
+        // Try to find the exact line containing the problematic description
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             if (line.includes('"description"') && line.includes(':')) {
-                console.log(`Found description line ${i + 1}: ${line}`);
                 // Check if this line contains the problematic description value
                 if (problemItem && problemItem.currentValue && line.includes(problemItem.currentValue)) {
-                    console.log('Found line with problematic value');
+                    console.log(`Found exact description line ${i + 1}: ${line}`);
                     return { lineNumber: i + 1, line: line };
                 }
-                // If no specific value match, return the description field line
-                console.log('Returning description field line');
+                // If this is a description line but not the right one, keep looking
+                console.log(`Found description line ${i + 1} but value doesn't match: ${line}`);
+            }
+        }
+        
+        // Fallback: Find any description line (sometimes the value might be on the next line)
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.includes('"description"')) {
+                console.log(`Fallback: Using description field line ${i + 1}: ${line}`);
                 return { lineNumber: i + 1, line: line };
             }
         }
-        // Fallback to searching for description term
+        
+        // Last resort: search for the actual problem value anywhere in the file
+        if (problemItem.currentValue) {
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (line.includes(problemItem.currentValue)) {
+                    console.log(`Found problematic value line ${i + 1}: ${line}`);
+                    return { lineNumber: i + 1, line: line };
+                }
+            }
+        }
+        
         searchTerm = '"description"';
     } else if (location.includes('simplifiedSchemaVersion')) {
         searchTerm = '"simplifiedSchemaVersion"';
@@ -3485,71 +3494,6 @@ function findColumnInLines(lines, columnIndex, problemItem) {
     return null;
 }
 
-function findColumnDescriptionLine(lines, columnIndex, problemItem) {
-    try {
-        let inColumnsArray = false;
-        let currentColumnIndex = -1;
-        let braceDepth = 0;
-        let inColumnObject = false;
-        
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            
-            // Check if we're entering the columns array
-            if (line.includes('"columns"') && line.includes('[')) {
-                inColumnsArray = true;
-                continue;
-            }
-            
-            if (!inColumnsArray) continue;
-            
-            // Track brace depth to understand object structure
-            const openBraces = (line.match(/\{/g) || []).length;
-            const closeBraces = (line.match(/\}/g) || []).length;
-            
-            // If we find an opening brace, we might be starting a new column object
-            if (openBraces > 0 && !inColumnObject) {
-                currentColumnIndex++;
-                inColumnObject = true;
-                braceDepth = openBraces - closeBraces;
-            } else if (inColumnObject) {
-                braceDepth += openBraces - closeBraces;
-                
-                // Check if this is the column we're looking for and we're still in it
-                if (currentColumnIndex === columnIndex && braceDepth > 0) {
-                    // Look for the description field in this column
-                    if (line.includes('"description"') && line.includes(':')) {
-                        console.log(`Found column ${columnIndex} description line ${i + 1}: ${line}`);
-                        // Check if this line contains the problematic description value
-                        if (problemItem && problemItem.currentValue && line.includes(problemItem.currentValue)) {
-                            console.log('Found line with problematic description value');
-                            return { lineNumber: i + 1, line: lines[i], columnIndex: columnIndex };
-                        }
-                        // Return the description field line for this column
-                        return { lineNumber: i + 1, line: lines[i], columnIndex: columnIndex };
-                    }
-                }
-                
-                // If we've closed all braces for this column, we're done with it
-                if (braceDepth <= 0) {
-                    inColumnObject = false;
-                }
-            }
-            
-            // Check if we're leaving the columns array
-            if (line.includes(']') && inColumnsArray) {
-                break;
-            }
-        }
-        
-        console.log(`Could not find column ${columnIndex} description line`);
-        return null;
-    } catch (error) {
-        console.error('Error finding column description line:', error);
-        return null;
-    }
-}
-
 function generateFixedLine(originalLine, problemItem, location) {
     if (!problemItem) return null;
     
@@ -3572,17 +3516,13 @@ function generateFixedLine(originalLine, problemItem, location) {
                 fixedValue = fixedValue + '.';
             }
             
-            // Replace the description value in the line with multiple patterns
-            // Pattern 1: "description": "value"
-            if (originalLine.includes(`"${currentValue}"`)) {
-                fixedLine = originalLine.replace(`"${currentValue}"`, `"${fixedValue}"`);
-            }
-            // Pattern 2: value without quotes (unlikely but possible)
-            else if (originalLine.includes(currentValue)) {
+            // Replace the description value in the line
+            fixedLine = originalLine.replace(`"${currentValue}"`, `"${fixedValue}"`);
+            
+            // Also try without quotes in case the format is different
+            if (fixedLine === originalLine) {
                 fixedLine = originalLine.replace(currentValue, fixedValue);
             }
-            
-            console.log('Description fix applied:', { originalLine, fixedLine, currentValue, fixedValue });
         } else if (problemItem.type === 'incorrect_capitalization') {
             // Fix capitalization issues for data types like "dynamic" -> "Dynamic"
             const currentValue = problemItem.currentValue;
