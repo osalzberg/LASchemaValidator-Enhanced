@@ -4789,15 +4789,15 @@ function createGroupedWarningsHTML(groupedWarnings, type) {
                 <div id="collapse-${accordionId}" class="accordion-collapse collapse" data-bs-parent="#issuesWarningsAccordion">
                     <div class="accordion-body">
                         <div class="row">
-                            ${group.items.map(item => `
+                            ${group.items.map((item, itemIndex) => `
                                 <div class="col-md-6 mb-3">
-                                    <div class="card border-warning h-100">
+                                    <div id="category-card-${item.resultIndex}-warning-${item.warningIndex}" class="card border-warning h-100">
                                         <div class="card-body">
                                             <h6 class="card-title text-warning">
                                                 <i class="fas fa-file me-1"></i>${item.fileName}
                                             </h6>
                                             <p class="card-text">${typeof item.warning === 'string' ? item.warning : item.warning.message}</p>
-                                            <button class="btn btn-sm btn-outline-warning" onclick="expandFileResult(${item.resultIndex})">
+                                            <button class="btn btn-sm btn-outline-warning" onclick="showCategoryItemDetails(${item.resultIndex}, 'warning', ${item.warningIndex})">
                                                 <i class="fas fa-eye me-1"></i>View Details
                                             </button>
                                         </div>
@@ -4814,8 +4814,14 @@ function createGroupedWarningsHTML(groupedWarnings, type) {
     return html;
 }
 
-function expandFileResult(resultIndex) {
-    // Find the accordion item for this result and expand it
+function expandFileResult(resultIndex, issueType = null, itemIndex = null) {
+    // If called from category view, show details in place
+    if (issueType && itemIndex !== null) {
+        showCategoryItemDetails(resultIndex, issueType, itemIndex);
+        return;
+    }
+    
+    // Original behavior for direct file result expansion
     const accordionItem = document.querySelector(`#collapse${resultIndex}`);
     if (accordionItem) {
         // Use Bootstrap's collapse API if available
@@ -4834,4 +4840,178 @@ function expandFileResult(resultIndex) {
             });
         }, 300);
     }
+}
+
+function showCategoryItemDetails(resultIndex, issueType, itemIndex) {
+    const results = validationResults;
+    if (!results || !results[resultIndex]) {
+        showAlert('File result not available.', 'warning');
+        return;
+    }
+    
+    const result = results[resultIndex];
+    const isIssue = issueType === 'issue';
+    const items = isIssue ? result.issues : result.warnings;
+    
+    if (!items || itemIndex >= items.length) {
+        showAlert('Item details not available.', 'warning');
+        return;
+    }
+    
+    const item = items[itemIndex];
+    const cardId = `category-card-${resultIndex}-${issueType}-${itemIndex}`;
+    const detailsId = `category-details-${resultIndex}-${issueType}-${itemIndex}`;
+    
+    // Find the specific card for this item
+    const card = document.getElementById(cardId);
+    if (!card) {
+        console.warn('Card not found, falling back to original behavior');
+        expandFileResult(resultIndex);
+        return;
+    }
+    
+    // Check if details are already showing
+    let detailsElement = document.getElementById(detailsId);
+    if (detailsElement) {
+        // Toggle existing details
+        if (detailsElement.style.display === 'none') {
+            detailsElement.style.display = 'block';
+            // Update button text
+            const button = card.querySelector('button');
+            if (button) {
+                button.innerHTML = '<i class="fas fa-eye-slash me-1"></i>Hide Details';
+                button.classList.remove('btn-outline-' + (isIssue ? 'danger' : 'warning'));
+                button.classList.add('btn-' + (isIssue ? 'danger' : 'warning'));
+            }
+        } else {
+            detailsElement.style.display = 'none';
+            // Update button text
+            const button = card.querySelector('button');
+            if (button) {
+                button.innerHTML = '<i class="fas fa-eye me-1"></i>View Details';
+                button.classList.remove('btn-' + (isIssue ? 'danger' : 'warning'));
+                button.classList.add('btn-outline-' + (isIssue ? 'danger' : 'warning'));
+            }
+        }
+        return;
+    }
+    
+    // Create new details element
+    detailsElement = document.createElement('div');
+    detailsElement.id = detailsId;
+    detailsElement.className = 'card-footer border-top mt-3';
+    
+    const problemClass = isIssue ? 'danger' : 'warning';
+    const problemIcon = isIssue ? 'times-circle' : 'exclamation-triangle';
+    const problemText = isIssue ? 'ERROR' : 'WARNING';
+    
+    // Generate the fixed value based on the issue/warning
+    const fixedValue = generateFixedValue(item);
+    
+    detailsElement.innerHTML = `
+        <div class="item-details">
+            <div class="d-flex align-items-center mb-3">
+                <i class="fas fa-${problemIcon} text-${problemClass} me-2"></i>
+                <h6 class="mb-0 text-${problemClass}">${typeof item === 'string' ? item : item.message}</h6>
+            </div>
+            
+            ${typeof item === 'object' && item.location ? `
+                <div class="small text-muted mb-3">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    Location: <code>${item.location}</code>
+                </div>
+            ` : ''}
+            
+            ${typeof item === 'object' && item.suggestion ? `
+                <div class="alert alert-${problemClass} py-2 mb-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Suggestion:</strong> ${item.suggestion}
+                </div>
+            ` : ''}
+            
+            ${typeof item === 'object' && item.microsoftRequirement ? `
+                <div class="microsoft-requirement mb-3">
+                    <h6><i class="fas fa-microsoft me-1"></i>Microsoft Azure Requirement:</h6>
+                    <blockquote class="blockquote-sm bg-light p-2 border-start border-3 border-primary">
+                        ${item.microsoftRequirement}
+                    </blockquote>
+                </div>
+            ` : ''}
+            
+            ${typeof item === 'object' && item.currentValue ? `
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6 class="text-${problemClass}"><i class="fas fa-${problemIcon} me-1"></i>Current Value:</h6>
+                        <div class="p-2 bg-light border border-${problemClass} rounded">
+                            <code class="text-${problemClass}">${escapeHtml(item.currentValue)}</code>
+                        </div>
+                    </div>
+                    ${fixedValue ? `
+                        <div class="col-md-6">
+                            <h6 class="text-success"><i class="fas fa-check me-1"></i>Suggested Fix:</h6>
+                            <div class="p-2 bg-light border border-success rounded">
+                                <code class="text-success">${escapeHtml(fixedValue)}</code>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            ` : ''}
+            
+            ${!isIssue && item.type === 'performance_warning' ? `
+                <div class="alert alert-info py-2 mb-3">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    <strong>Performance Impact:</strong> Dynamic fields can slow down query performance and make queries more complex. Consider using specific data types for better performance.
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="text-success"><i class="fas fa-lightbulb me-1"></i>Recommended Types:</h6>
+                    <div class="p-3 bg-light border border-success rounded">
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="badge bg-success">String</span>
+                            <span class="badge bg-success">DateTime</span>
+                            <span class="badge bg-success">Int</span>
+                            <span class="badge bg-success">Double</span>
+                            <span class="badge bg-success">Bool</span>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <div class="d-flex gap-2 flex-wrap">
+                ${result.originalContent ? `
+                    <button class="btn btn-sm btn-outline-secondary" onclick="showFileContent('${resultIndex}', '${item.location || 'unknown'}')">
+                        <i class="fas fa-file-code me-1"></i>View File Content
+                    </button>
+                ` : ''}
+                <button class="btn btn-sm btn-outline-primary" onclick="expandFileResult(${resultIndex})">
+                    <i class="fas fa-list me-1"></i>View Full File Results
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Add the details element after the card body
+    const cardBody = card.querySelector('.card-body');
+    if (cardBody && cardBody.parentNode) {
+        cardBody.parentNode.appendChild(detailsElement);
+    }
+    
+    // Update button text and style
+    const button = card.querySelector('button');
+    if (button) {
+        button.innerHTML = '<i class="fas fa-eye-slash me-1"></i>Hide Details';
+        button.classList.remove('btn-outline-' + problemClass);
+        button.classList.add('btn-' + problemClass);
+        
+        // Update the onclick to toggle
+        button.setAttribute('onclick', `showCategoryItemDetails(${resultIndex}, '${issueType}', ${itemIndex})`);
+    }
+    
+    // Smooth scroll to the expanded details
+    setTimeout(() => {
+        detailsElement.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'nearest'
+        });
+    }, 100);
 }
