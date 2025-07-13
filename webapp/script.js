@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * 6. Prepare validation tools for immediate use
  */
 function initializeApp() {
+    console.log('🚀 Initializing Azure Log Analytics Schema Validator...');
     
     // Check if required elements exist in the DOM
     // These elements are defined in index.html and are critical for app functionality
@@ -116,6 +117,12 @@ function initializeApp() {
     const validationBtn = document.querySelector('button[onclick="toggleValidation()"]');
     const guideBtn = document.querySelector('button[onclick="toggleGuide()"]');
     
+    console.log('📋 Element check:', {
+        uploadSection: !!uploadSection,
+        guideSection: !!guideSection,
+        validationBtn: !!validationBtn,
+        guideBtn: !!guideBtn
+    });
     
     // Set up all event listeners for user interactions
     setupEventListeners();
@@ -132,9 +139,13 @@ function initializeApp() {
     // Enable keyboard shortcuts for power users (V = validation, G = guide, ESC = close)
     setupKeyboardShortcuts();
     
+    // Ensure drag and drop handlers are properly attached
+    setupDragDropHandlers();
+    
     // Get reference to validate button for later use
     const validateBtn = document.getElementById('validateBtn');
     
+    console.log('✅ App initialization complete!');
 }
 
 /**
@@ -3926,6 +3937,60 @@ window.showValidationAndScroll = showValidationAndScroll;
 
 // Make function globally accessible
 window.toggleValidationDetails = toggleValidationDetails;
+
+/**
+ * 🎯 DRAG & DROP HANDLER SETUP
+ * Ensures drag and drop functionality is properly attached to upload areas
+ * 
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * This function makes sure the drag-and-drop zones are properly set up and working,
+ * even when the upload section is initially hidden. It ensures users can always
+ * drag files into the upload area once it's visible.
+ * 
+ * BUSINESS VALUE:
+ * Provides a reliable drag-and-drop experience that works consistently,
+ * making file uploads intuitive and user-friendly.
+ * 
+ * TECHNICAL DETAILS:
+ * - Explicitly attaches event handlers to upload areas
+ * - Ensures handlers work even after DOM manipulation
+ * - Provides fallback for cases where inline handlers might fail
+ */
+function setupDragDropHandlers() {
+    console.log('🎯 Setting up drag and drop handlers...');
+    
+    // Find the upload area element
+    const uploadArea = document.querySelector('.upload-area');
+    
+    if (!uploadArea) {
+        console.warn('Upload area not found during drag drop setup');
+        return;
+    }
+    
+    console.log('✅ Upload area found, attaching handlers');
+    
+    // Attach event listeners programmatically as backup to inline handlers
+    uploadArea.addEventListener('dragenter', dragEnterHandler);
+    uploadArea.addEventListener('dragover', dragOverHandler);
+    uploadArea.addEventListener('dragleave', dragLeaveHandler);
+    uploadArea.addEventListener('drop', dropHandler);
+    
+    // Also make the upload area clickable to trigger file input
+    uploadArea.addEventListener('click', function(e) {
+        // Don't trigger if clicking on buttons inside the upload area
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            return;
+        }
+        
+        // Trigger file input click
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            fileInput.click();
+        }
+    });
+    
+    console.log('✅ Drag and drop handlers setup complete');
+}
 
 function setupKeyboardShortcuts() {
     // Add keyboard shortcuts
