@@ -1979,20 +1979,21 @@ function validateColumn(column, index, tableContext, result) {
         }
     });
     
-    // Add informational note for transform pattern usage (only if actually using transform pattern)
-    if (hasTransformPattern && !hasStandardName && column.transformName && column.physicalName && column.logicalName) {
-        if (!result.warnings) result.warnings = [];
-        result.warnings.push({
-            message: `${columnContext}: Using transform pattern for column type change`,
-            type: 'info',
-            field: 'transformName',
-            location: `${columnLocation}.transformName`,
-            severity: 'info',
-            suggestion: `This column is using the Microsoft Azure transform pattern for changing column types. Ensure the table has "isChangeColumnInternalNameAllowed": true property.`,
-            microsoftRequirement: 'When using transform pattern, users won\'t be able to query data ingested before this change and should be notified.',
-            currentValue: `${column.transformName} -> ${column.physicalName}`
-        });
-    }
+        // Add informational note for transform pattern usage (only if actually using transform pattern)
+        if (hasTransformPattern && !hasStandardName && column.transformName && column.physicalName && column.logicalName) {
+            if (!result.warnings) result.warnings = [];
+            result.warnings.push({
+                message: `${columnContext}: Using transform pattern for column type change`,
+                type: 'info',
+                field: 'transformName',
+                location: `${columnLocation}.transformName`,
+                columnIndex: index,
+                severity: 'info',
+                suggestion: `This column is using the Microsoft Azure transform pattern for changing column types. Ensure the table has "isChangeColumnInternalNameAllowed": true property.`,
+                microsoftRequirement: 'When using transform pattern, users won\'t be able to query data ingested before this change and should be notified.',
+                currentValue: `${column.transformName} -> ${column.physicalName}`
+            });
+        }
     
     // Validate description
     if (column.description) {
@@ -3444,6 +3445,25 @@ function findProblemLine(lines, location, problemItem) {
 
 function findColumnInLines(lines, columnIndex, problemItem) {
     try {
+        // Special handling for transform pattern columns
+        if (problemItem && problemItem.type === 'info' && problemItem.field === 'transformName') {
+            console.log('Looking for transform pattern column specifically');
+            
+            // Look for transformName field first
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (line.includes('"transformName"') && line.includes(':')) {
+                    console.log(`Found transform pattern column at line ${i + 1}: ${line}`);
+                    return {
+                        lineNumber: i + 1,
+                        line: line,
+                        searchTerm: 'Transform pattern column',
+                        columnIndex: columnIndex
+                    };
+                }
+            }
+        }
+        
         // Special handling for TenantId column issue - search for the actual TenantId field first
         if (problemItem && problemItem.type === 'forbidden_system_column' && problemItem.currentValue === 'TenantId') {
             console.log('Looking for TenantId column specifically');
@@ -3512,6 +3532,22 @@ function findColumnInLines(lines, columnIndex, problemItem) {
                 // Check if this is the column we're looking for
                 if (currentColumnIndex === columnIndex) {
                     console.log(`Found target column ${columnIndex} at line ${columnStartLine}`);
+                    
+                    // For transform pattern columns, look for transformName field
+                    if (problemItem && problemItem.field === 'transformName') {
+                        for (let j = i; j < Math.min(i + 20, lines.length); j++) {
+                            const searchLine = lines[j];
+                            if (searchLine.includes('"transformName"') && searchLine.includes(':')) {
+                                console.log(`Found transformName field for column ${columnIndex} at line ${j + 1}: ${searchLine}`);
+                                return {
+                                    lineNumber: j + 1,
+                                    line: lines[j],
+                                    searchTerm: `Column ${columnIndex + 1} transformName field`,
+                                    columnIndex: columnIndex
+                                };
+                            }
+                        }
+                    }
                     
                     // Look for the name field within this column object
                     let searchStart = i;
