@@ -2008,18 +2008,34 @@ function validateColumn(column, index, tableContext, result) {
         const isLowercaseValidType = validTypes.includes(capitalizedType);
         
         if (isLowercaseValidType) {
-            result.issues.push({
-                message: `${columnContext}: Column data type '${column.type}' should start with capital letter`,
-                type: 'incorrect_capitalization',
-                field: 'type',
-                location: `${columnLocation}.type`,
-                currentValue: column.type,
-                expectedValue: capitalizedType,
-                severity: 'error',
-                suggestion: `Change "${column.type}" to "${capitalizedType}" - Azure Log Analytics requires data types to start with a capital letter.`,
-                microsoftRequirement: 'Azure Log Analytics column data types must start with a capital letter (e.g., "String" not "string").',
-                fixInstructions: `Simply capitalize the first letter: "${column.type}" → "${capitalizedType}"`
-            });
+            // Special handling for datetime capitalization
+            if (column.type.toLowerCase() === 'datetime') {
+                result.issues.push({
+                    message: `${columnContext}: Column data type 'datetime' should be 'DateTime' (capital D and T)`,
+                    type: 'incorrect_capitalization',
+                    field: 'type',
+                    location: `${columnLocation}.type`,
+                    currentValue: column.type,
+                    expectedValue: 'DateTime',
+                    severity: 'error',
+                    suggestion: `Change "datetime" to "DateTime" - Azure Log Analytics requires the DateTime type to be capitalized properly.`,
+                    microsoftRequirement: 'Azure Log Analytics DateTime type must be capitalized as "DateTime" (not "datetime", "dateTime", or "DATETIME").',
+                    fixInstructions: `Change the type from "${column.type}" to "DateTime" with capital D and T`
+                });
+            } else {
+                result.issues.push({
+                    message: `${columnContext}: Column data type '${column.type}' should start with capital letter`,
+                    type: 'incorrect_capitalization',
+                    field: 'type',
+                    location: `${columnLocation}.type`,
+                    currentValue: column.type,
+                    expectedValue: capitalizedType,
+                    severity: 'error',
+                    suggestion: `Change "${column.type}" to "${capitalizedType}" - Azure Log Analytics requires data types to start with a capital letter.`,
+                    microsoftRequirement: 'Azure Log Analytics column data types must start with a capital letter (e.g., "String" not "string").',
+                    fixInstructions: `Simply capitalize the first letter: "${column.type}" → "${capitalizedType}"`
+                });
+            }
         } else {
             result.issues.push({
                 message: `${columnContext}: Invalid data type '${column.type}'`,
