@@ -1166,13 +1166,80 @@ async function validateManifestFile(file, result) {
         const requiredFields = ['type', 'displayName', 'description', 'simplifiedSchemaVersion', 'tables'];
         requiredFields.forEach(field => {
             if (!manifest[field]) {
+                // Find a good location to suggest adding the field
+                const lines = content.split('\n');
+                let suggestedLineNumber = 1;
+                let insertAfterField = null;
+                
+                // Look for existing fields to determine where to add the missing one
+                const fieldOrder = ['type', 'displayName', 'description', 'simplifiedSchemaVersion', 'tables'];
+                const currentFieldIndex = fieldOrder.indexOf(field);
+                
+                // Find the last existing field that comes before this one in the recommended order
+                for (let i = currentFieldIndex - 1; i >= 0; i--) {
+                    const previousField = fieldOrder[i];
+                    if (manifest[previousField]) {
+                        insertAfterField = previousField;
+                        break;
+                    }
+                }
+                
+                // Find the line number where we should suggest adding the field
+                if (insertAfterField) {
+                    // Find the line containing the previous field
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].includes(`"${insertAfterField}"`)) {
+                            suggestedLineNumber = i + 2; // Add after the field line
+                            break;
+                        }
+                    }
+                } else {
+                    // If no previous field found, suggest adding after the opening brace
+                    for (let i = 0; i < lines.length; i++) {
+                        if (lines[i].trim() === '{') {
+                            suggestedLineNumber = i + 2;
+                            break;
+                        }
+                    }
+                }
+                
+                // Create example value based on field type
+                let exampleValue;
+                switch (field) {
+                    case 'type':
+                        exampleValue = 'NGSchema';
+                        break;
+                    case 'displayName':
+                        exampleValue = 'Your Log Table Name';
+                        break;
+                    case 'description':
+                        exampleValue = 'Description of your log table data.';
+                        break;
+                    case 'simplifiedSchemaVersion':
+                        exampleValue = '3';
+                        break;
+                    case 'tables':
+                        exampleValue = '[]';
+                        break;
+                    default:
+                        exampleValue = '""';
+                }
+                
+                const fixCode = `"${field}": ${typeof exampleValue === 'string' && field !== 'tables' ? `"${exampleValue}"` : exampleValue}`;
+                
                 result.issues.push({
                     message: `Missing required field: ${field}`,
                     type: 'missing_field',
                     field: field,
-                    location: 'root',
+                    location: `root.${field}`,
+                    lineNumber: suggestedLineNumber,
                     severity: 'error',
-                    suggestion: `Add the required field "${field}" to the root level of your manifest file.`
+                    currentValue: 'missing',
+                    expectedValue: exampleValue,
+                    suggestion: `Add the required field "${field}" to the root level of your manifest file.`,
+                    fixInstructions: `Add this line ${insertAfterField ? `after the "${insertAfterField}" field` : 'near the beginning of the file'}: ${fixCode}`,
+                    fixCode: fixCode,
+                    microsoftRequirement: `The "${field}" field is required by Azure Log Analytics NGSchema v3 specification.`
                 });
                 result.status = 'fail';
             }
@@ -3320,22 +3387,57 @@ function highlightFileContent(content, location, problemItem) {
             const isProblematicLine = problemLine && problemLine.lineNumber === lineNumber;
             
             if (isProblematicLine) {
-                // Highlight the problematic line in red
-                highlightedContent += `<div class="code-line problem-line ${problemType}-line" id="problematic-line-${lineNumber}" data-line="${lineNumber}" data-column-index="${problemItem.columnIndex || ''}">`;
-                highlightedContent += `<span class="line-number ${problemType}-number">${lineNumber}</span>`;
-                highlightedContent += `<span class="line-content">${escapeHtml(line)}</span>`;
-                highlightedContent += `<span class="problem-indicator ${problemType}-indicator">`;
-                highlightedContent += `<i class="fas fa-${isWarning ? 'exclamation-triangle' : 'times-circle'}"></i> `;
-                highlightedContent += `<span class="problem-text">${isWarning ? 'WARNING' : 'ERROR'}`;
-                if (problemItem.columnIndex !== undefined) {
-                    highlightedContent += ` - Column ${problemItem.columnIndex + 1}`;
+                // Special handling for missing fields
+                if (problemLine.isMissingField) {
+                    // Show the line where the field should be inserted
+                    if (problemLine.insertAfter) {
+                        highlightedContent += `<div class="code-line" data-line="${lineNumber - 1}">`;
+                        highlightedContent += `<span class="line-number">${lineNumber - 1}</span>`;
+                        highlightedContent += `<span class="line-content">${escapeHtml(problemLine.insertAfter)}</span>`;
+                        highlightedContent += '</div>';
+                    }
+                    
+                    // Show the missing field insertion point
+                    highlightedContent += `<div class="code-line missing-field-line error-line" id="problematic-line-${lineNumber}" data-line="${lineNumber}">`;
+                    highlightedContent += `<span class="line-number missing-number">+</span>`;
+                    highlightedContent += `<span class="line-content missing-content">`;
+                    highlightedContent += `<span class="missing-field-placeholder">  ${escapeHtml(problemLine.fixCode)},</span>`;
+                    highlightedContent += `</span>`;
+                    highlightedContent += `<span class="problem-indicator error-indicator">`;
+                    highlightedContent += `<i class="fas fa-plus-circle"></i> `;
+                    highlightedContent += `<span class="problem-text">ADD MISSING FIELD</span>`;
+                    highlightedContent += `</span>`;
+                    highlightedContent += '</div>';
+                    
+                    // Add explanation
+                    highlightedContent += `<div class="code-line fix-line">`;
+                    highlightedContent += `<span class="line-number fix-number">!</span>`;
+                    highlightedContent += `<span class="line-content">`;
+                    highlightedContent += `<em class="fix-explanation">Add the missing "${problemLine.fieldName}" field above</em>`;
+                    highlightedContent += `</span>`;
+                    highlightedContent += `<span class="fix-indicator">`;
+                    highlightedContent += `<i class="fas fa-lightbulb"></i> `;
+                    highlightedContent += `<span class="fix-text">REQUIRED</span>`;
+                    highlightedContent += `</span>`;
+                    highlightedContent += '</div>';
+                } else {
+                    // Highlight the problematic line in red (existing behavior)
+                    highlightedContent += `<div class="code-line problem-line ${problemType}-line" id="problematic-line-${lineNumber}" data-line="${lineNumber}" data-column-index="${problemItem.columnIndex || ''}">`;
+                    highlightedContent += `<span class="line-number ${problemType}-number">${lineNumber}</span>`;
+                    highlightedContent += `<span class="line-content">${escapeHtml(line)}</span>`;
+                    highlightedContent += `<span class="problem-indicator ${problemType}-indicator">`;
+                    highlightedContent += `<i class="fas fa-${isWarning ? 'exclamation-triangle' : 'times-circle'}"></i> `;
+                    highlightedContent += `<span class="problem-text">${isWarning ? 'WARNING' : 'ERROR'}`;
+                    if (problemItem.columnIndex !== undefined) {
+                        highlightedContent += ` - Column ${problemItem.columnIndex + 1}`;
+                    }
+                    highlightedContent += `</span>`;
+                    highlightedContent += `</span>`;
+                    highlightedContent += '</div>';
                 }
-                highlightedContent += `</span>`;
-                highlightedContent += `</span>`;
-                highlightedContent += '</div>';
                 
                 // Add suggested fix or type recommendations in green
-                if (problemItem && (problemItem.suggestion || problemItem.currentValue)) {
+                if (!problemLine.isMissingField && problemItem && (problemItem.suggestion || problemItem.currentValue)) {
                     const fixedLine = generateFixedLine(line, problemItem, location);
                     console.log('Generated fixed line:', { originalLine: line, fixedLine, problemItem });
                     
@@ -3465,6 +3567,61 @@ function findProblemLine(lines, location, problemItem) {
     if (!problemItem) return null;
     
     console.log('Finding problem line for:', { location, problemItem });
+    
+    // Handle missing field cases
+    if (problemItem.type === 'missing_field') {
+        console.log('Handling missing field case for:', problemItem.field);
+        
+        // Use the line number we calculated during validation if available
+        if (problemItem.lineNumber) {
+            const lineNumber = problemItem.lineNumber;
+            const insertLine = lineNumber <= lines.length ? lines[lineNumber - 1] || '' : '';
+            
+            return { 
+                lineNumber: lineNumber, 
+                line: insertLine,
+                isMissingField: true,
+                fixCode: problemItem.fixCode,
+                fieldName: problemItem.field,
+                insertAfter: lineNumber > 1 ? lines[lineNumber - 2] : null
+            };
+        }
+        
+        // Fallback: find a good insertion point
+        const fieldOrder = ['type', 'displayName', 'description', 'simplifiedSchemaVersion', 'tables'];
+        const currentFieldIndex = fieldOrder.indexOf(problemItem.field);
+        
+        // Look for existing fields to determine where to add the missing one
+        for (let i = currentFieldIndex - 1; i >= 0; i--) {
+            const previousField = fieldOrder[i];
+            for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                if (lines[lineIndex].includes(`"${previousField}"`)) {
+                    return { 
+                        lineNumber: lineIndex + 2, 
+                        line: lineIndex + 1 < lines.length ? lines[lineIndex + 1] : '',
+                        isMissingField: true,
+                        fixCode: problemItem.fixCode,
+                        fieldName: problemItem.field,
+                        insertAfter: lines[lineIndex]
+                    };
+                }
+            }
+        }
+        
+        // If no previous field found, suggest adding after the opening brace
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].trim() === '{') {
+                return { 
+                    lineNumber: i + 2, 
+                    line: i + 1 < lines.length ? lines[i + 1] : '',
+                    isMissingField: true,
+                    fixCode: problemItem.fixCode,
+                    fieldName: problemItem.field,
+                    insertAfter: lines[i]
+                };
+            }
+        }
+    }
     
     // Parse the location to understand what we're looking for
     const locationParts = location.split('.');
