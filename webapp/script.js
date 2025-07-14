@@ -80,6 +80,71 @@ let validationResults = [];
  * - Calls initializeApp() to set up all the interactive features
  * - This is a standard web development pattern for app initialization
  */
+
+// Declare global functions early to ensure they're available for onclick handlers
+function startValidationWithScroll() {
+    // Add debug logging to help troubleshoot the issue
+    console.log('startValidationWithScroll called');
+    
+    const uploadSection = document.getElementById('upload-section');
+    const button = document.getElementById('startValidationBtn');
+    
+    if (!uploadSection) {
+        console.error('Upload section not found!');
+        return;
+    }
+    
+    if (!button) {
+        console.error('Start validation button not found!');
+        return;
+    }
+
+    if (uploadSection.style.display === 'none' || uploadSection.style.display === '') {
+        // Show the upload section
+        uploadSection.style.display = 'block';
+        uploadSection.classList.remove('hide');
+        uploadSection.classList.add('show');
+        
+        // Update button
+        button.innerHTML = '<i class="fas fa-times me-2"></i>Hide Validation';
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-outline-danger');
+        
+        // Auto-scroll to the upload section
+        setTimeout(() => {
+            uploadSection.scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }, 100);
+    } else {
+        // Hide the upload section
+        uploadSection.classList.remove('show');
+        uploadSection.classList.add('hide');
+        
+        // Update button
+        button.innerHTML = '<i class="fas fa-upload me-2"></i>Start Validation';
+        button.classList.remove('btn-outline-danger');
+        button.classList.add('btn-primary');
+        
+        // Hide after animation completes
+        setTimeout(() => {
+            uploadSection.style.display = 'none';
+            uploadSection.classList.remove('hide');
+        }, 300);
+        
+        // Scroll back to the hero section
+        const heroSection = document.querySelector('.hero-section');
+        if (heroSection) {
+            heroSection.scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }
+    }
+}
+
+// Make function available globally immediately
+window.startValidationWithScroll = startValidationWithScroll;
+
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
 });
@@ -435,64 +500,6 @@ function toggleValidation() {
     }
     
     if (!button) {
-        return;
-    }
-    
-    if (uploadSection.style.display === 'none' || uploadSection.style.display === '') {
-        // Show the upload section
-        uploadSection.style.display = 'block';
-        uploadSection.classList.remove('hide');
-        uploadSection.classList.add('show');
-        
-        // Update button
-        button.innerHTML = '<i class="fas fa-times me-2"></i>Hide Validation';
-        button.classList.remove('btn-primary');
-        button.classList.add('btn-outline-danger');
-        
-        // Auto-scroll to the upload section
-        setTimeout(() => {
-            uploadSection.scrollIntoView({ 
-                behavior: 'smooth' 
-            });
-        }, 100);
-    } else {
-        // Hide the upload section
-        uploadSection.classList.remove('show');
-        uploadSection.classList.add('hide');
-        
-        // Update button
-        button.innerHTML = '<i class="fas fa-upload me-2"></i>Start Validation';
-        button.classList.remove('btn-outline-danger');
-        button.classList.add('btn-primary');
-        
-        // Hide after animation completes
-        setTimeout(() => {
-            uploadSection.style.display = 'none';
-            uploadSection.classList.remove('hide');
-        }, 300);
-        
-        // Scroll back to the hero section
-        const heroSection = document.querySelector('.hero-section');
-        if (heroSection) {
-            heroSection.scrollIntoView({ 
-                behavior: 'smooth' 
-            });
-        }
-    }
-}
-
-// Functions with auto-scroll for main buttons
-function startValidationWithScroll() {
-    const uploadSection = document.getElementById('upload-section');
-    const button = document.getElementById('startValidationBtn');
-    
-    if (!uploadSection) {
-        console.error('Upload section not found!');
-        return;
-    }
-    
-    if (!button) {
-        console.error('Start validation button not found!');
         return;
     }
     
