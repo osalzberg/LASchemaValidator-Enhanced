@@ -4173,280 +4173,147 @@ function generateFixedValue(problemItem) {
 }
 
 function scrollToProblematicLine(location, issue) {
-    console.log('🎯 scrollToProblematicLine called:', { location, issue });
     
-    // Enhanced function to perform the actual scroll with better debugging
+    // Enhanced function to perform the actual scroll within the modal
     function performScroll() {
-        console.log('🔍 Attempting to find problematic line...');
-        
         // Multiple strategies to find the problematic line
         let targetElement = null;
-        let strategy = '';
         
         // Strategy 1: Try to find by line number if issue has lineNumber
         if (issue && issue.lineNumber) {
-            console.log('📍 Trying Strategy 1: Line number', issue.lineNumber);
             targetElement = document.querySelector(`#problematic-line-${issue.lineNumber}`);
-            if (targetElement) {
-                strategy = `problematic-line-${issue.lineNumber}`;
-                console.log('✅ Found by Strategy 1:', strategy);
-            } else {
-                // Try alternative selectors
+            if (!targetElement) {
                 targetElement = document.querySelector(`[data-line="${issue.lineNumber}"]`);
-                if (targetElement) {
-                    strategy = `data-line="${issue.lineNumber}"`;
-                    console.log('✅ Found by Strategy 1 alternative:', strategy);
-                } else {
-                    targetElement = document.querySelector(`#line-${issue.lineNumber}`);
-                    if (targetElement) {
-                        strategy = `line-${issue.lineNumber}`;
-                        console.log('✅ Found by Strategy 1 fallback:', strategy);
-                    }
-                }
             }
         }
         
         // Strategy 2: Find by problem-line class
         if (!targetElement) {
-            console.log('📍 Trying Strategy 2: problem-line class');
             const problemLineElements = document.querySelectorAll('.problem-line');
-            console.log('🔍 Found .problem-line elements:', problemLineElements.length);
             if (problemLineElements.length > 0) {
                 targetElement = problemLineElements[0];
-                strategy = 'problem-line class';
-                console.log('✅ Found by Strategy 2:', strategy);
             }
         }
         
-        // Strategy 2b: Find by missing-field-line class (specific to missing fields)
+        // Strategy 3: Find by missing-field-line class
         if (!targetElement) {
-            console.log('📍 Trying Strategy 2b: missing-field-line class');
             const missingFieldElements = document.querySelectorAll('.missing-field-line');
-            console.log('🔍 Found .missing-field-line elements:', missingFieldElements.length);
             if (missingFieldElements.length > 0) {
                 targetElement = missingFieldElements[0];
-                strategy = 'missing-field-line class';
-                console.log('✅ Found by Strategy 2b:', strategy);
             }
         }
         
-        // Strategy 3: Find by error-line class
+        // Strategy 4: Find by error-line class
         if (!targetElement) {
-            console.log('📍 Trying Strategy 3: error-line class');
             const errorLineElements = document.querySelectorAll('.error-line');
-            console.log('🔍 Found .error-line elements:', errorLineElements.length);
             if (errorLineElements.length > 0) {
                 targetElement = errorLineElements[0];
-                strategy = 'error-line class';
-                console.log('✅ Found by Strategy 3:', strategy);
             }
         }
         
-        // Strategy 4: Find by warning-line class
+        // Strategy 5: Find by warning-line class
         if (!targetElement) {
-            console.log('📍 Trying Strategy 4: warning-line class');
             const warningLineElements = document.querySelectorAll('.warning-line');
-            console.log('🔍 Found .warning-line elements:', warningLineElements.length);
             if (warningLineElements.length > 0) {
                 targetElement = warningLineElements[0];
-                strategy = 'warning-line class';
-                console.log('✅ Found by Strategy 4:', strategy);
             }
         }
         
-        // Strategy 5: Find any highlighted content
+        // Strategy 6: Fallback to first code line
         if (!targetElement) {
-            console.log('📍 Trying Strategy 5: any highlighted content');
-            const highlightedElements = document.querySelectorAll('.highlighted-line, .fix-line, .separator-line');
-            console.log('🔍 Found highlighted elements:', highlightedElements.length);
-            if (highlightedElements.length > 0) {
-                targetElement = highlightedElements[0];
-                strategy = 'highlighted content';
-                console.log('✅ Found by Strategy 5:', strategy);
-            }
-        }
-        
-        if (!targetElement) {
-            console.log('❌ No target element found after all strategies');
-            // Log available elements for debugging
             const allCodeLines = document.querySelectorAll('.code-line');
-            console.log('🔍 Available .code-line elements:', allCodeLines.length);
             if (allCodeLines.length > 0) {
-                console.log('🔍 First .code-line element:', allCodeLines[0]);
-                // Use the first code line as fallback
                 targetElement = allCodeLines[0];
-                strategy = 'fallback first code-line';
-                console.log('✅ Using fallback strategy:', strategy);
             }
         }
         
         if (!targetElement) {
-            console.log('❌ No target element found even with fallback');
             return false;
         }
         
-        const lineNumber = targetElement.getAttribute('data-line') || 'unknown';
-        console.log('🎯 Target found:', { element: targetElement, lineNumber, strategy });
-        
-        // Get the scrollable container - try multiple selectors with better debugging
+        // Get the scrollable container - prioritize the modal's file content container
         let scrollContainer = null;
-        console.log('🔍 Looking for scroll container...');
         
-        // Try multiple container selectors
+        // Priority order: most specific to least specific
         const containerSelectors = [
-            '#fileContentContainer',
-            '.code-content', 
-            '.modal-body',
-            '.file-content-viewer',
-            '.modal-dialog',
-            '.modal-content'
+            '#fileContentContainer',           // Primary file content container
+            '.code-content',                   // Code content wrapper
+            '.file-content-viewer',           // File viewer wrapper
+            '.modal-body',                    // Modal body as fallback
+            '.modal-content'                  // Modal content as last resort
         ];
         
         for (const selector of containerSelectors) {
             scrollContainer = document.querySelector(selector);
             if (scrollContainer) {
-                console.log('✅ Found scroll container:', selector);
                 break;
-            } else {
-                console.log('❌ Container not found:', selector);
             }
         }
         
         if (!scrollContainer) {
-            console.log('❌ No scroll container found');
             return false;
         }
         
-        console.log('📐 Calculating scroll position...');
-        
-        // Calculate the scroll position with error handling
+        // Calculate the scroll position to center the problematic line
         try {
             const containerRect = scrollContainer.getBoundingClientRect();
             const targetRect = targetElement.getBoundingClientRect();
             const containerScrollTop = scrollContainer.scrollTop;
-            
-            console.log('📊 Scroll calculation data:', {
-                containerRect: { top: containerRect.top, height: containerRect.height },
-                targetRect: { top: targetRect.top, height: targetRect.height },
-                containerScrollTop
-            });
             
             // Calculate position relative to scroll container
             const targetTop = targetRect.top - containerRect.top + containerScrollTop;
             const containerHeight = scrollContainer.clientHeight;
             const elementHeight = targetElement.offsetHeight;
             
-            // Calculate scroll position to center the problematic line with some offset
+            // Calculate scroll position to center the problematic line
             const scrollTop = Math.max(0, targetTop - (containerHeight / 2) + (elementHeight / 2));
             
-            console.log('🎯 Scrolling to position:', scrollTop);
-            
-            // Smooth scroll to the problematic line
+            // Smooth scroll to the problematic line within the modal
             scrollContainer.scrollTo({
                 top: scrollTop,
                 behavior: 'smooth'
             });
             
-            // Add enhanced visual feedback with animation
-            console.log('✨ Adding visual highlight...');
-            targetElement.style.transition = 'all 0.3s ease';
-            targetElement.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.5)';
-            targetElement.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
-            targetElement.style.borderLeft = '4px solid #ff0000';
+            // Add enhanced visual feedback
+            targetElement.style.transition = 'all 0.5s ease';
+            targetElement.style.boxShadow = '0 0 20px rgba(255, 193, 7, 0.8)';
+            targetElement.style.backgroundColor = 'rgba(255, 193, 7, 0.2)';
+            targetElement.style.border = '2px solid #ffc107';
             
-            // Add pulsing animation
-            targetElement.style.animation = 'pulse 2s infinite';
+            // Pulse animation for better visibility
+            targetElement.style.animation = 'pulse-highlight 2s ease-in-out 3';
             
-            // Remove the highlight after 3 seconds
+            // Remove the highlight after 6 seconds
             setTimeout(() => {
-                console.log('🎭 Removing visual highlight...');
-                targetElement.style.transition = 'all 0.5s ease';
                 targetElement.style.boxShadow = '';
                 targetElement.style.backgroundColor = '';
-                targetElement.style.borderLeft = '';
+                targetElement.style.border = '';
                 targetElement.style.animation = '';
-            }, 3000);
+            }, 6000);
             
-            console.log('✅ Scroll operation completed successfully');
             return true;
-            
         } catch (error) {
-            console.error('❌ Error during scroll calculation:', error);
+            console.error('Error during scroll calculation:', error);
             return false;
         }
     }
     
-    // Enhanced retry mechanism with MutationObserver
-    function waitForElementsAndScroll() {
-        console.log('⏱️ Starting enhanced scroll attempt...');
-        
-        // Try immediate scroll first
-        if (performScroll()) {
-            console.log('✅ Immediate scroll successful');
-            return;
-        }
-        
-        console.log('⏳ Immediate scroll failed, setting up retry mechanism...');
-        
-        // Set up MutationObserver to detect DOM changes
-        let attempts = 0;
-        const maxAttempts = 30; // Increased from 20
-        const retryInterval = 200; // Increased from 100ms
-        
-        const observer = new MutationObserver((mutations) => {
-            console.log('🔄 DOM mutation detected, retrying scroll...');
-            if (performScroll()) {
-                console.log('✅ Scroll successful after DOM mutation');
-                observer.disconnect();
-                return;
-            }
-        });
-        
-        // Observe the modal or document for changes
-        const observeTarget = document.querySelector('.modal-content') || document.body;
-        observer.observe(observeTarget, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['id', 'class', 'data-line']
-        });
-        
-        // Fallback interval-based retry
-        const scrollInterval = setInterval(() => {
-            attempts++;
-            console.log(`🔄 Retry attempt ${attempts}/${maxAttempts}`);
-            
-            if (performScroll()) {
-                console.log('✅ Scroll successful on retry', attempts);
-                clearInterval(scrollInterval);
-                observer.disconnect();
-                return;
-            }
-            
-            if (attempts >= maxAttempts) {
-                console.log('❌ Max retry attempts reached, giving up');
-                clearInterval(scrollInterval);
-                observer.disconnect();
-                
-                // Final fallback: just scroll to top of content
-                const container = document.querySelector('#fileContentContainer, .code-content, .modal-body');
-                if (container) {
-                    console.log('🔝 Fallback: scrolling to top of container');
-                    container.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            }
-        }, retryInterval);
-        
-        // Clean up after 10 seconds max
-        setTimeout(() => {
-            console.log('⏰ Timeout reached, cleaning up...');
-            clearInterval(scrollInterval);
-            observer.disconnect();
-        }, 10000);
+    // Try to scroll immediately
+    if (performScroll()) {
+        return;
     }
     
-    // Start the enhanced scroll process
-    waitForElementsAndScroll();
+    // If immediate scroll failed, wait for DOM to be ready with retry mechanism
+    let attempts = 0;
+    const maxAttempts = 25;
+    
+    const scrollInterval = setInterval(() => {
+        attempts++;
+        
+        if (performScroll() || attempts >= maxAttempts) {
+            clearInterval(scrollInterval);
+        }
+    }, 200); // Increased interval for better modal rendering
 }
 
 function escapeHtml(text) {
