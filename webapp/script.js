@@ -4410,6 +4410,9 @@ function scrollToProblematicLine(location, issue) {
         
         console.log('Final scroll container:', scrollContainer);
         console.log('Container scroll info:', {
+            tagName: scrollContainer.tagName,
+            className: scrollContainer.className,
+            id: scrollContainer.id,
             scrollHeight: scrollContainer.scrollHeight,
             clientHeight: scrollContainer.clientHeight,
             scrollTop: scrollContainer.scrollTop,
