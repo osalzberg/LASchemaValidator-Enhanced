@@ -1690,7 +1690,10 @@ async function validateTransformManifestFile(file, result) {
                     location: 'root.dataTypeId',
                     currentValue: manifest.dataTypeId,
                     severity: 'warning',
-                    suggestion: 'Consider using the naming convention SERVICEIDENTITYNAME_LOGCATEGORYNAME for better consistency (e.g., "CISCO_SECURITY").'
+                    suggestion: `Consider renaming "${manifest.dataTypeId}" to follow the SERVICEIDENTITYNAME_LOGCATEGORYNAME pattern. Examples: "CISCO_SECURITY", "AZURE_AUDIT", "WINDOWS_EVENTS", "KUBERNETES_LOGS". The underscore separates the service identity from the log category.`,
+                    microsoftRequirement: 'Azure Log Analytics recommends using the SERVICEIDENTITYNAME_LOGCATEGORYNAME naming convention for dataTypeId to ensure consistency and clarity across different data sources.',
+                    fixInstructions: `Change "${manifest.dataTypeId}" to include an underscore separator, such as "${manifest.dataTypeId.toUpperCase()}_LOGCATEGORY" or "SERVICEIDENTITY_${manifest.dataTypeId.toUpperCase()}".`,
+                    validationReason: `The validator detected that "${manifest.dataTypeId}" does not contain an underscore (_), which is the standard separator in the SERVICEIDENTITYNAME_LOGCATEGORYNAME convention.`
                 });
             }
         }
@@ -1941,7 +1944,18 @@ function validateTable(table, index, result) {
     // Validate dataTypeId follows naming convention
     if (table.dataTypeId && typeof table.dataTypeId === 'string') {
         if (!table.dataTypeId.includes('_')) {
-            result.warnings.push(`${tableContext}: dataTypeId should follow SERVICEIDENTITYNAME_LOGCATEGORYNAME convention`);
+            result.warnings.push({
+                message: `${tableContext}: dataTypeId should follow SERVICEIDENTITYNAME_LOGCATEGORYNAME convention`,
+                type: 'naming_convention_warning',
+                field: 'dataTypeId',
+                location: `${tableLocation}.dataTypeId`,
+                currentValue: table.dataTypeId,
+                severity: 'warning',
+                suggestion: `Consider renaming "${table.dataTypeId}" to follow the SERVICEIDENTITYNAME_LOGCATEGORYNAME pattern. Examples: "CISCO_SECURITY", "AZURE_AUDIT", "WINDOWS_EVENTS", "KUBERNETES_LOGS". The underscore separates the service identity from the log category.`,
+                microsoftRequirement: 'Azure Log Analytics recommends using the SERVICEIDENTITYNAME_LOGCATEGORYNAME naming convention for dataTypeId to ensure consistency and clarity across different data sources.',
+                fixInstructions: `Change "${table.dataTypeId}" to include an underscore separator, such as "${table.dataTypeId.toUpperCase()}_LOGCATEGORY" or "SERVICEIDENTITY_${table.dataTypeId.toUpperCase()}".`,
+                validationReason: `The validator detected that "${table.dataTypeId}" does not contain an underscore (_), which is the standard separator in the SERVICEIDENTITYNAME_LOGCATEGORYNAME convention.`
+            });
         }
     }
     
