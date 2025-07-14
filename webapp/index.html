@@ -518,10 +518,10 @@
                                     <input type="file" id="fileInput" class="d-none" multiple accept=".json,.kql,.manifest.json">
                                     <input type="file" id="folderInput" class="d-none" webkitdirectory multiple>
                                     <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                        <button type="button" class="btn btn-primary" id="selectFilesBtn" title="Select individual files for validation">
                                             <i class="fas fa-file-upload me-2"></i>Select Files
                                         </button>
-                                        <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('folderInput').click()">
+                                        <button type="button" class="btn btn-outline-primary" id="selectFolderBtn" title="Select entire folder for validation">
                                             <i class="fas fa-folder-open me-2"></i>Select Folder
                                         </button>
                                     </div>

@@ -369,13 +369,78 @@ function setupFileInput() {
     const fileInput = document.getElementById('fileInput');
     const folderInput = document.getElementById('folderInput');
     
-    fileInput.addEventListener('change', function(e) {
-        handleFiles(e.target.files);
-    });
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            console.log('File input changed:', e.target.files.length, 'files');
+            handleFiles(e.target.files);
+        });
+    }
     
-    folderInput.addEventListener('change', function(e) {
-        handleFiles(e.target.files);
-    });
+    if (folderInput) {
+        folderInput.addEventListener('change', function(e) {
+            console.log('Folder input changed:', e.target.files.length, 'files');
+            handleFiles(e.target.files);
+        });
+    }
+    
+    // Set up direct button click handlers as backup
+    setupFileInputButtons();
+}
+
+/**
+ * 🔘 FILE INPUT BUTTON HANDLERS
+ * Provides robust button click handling for file and folder selection
+ * 
+ * WHAT IT DOES FOR YOUR FRIENDS:
+ * This ensures that when someone clicks "Select Files" or "Select Folder",
+ * the correct file dialog opens and doesn't interfere with each other.
+ * 
+ * BUSINESS VALUE:
+ * Prevents user confusion and ensures consistent behavior across different browsers.
+ * 
+ * TECHNICAL DETAILS:
+ * - Prevents event bubbling that could cause conflicts
+ * - Ensures proper timing between button clicks and file input triggers
+ * - Provides fallback handlers if inline onclick doesn't work
+ */
+function setupFileInputButtons() {
+    // Find buttons by their specific IDs
+    const selectFilesBtn = document.getElementById('selectFilesBtn');
+    const selectFolderBtn = document.getElementById('selectFolderBtn');
+    
+    if (selectFilesBtn) {
+        selectFilesBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Select Files button clicked');
+            
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                // Reset the input to ensure change event fires even for same files
+                fileInput.value = '';
+                setTimeout(() => {
+                    fileInput.click();
+                }, 10);
+            }
+        });
+    }
+    
+    if (selectFolderBtn) {
+        selectFolderBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Select Folder button clicked');
+            
+            const folderInput = document.getElementById('folderInput');
+            if (folderInput) {
+                // Reset the input to ensure change event fires even for same folders
+                folderInput.value = '';
+                setTimeout(() => {
+                    folderInput.click();
+                }, 10);
+            }
+        });
+    }
 }
 
 // ===== NAVIGATION & USER INTERFACE FUNCTIONS =====
