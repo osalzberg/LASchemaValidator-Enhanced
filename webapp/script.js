@@ -1730,20 +1730,8 @@ function validateTable(table, index, result) {
         result.status = 'fail';
     }
     
-    // Add informational note for transform pattern usage
-    if (hasTransformPattern && !hasStandardName) {
-        if (!result.warnings) result.warnings = [];
-        result.warnings.push({
-            message: `${tableContext}: Using transform pattern for table type change`,
-            type: 'info',
-            field: 'workflowName',
-            location: `${tableLocation}.workflowName`,
-            severity: 'info',
-            suggestion: `This table is using the Microsoft Azure transform pattern for changing table types. This allows multiple tables to share the same physical table while having different logical names.`,
-            microsoftRequirement: 'When using transform pattern, multiple tables can map to the same physical table with different logical representations.',
-            currentValue: `${table.workflowName} -> ${table.physicalName} (${table.logicalName})`
-        });
-    }
+    // Transform pattern information removed - no longer showing this informational warning
+    // as it's not needed for validation purposes
     
     // Required fields based on official documentation (excluding name since it can be replaced by transform pattern)
     const requiredFields = ['description', 'dataTypeId', 'artifactVersion', 'input', 'transformFilePath', 'columns'];
