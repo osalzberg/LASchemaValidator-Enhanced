@@ -4176,6 +4176,8 @@ function scrollToProblematicLine(location, issue) {
     
     // Enhanced function to perform the actual scroll within the modal
     function performScroll() {
+        console.log('performScroll called with:', { location, issue });
+        
         // Multiple strategies to find the problematic line
         let targetElement = null;
         
@@ -4185,6 +4187,7 @@ function scrollToProblematicLine(location, issue) {
             if (!targetElement) {
                 targetElement = document.querySelector(`[data-line="${issue.lineNumber}"]`);
             }
+            console.log(`Strategy 1 - Line ${issue.lineNumber}:`, targetElement);
         }
         
         // Strategy 2: Find by problem-line class
@@ -4193,6 +4196,7 @@ function scrollToProblematicLine(location, issue) {
             if (problemLineElements.length > 0) {
                 targetElement = problemLineElements[0];
             }
+            console.log('Strategy 2 - problem-line class:', targetElement);
         }
         
         // Strategy 3: Find by missing-field-line class
@@ -4201,6 +4205,7 @@ function scrollToProblematicLine(location, issue) {
             if (missingFieldElements.length > 0) {
                 targetElement = missingFieldElements[0];
             }
+            console.log('Strategy 3 - missing-field-line class:', targetElement);
         }
         
         // Strategy 4: Find by error-line class
@@ -4209,6 +4214,7 @@ function scrollToProblematicLine(location, issue) {
             if (errorLineElements.length > 0) {
                 targetElement = errorLineElements[0];
             }
+            console.log('Strategy 4 - error-line class:', targetElement);
         }
         
         // Strategy 5: Find by warning-line class
@@ -4217,6 +4223,7 @@ function scrollToProblematicLine(location, issue) {
             if (warningLineElements.length > 0) {
                 targetElement = warningLineElements[0];
             }
+            console.log('Strategy 5 - warning-line class:', targetElement);
         }
         
         // Strategy 6: Fallback to first code line
@@ -4225,60 +4232,87 @@ function scrollToProblematicLine(location, issue) {
             if (allCodeLines.length > 0) {
                 targetElement = allCodeLines[0];
             }
+            console.log('Strategy 6 - first code-line:', targetElement);
         }
         
         if (!targetElement) {
+            console.error('No target element found for scrolling');
             return false;
         }
         
-        // Get the scrollable container - prioritize the modal's file content container
-        let scrollContainer = null;
+        console.log('Final target element:', targetElement);
         
-        // Priority order: most specific to least specific
-        const containerSelectors = [
-            '#fileContentContainer',           // Primary file content container
-            '.code-content',                   // Code content wrapper
-            '.file-content-viewer',           // File viewer wrapper
-            '.modal-body',                    // Modal body as fallback
-            '.modal-content'                  // Modal content as last resort
-        ];
+        // Get the scrollable container - MUST be the modal's file content container
+        let scrollContainer = document.getElementById('fileContentContainer');
+        console.log('Primary container search result:', scrollContainer);
         
-        for (const selector of containerSelectors) {
-            scrollContainer = document.querySelector(selector);
-            if (scrollContainer) {
-                break;
+        // If the primary container is not found, try alternative selectors in the modal context
+        if (!scrollContainer) {
+            // Look for containers within the currently visible modal
+            const visibleModal = document.querySelector('.modal.show');
+            console.log('Visible modal found:', visibleModal);
+            if (visibleModal) {
+                scrollContainer = visibleModal.querySelector('#fileContentContainer') ||
+                                 visibleModal.querySelector('.code-content') ||
+                                 visibleModal.querySelector('.file-content-viewer') ||
+                                 visibleModal.querySelector('.modal-body');
+                console.log('Alternative container search result:', scrollContainer);
             }
         }
         
         if (!scrollContainer) {
+            console.error('File content container not found for scrolling');
             return false;
         }
         
-        // Calculate the scroll position to center the problematic line
+        console.log('Final scroll container:', scrollContainer);
+        console.log('Container scroll info:', {
+            scrollHeight: scrollContainer.scrollHeight,
+            clientHeight: scrollContainer.clientHeight,
+            scrollTop: scrollContainer.scrollTop,
+            isScrollable: scrollContainer.scrollHeight > scrollContainer.clientHeight
+        });
+        
+        // Verify this is actually the scrollable container
+        if (scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+            console.warn('Container is not scrollable or content fits within view');
+            // Still try to scroll in case content becomes scrollable
+        }
+        
+        // Calculate the scroll position to center the problematic line within the modal
         try {
             const containerRect = scrollContainer.getBoundingClientRect();
             const targetRect = targetElement.getBoundingClientRect();
-            const containerScrollTop = scrollContainer.scrollTop;
             
-            // Calculate position relative to scroll container
-            const targetTop = targetRect.top - containerRect.top + containerScrollTop;
+            // Calculate the relative position of the target element within the scroll container
+            const targetRelativeTop = targetElement.offsetTop;
             const containerHeight = scrollContainer.clientHeight;
             const elementHeight = targetElement.offsetHeight;
             
-            // Calculate scroll position to center the problematic line
-            const scrollTop = Math.max(0, targetTop - (containerHeight / 2) + (elementHeight / 2));
+            // Calculate scroll position to center the problematic line in the container
+            const scrollTop = Math.max(0, targetRelativeTop - (containerHeight / 2) + (elementHeight / 2));
             
-            // Smooth scroll to the problematic line within the modal
+            console.log('Scroll calculation:', {
+                containerHeight,
+                targetRelativeTop,
+                elementHeight,
+                calculatedScrollTop: scrollTop,
+                currentScrollTop: scrollContainer.scrollTop
+            });
+            
+            // Smooth scroll to the problematic line within the file content container
             scrollContainer.scrollTo({
                 top: scrollTop,
                 behavior: 'smooth'
             });
             
-            // Add enhanced visual feedback
+            // Add enhanced visual feedback with better positioning
             targetElement.style.transition = 'all 0.5s ease';
             targetElement.style.boxShadow = '0 0 20px rgba(255, 193, 7, 0.8)';
-            targetElement.style.backgroundColor = 'rgba(255, 193, 7, 0.2)';
+            targetElement.style.backgroundColor = 'rgba(255, 193, 7, 0.3)';
             targetElement.style.border = '2px solid #ffc107';
+            targetElement.style.borderRadius = '4px';
+            targetElement.style.margin = '2px 0';
             
             // Pulse animation for better visibility
             targetElement.style.animation = 'pulse-highlight 2s ease-in-out 3';
@@ -4288,6 +4322,8 @@ function scrollToProblematicLine(location, issue) {
                 targetElement.style.boxShadow = '';
                 targetElement.style.backgroundColor = '';
                 targetElement.style.border = '';
+                targetElement.style.borderRadius = '';
+                targetElement.style.margin = '';
                 targetElement.style.animation = '';
             }, 6000);
             
