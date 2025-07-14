@@ -408,19 +408,45 @@ function setupFileInputButtons() {
     const selectFilesBtn = document.getElementById('selectFilesBtn');
     const selectFolderBtn = document.getElementById('selectFolderBtn');
     
+    // Add a flag to prevent simultaneous clicks
+    let isProcessingClick = false;
+    
     if (selectFilesBtn) {
         selectFilesBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            if (isProcessingClick) {
+                console.log('File button click ignored - processing in progress');
+                return;
+            }
+            
+            isProcessingClick = true;
             console.log('Select Files button clicked');
             
             const fileInput = document.getElementById('fileInput');
+            const folderInput = document.getElementById('folderInput');
+            
             if (fileInput) {
-                // Reset the input to ensure change event fires even for same files
+                // Ensure folder input is cleared and doesn't interfere
+                if (folderInput) {
+                    folderInput.value = '';
+                }
+                
+                // Reset the file input to ensure change event fires even for same files
                 fileInput.value = '';
+                
+                // Use longer timeout to prevent interference
                 setTimeout(() => {
                     fileInput.click();
-                }, 10);
+                    // Reset the processing flag after click
+                    setTimeout(() => {
+                        isProcessingClick = false;
+                    }, 100);
+                }, 50);
+            } else {
+                isProcessingClick = false;
             }
         });
     }
@@ -429,15 +455,38 @@ function setupFileInputButtons() {
         selectFolderBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            if (isProcessingClick) {
+                console.log('Folder button click ignored - processing in progress');
+                return;
+            }
+            
+            isProcessingClick = true;
             console.log('Select Folder button clicked');
             
+            const fileInput = document.getElementById('fileInput');
             const folderInput = document.getElementById('folderInput');
+            
             if (folderInput) {
-                // Reset the input to ensure change event fires even for same folders
+                // Ensure file input is cleared and doesn't interfere
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+                
+                // Reset the folder input to ensure change event fires even for same folders
                 folderInput.value = '';
+                
+                // Use longer timeout to prevent interference
                 setTimeout(() => {
                     folderInput.click();
-                }, 10);
+                    // Reset the processing flag after click
+                    setTimeout(() => {
+                        isProcessingClick = false;
+                    }, 100);
+                }, 50);
+            } else {
+                isProcessingClick = false;
             }
         });
     }
