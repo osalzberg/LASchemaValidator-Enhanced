@@ -2047,22 +2047,40 @@ function validateInputField(inputField, index, tableContext, result) {
     // Validate input data type
     const validInputTypes = ['Bool', 'SByte', 'Byte', 'Short', 'UShort', 'Int', 'UInt', 'Long', 'ULong', 'Float', 'Double', 'String', 'DateTime', 'Guid', 'Dynamic'];
     if (inputField.type && !validInputTypes.includes(inputField.type)) {
-        // Check if this is a lowercase version of a valid type
-        const capitalizedType = inputField.type.charAt(0).toUpperCase() + inputField.type.slice(1);
-        const isLowercaseValidType = validInputTypes.includes(capitalizedType);
+        // Check for common capitalization corrections
+        const typeCorrections = {
+            'bool': 'Bool',
+            'sbyte': 'SByte',
+            'byte': 'Byte',
+            'short': 'Short',
+            'ushort': 'UShort',
+            'int': 'Int',
+            'uint': 'UInt',
+            'long': 'Long',
+            'ulong': 'ULong',
+            'float': 'Float',
+            'double': 'Double',
+            'string': 'String',
+            'datetime': 'DateTime',
+            'guid': 'Guid',
+            'dynamic': 'Dynamic'
+        };
         
-        if (isLowercaseValidType) {
+        const lowerType = inputField.type.toLowerCase();
+        const correctType = typeCorrections[lowerType];
+        
+        if (correctType) {
             result.issues.push({
-                message: `${inputContext}: Input data type '${inputField.type}' should start with capital letter`,
+                message: `${inputContext}: Input data type '${inputField.type}' should be '${correctType}'`,
                 type: 'incorrect_capitalization',
                 field: 'type',
                 location: `${inputLocation}.type`,
                 currentValue: inputField.type,
-                expectedValue: capitalizedType,
+                expectedValue: correctType,
                 severity: 'error',
-                suggestion: `Change "${inputField.type}" to "${capitalizedType}" - Azure Log Analytics requires data types to start with a capital letter.`,
-                microsoftRequirement: 'Azure Log Analytics input data types must start with a capital letter (e.g., "String" not "string").',
-                fixInstructions: `Simply capitalize the first letter: "${inputField.type}" → "${capitalizedType}"`
+                suggestion: `Change "${inputField.type}" to "${correctType}" - Azure Log Analytics requires proper capitalization of data types.`,
+                microsoftRequirement: 'Azure Log Analytics input data types must use proper capitalization (e.g., "DateTime" not "datetime").',
+                fixInstructions: `Change the type from "${inputField.type}" to "${correctType}"`
             });
         } else {
             result.issues.push({
@@ -2156,39 +2174,39 @@ function validateColumn(column, index, tableContext, result) {
     // Validate data type (column types for Log Analytics tables)
     const validTypes = ['String', 'Int', 'BigInt', 'SmallInt', 'TinyInt', 'Float', 'Double', 'Bool', 'DateTime', 'Guid', 'Binary', 'Dynamic'];
     if (column.type && !validTypes.includes(column.type)) {
-        // Check if this is a lowercase version of a valid type
-        const capitalizedType = column.type.charAt(0).toUpperCase() + column.type.slice(1);
-        const isLowercaseValidType = validTypes.includes(capitalizedType);
+        // Check for common capitalization corrections
+        const typeCorrections = {
+            'string': 'String',
+            'int': 'Int',
+            'bigint': 'BigInt',
+            'smallint': 'SmallInt',
+            'tinyint': 'TinyInt',
+            'float': 'Float',
+            'double': 'Double',
+            'bool': 'Bool',
+            'boolean': 'Bool',
+            'datetime': 'DateTime',
+            'guid': 'Guid',
+            'binary': 'Binary',
+            'dynamic': 'Dynamic'
+        };
         
-        if (isLowercaseValidType) {
-            // Special handling for datetime capitalization
-            if (column.type.toLowerCase() === 'datetime') {
-                result.issues.push({
-                    message: `${columnContext}: Column data type 'datetime' should be 'DateTime' (capital D and T)`,
-                    type: 'incorrect_capitalization',
-                    field: 'type',
-                    location: `${columnLocation}.type`,
-                    currentValue: column.type,
-                    expectedValue: 'DateTime',
-                    severity: 'error',
-                    suggestion: `Change "datetime" to "DateTime" - Azure Log Analytics requires the DateTime type to be capitalized properly.`,
-                    microsoftRequirement: 'Azure Log Analytics DateTime type must be capitalized as "DateTime" (not "datetime", "dateTime", or "DATETIME").',
-                    fixInstructions: `Change the type from "${column.type}" to "DateTime" with capital D and T`
-                });
-            } else {
-                result.issues.push({
-                    message: `${columnContext}: Column data type '${column.type}' should start with capital letter`,
-                    type: 'incorrect_capitalization',
-                    field: 'type',
-                    location: `${columnLocation}.type`,
-                    currentValue: column.type,
-                    expectedValue: capitalizedType,
-                    severity: 'error',
-                    suggestion: `Change "${column.type}" to "${capitalizedType}" - Azure Log Analytics requires data types to start with a capital letter.`,
-                    microsoftRequirement: 'Azure Log Analytics column data types must start with a capital letter (e.g., "String" not "string").',
-                    fixInstructions: `Simply capitalize the first letter: "${column.type}" → "${capitalizedType}"`
-                });
-            }
+        const lowerType = column.type.toLowerCase();
+        const correctType = typeCorrections[lowerType];
+        
+        if (correctType) {
+            result.issues.push({
+                message: `${columnContext}: Column data type '${column.type}' should be '${correctType}'`,
+                type: 'incorrect_capitalization',
+                field: 'type',
+                location: `${columnLocation}.type`,
+                currentValue: column.type,
+                expectedValue: correctType,
+                severity: 'error',
+                suggestion: `Change "${column.type}" to "${correctType}" - Azure Log Analytics requires proper capitalization of data types.`,
+                microsoftRequirement: 'Azure Log Analytics column data types must use proper capitalization (e.g., "DateTime" not "datetime").',
+                fixInstructions: `Change the type from "${column.type}" to "${correctType}"`
+            });
         } else {
             result.issues.push({
                 message: `${columnContext}: Invalid data type '${column.type}'`,
