@@ -1619,376 +1619,376 @@ async function validateTransformManifestFile(file, result) {
     return result;
 }
 
-function validateDescription(description, context, result, location) {
-    if (!description || typeof description !== 'string') {
-        result.issues.push({
-            message: `${context}: Description must be a non-empty string`,
-            type: 'invalid_type',
-            field: 'description',
-            location: location,
-            severity: 'error',
-            suggestion: `Provide a valid non-empty string for the ${context.toLowerCase()}.`
-        });
-        result.status = 'fail';
-        return;
-    }
-    
-    if (!description.charAt(0).match(/[A-Z]/)) {
-        result.issues.push({
-            message: `${context}: Description must start with a capital letter`,
-            type: 'formatting_error',
-            field: 'description',
-            location: location,
-            currentValue: description,
-            severity: 'error',
-            suggestion: `Change the first character of "${description}" to a capital letter.`
-        });
-        result.status = 'fail';
-    }
-    
-    if (!description.endsWith('.')) {
-        result.issues.push({
-            message: `${context}: Description must end with a period`,
-            type: 'formatting_error',
-            field: 'description',
-            location: location,
-            currentValue: description,
-            severity: 'error',
-            suggestion: `Add a period at the end of "${description}".`
-        });
-        result.status = 'fail';
-    }
-}
-
-function validateTable(table, index, result) {
-    const tableContext = `Table ${index + 1}`;
-    const tableLocation = `tables[${index}]`;
-    
-    // Check for table name - either standard 'name' OR transform pattern (workflowName + transformName + physicalName + logicalName)
-    const hasStandardName = table.name;
-    const hasTransformPattern = table.workflowName && table.transformName && table.physicalName && table.logicalName;
-    
-    if (!hasStandardName && !hasTransformPattern) {
-        result.issues.push({
-            message: `${tableContext}: Missing required field 'name' or transform pattern (workflowName, transformName, physicalName, logicalName)`,
-            type: 'missing_field',
-            field: 'name',
-            location: `${tableLocation}.name`,
-            severity: 'error',
-            suggestion: `Add either a 'name' field OR the complete transform pattern with 'workflowName', 'transformName', 'physicalName', and 'logicalName' fields for table type changes.`,
-            microsoftRequirement: 'Tables must have either a standard "name" field or use the transform pattern (workflowName, transformName, physicalName, logicalName) when changing table types in Azure Log Analytics.'
-        });
-        result.status = 'fail';
-    }
-    
-    // Add informational note for transform pattern usage
-    if (hasTransformPattern && !hasStandardName) {
-        if (!result.warnings) result.warnings = [];
-        result.warnings.push({
-            message: `${tableContext}: Using transform pattern for table type change`,
-            type: 'info',
-            field: 'workflowName',
-            location: `${tableLocation}.workflowName`,
-            severity: 'info',
-            suggestion: `This table is using the Microsoft Azure transform pattern for changing table types. This allows multiple tables to share the same physical table while having different logical names.`,
-            microsoftRequirement: 'When using transform pattern, multiple tables can map to the same physical table with different logical representations.',
-            currentValue: `${table.workflowName} -> ${table.physicalName} (${table.logicalName})`
-        });
-    }
-    
-    // Required fields based on official documentation (excluding name since it can be replaced by transform pattern)
-    const requiredFields = ['description', 'dataTypeId', 'artifactVersion', 'input', 'transformFilePath', 'columns'];
-    requiredFields.forEach(field => {
-        if (!table[field]) {
-            result.issues.push({
-                message: `${tableContext}: Missing required field '${field}'`,
-                type: 'missing_field',
-                field: field,
-                location: `${tableLocation}.${field}`,
-                severity: 'error',
-                suggestion: `Add the required field "${field}" to ${tableContext}.`
-            });
-            result.status = 'fail';
-        }
-    });
-    
-    // Validate table name length
-    if (table.name && table.name.length > 45) {
-        result.issues.push({
-            message: `${tableContext}: Table name must be 45 characters or less`,
-            type: 'invalid_length',
-            field: 'name',
-            location: `${tableLocation}.name`,
-            currentValue: `${table.name.length} characters`,
-            expectedValue: '45 characters or less',
-            severity: 'error',
-            suggestion: `Shorten the table name "${table.name}" to 45 characters or less.`
-        });
-        result.status = 'fail';
-    }
-    
-    // Validate description
-    if (table.description) {
-        validateDescription(table.description, `${tableContext} description`, result, `${tableLocation}.description`);
-    }
-    
-    // Validate artifactVersion is a number >= 1
-    if (table.artifactVersion !== undefined) {
-        if (typeof table.artifactVersion !== 'number' || table.artifactVersion < 1 || !Number.isInteger(table.artifactVersion)) {
-            result.issues.push(`${tableContext}: artifactVersion must be an integer >= 1`);
-            result.status = 'fail';
-        }
-    }
-    
-    // Validate dataTypeId follows naming convention
-    if (table.dataTypeId && typeof table.dataTypeId === 'string') {
-        if (!table.dataTypeId.includes('_')) {
-            result.warnings.push(`${tableContext}: dataTypeId should follow SERVICEIDENTITYNAME_LOGCATEGORYNAME convention`);
-        }
-    }
-    
-    // Validate categories array (optional)
-    if (table.categories !== undefined) {
-        if (!Array.isArray(table.categories)) {
-            result.issues.push(`${tableContext}: categories must be an array`);
-            result.status = 'fail';
-        }
-    }
-    
-    // Validate boolean fields (optional)
-    const booleanFields = ['isResourceCentric', 'isHidden', 'isTroubleshootingAllowed', 'isLakeAllowed', 'isChangeColumnInternalNameAllowed'];
-    booleanFields.forEach(field => {
-        if (table[field] !== undefined && typeof table[field] !== 'boolean') {
-            result.issues.push(`${tableContext}: ${field} must be a boolean`);
-            result.status = 'fail';
-        }
-    });
-    
-    // Validate tableState
-    if (table.tableState !== undefined) {
-        const validStates = ['Validation', 'Production'];
-        if (!validStates.includes(table.tableState)) {
-            result.issues.push(`${tableContext}: tableState must be either "Validation" or "Production"`);
-            result.status = 'fail';
-        }
-    }
-    
-    // Validate input array
-    if (table.input && Array.isArray(table.input)) {
-        table.input.forEach((inputField, inputIndex) => {
-            validateInputField(inputField, inputIndex, tableContext, result);
-        });
-    } else if (table.input !== undefined) {
-        result.issues.push(`${tableContext}: input must be an array`);
-        result.status = 'fail';
-    }
-    
-    // Validate columns array
-    if (table.columns && Array.isArray(table.columns)) {
-        if (table.columns.length === 0) {
-            result.issues.push(`${tableContext}: columns array cannot be empty`);
-            result.status = 'fail';
-        } else {
-            table.columns.forEach((column, colIndex) => {
-                validateColumn(column, colIndex, tableContext, result);
-            });
-            
-            // Check for required TimeGenerated column
-            const timeGeneratedColumn = table.columns.find(col => col.name === 'TimeGenerated');
-            if (!timeGeneratedColumn) {
-                result.issues.push({
-                    message: `${tableContext}: Missing required TimeGenerated column`,
-                    type: 'missing_required_column',
-                    field: 'TimeGenerated',
-                    location: `${tableLocation}.columns`,
-                    severity: 'error',
-                    suggestion: 'Add a TimeGenerated column with type "DateTime" to your table. This column is required for all Log Analytics tables and must map to the $.time JSON path in Shoebox.'
-                });
-                result.status = 'fail';
-            } else {
-                // Validate TimeGenerated column properties
-                if (timeGeneratedColumn.type !== 'DateTime') {
-                    result.issues.push({
-                        message: `${tableContext}: TimeGenerated column must be of type "DateTime"`,
-                        type: 'invalid_column_type',
-                        field: 'TimeGenerated.type',
-                        location: `${tableLocation}.columns.TimeGenerated.type`,
-                        currentValue: timeGeneratedColumn.type,
-                        expectedValue: 'DateTime',
-                        severity: 'error',
-                        suggestion: 'Change the TimeGenerated column type to "DateTime".'
-                    });
-                    result.status = 'fail';
-                }
-                
-                // Note: The JSON path mapping ($.time) is typically handled at the ingestion pipeline level
-                // and may not be explicitly defined in the manifest, so we don't validate it here
-            }
-            
-            // Check for forbidden system-added columns (these will be added by the ingestion pipeline)
-            const systemAddedColumns = ['Type', 'TenantId', '_ResourceId', '_SubscriptionId'];
-            table.columns.forEach((column, colIndex) => {
-                if (systemAddedColumns.includes(column.name)) {
-                    result.issues.push({
-                        message: `${tableContext}: Column "${column.name}" is automatically added by the ingestion pipeline and should not be included in your schema`,
-                        type: 'forbidden_system_column',
-                        field: `columns[${colIndex}].name`,
-                        location: `${tableLocation}.columns[${colIndex}].name`,
-                        currentValue: column.name,
-                        severity: 'error',
-                        suggestion: `Remove the "${column.name}" column from your schema. This column will be automatically added by the Azure Log Analytics ingestion pipeline.`
-                    });
-                    result.status = 'fail';
-                }
-            });
-            
-            // Check for reserved column names that are blocked
-            const reservedColumns = ['resource', 'resourceid', 'resourcename', 'resourcetype', 'subscriptionid'];
-            table.columns.forEach((column, colIndex) => {
-                // Enhanced error handling for column.name.toLowerCase()
-                try {
-                    // Check if column has either standard name or transform pattern
-                    const hasStandardName = column.name && typeof column.name === 'string';
-                    const hasTransformPattern = column.transformName && column.physicalName && column.logicalName;
-                    
-                    if (!hasStandardName && !hasTransformPattern) {
-                        result.issues.push({
-                            message: `${tableContext}: Column ${colIndex + 1} has invalid or missing name`,
-                            type: 'invalid_column_name',
-                            field: `columns[${colIndex}].name`,
-                            location: `${tableLocation}.columns[${colIndex}].name`,
-                            currentValue: column.name ? typeof column.name : 'undefined',
-                            expectedValue: 'valid string name or transform pattern',
-                            severity: 'error',
-                            suggestion: 'Ensure each column has either a valid string name property OR the complete transform pattern (transformName, physicalName, logicalName).',
-                            microsoftRequirement: 'All columns must have valid string names or use the transform pattern for Azure Log Analytics validation.'
-                        });
-                        result.status = 'fail';
-                        return; // Skip further processing for this column
-                    }
-                    
-                    // Only check reserved names for standard columns (not transform pattern)
-                    if (!hasStandardName) {
-                        return; // Skip reserved name check for transform pattern columns
-                    }
-                    
-                    if (reservedColumns.includes(column.name.toLowerCase())) {
-                        result.issues.push({
-                            message: `${tableContext}: Column name "${column.name}" is reserved and will be blocked at validation`,
-                            type: 'reserved_column_name',
-                            field: `columns[${colIndex}].name`,
-                            location: `${tableLocation}.columns[${colIndex}].name`,
-                            currentValue: column.name,
-                            severity: 'error',
-                            suggestion: `Choose a different name for the "${column.name}" column. Reserved names: resource, resourceid, resourcename, resourcetype, subscriptionid.`
-                        });
-                        result.status = 'fail';
-                    }
-                } catch (error) {
-                    result.issues.push({
-                        message: `${tableContext}: Error processing column ${colIndex + 1} name - ${error.message}`,
-                        type: 'column_name_processing_error',
-                        field: `columns[${colIndex}].name`,
-                        location: `${tableLocation}.columns[${colIndex}].name`,
-                        severity: 'error',
-                        currentValue: column.name,
-                        expectedValue: 'valid string',
-                        suggestion: 'Ensure the column name is a valid string that can be processed.',
-                        microsoftRequirement: 'Column names must be valid strings for Azure Log Analytics processing.',
-                        fixInstructions: 'Check the column name for invalid characters or encoding issues.',
-                        errorDetails: `JavaScript error: ${error.message}`
-                    });
-                    result.status = 'fail';
-                }
-            });
-            
-            // Check for tenantid column (special case - will be overridden by system)
-            try {
-                const tenantIdColumn = table.columns.find(col => {
-                    if (!col.name || typeof col.name !== 'string') {
-                        return false; // Skip invalid column names
-                    }
-                    try {
-                        return col.name.toLowerCase() === 'tenantid';
-                    } catch (error) {
-                        // Silent error handling - unable to process column name
-                        return false;
-                    }
-                });
-                
-                if (tenantIdColumn) {
-                    result.issues.push({
-                        message: `${tableContext}: Column "tenantid" is reserved and its value will be overridden by the system (contains workspaceId, not tenantId)`,
-                        type: 'reserved_overridden_column',
-                        field: 'tenantid',
-                        location: `${tableLocation}.columns.tenantid`,
-                        currentValue: tenantIdColumn.name,
-                        severity: 'error',
-                        suggestion: 'Remove the "tenantid" column from your schema. If you need tenant information, use a different column name. Note that the system-provided tenantid actually contains the workspaceId.'
-                    });
-                    result.status = 'fail';
-                }
-            } catch (error) {
-                result.issues.push({
-                    message: `${tableContext}: Error checking for reserved tenantid column - ${error.message}`,
-                    type: 'tenantid_check_error',
-                    field: 'columns',
-                    location: `${tableLocation}.columns`,
-                    severity: 'error',
-                    suggestion: 'Check that all column names are valid strings.',
-                    microsoftRequirement: 'Column validation requires all column names to be processable as strings.',
-                    fixInstructions: 'Ensure all columns have valid string names.',
-                    errorDetails: `JavaScript error: ${error.message}`
-                });
-                result.status = 'fail';
-            }
-        }
-    } else if (table.columns !== undefined) {
-        result.issues.push(`${tableContext}: columns must be an array`);
-        result.status = 'fail';
-    }
-}
-
-function validateInputField(inputField, index, tableContext, result) {
-    const inputContext = `${tableContext}, Input field ${index + 1}`;
-    const inputLocation = `${tableContext.replace(' ', '').toLowerCase()}.input[${index}]`;
-    
-    // Required fields for input
-    const requiredFields = ['name', 'type'];
-    requiredFields.forEach(field => {
-        if (!inputField[field]) {
-            result.issues.push({
-                message: `${inputContext}: Missing required field '${field}'`,
-                type: 'missing_field',
-                field: field,
-                location: `${inputLocation}.${field}`,
-                severity: 'error',
-                suggestion: `Add the required field "${field}" to the input field definition.`
-            });
-            result.status = 'fail';
-        }
-    });
-    
-    // Validate input data type
-    const validInputTypes = ['Bool', 'SByte', 'Byte', 'Short', 'UShort', 'Int', 'UInt', 'Long', 'ULong', 'Float', 'Double', 'String', 'DateTime', 'Guid', 'Dynamic'];
-    if (inputField.type && !validInputTypes.includes(inputField.type)) {
-        // Check if this is a lowercase version of a valid type
-        const capitalizedType = inputField.type.charAt(0).toUpperCase() + inputField.type.slice(1);
-        const isLowercaseValidType = validInputTypes.includes(capitalizedType);
+// Helper function to find line number for missing function fields
+function findFunctionLineNumber(func, index, missingField) {
+    try {
+        const content = window.currentFileContent;
+        if (!content) return index + 1;
         
-        if (isLowercaseValidType) {
+        const lines = content.split('\n');
+        let inFunctionsArray = false;
+        let functionIndex = -1;
+        let braceCount = 0;
+        let inCurrentFunction = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            // Find functions array
+            if (line.includes('"functions"') && line.includes('[')) {
+                inFunctionsArray = true;
+                continue;
+            }
+            
+            if (inFunctionsArray) {
+                // Track function objects
+                if (line.includes('{') && !line.includes('}')) {
+                    if (braceCount === 0) {
+                        functionIndex++;
+                        if (functionIndex === index) {
+                            inCurrentFunction = true;
+                        }
+                    }
+                    braceCount++;
+                } else if (line.includes('}') && !line.includes('{')) {
+                    braceCount--;
+                    if (braceCount === 0 && inCurrentFunction) {
+                        // End of current function, return line before closing brace
+                        return i;
+                    }
+                }
+                
+                // If we're in the current function and it's the closing brace
+                if (inCurrentFunction && line.trim() === '}' && braceCount === 1) {
+                    return i;
+                }
+            }
+        }
+        
+        return index + 1;
+    } catch (error) {
+        console.error('Error finding function line number:', error);
+        return index + 1;
+    }
+}
+
+// Helper function to generate fix code for missing function fields
+function generateFunctionFixCode(field, func) {
+    const examples = {
+        'name': func.name || '_ASim_ExampleFunction',
+        'displayName': func.displayName || 'Example Function Display Name',
+        'description': func.description || 'Example function description',
+        'bodyFilePath': func.bodyFilePath || 'KQL/Example/ExampleFunction.kql'
+    };
+    
+    return `"${field}": "${examples[field]}"`;
+}
+
+async function validateTransformManifestFile(file, result) {
+    const content = await readFileContent(file);
+    
+    try {
+        const manifest = JSON.parse(content);
+        
+        // Store original content for drill-down
+        result.originalContent = content;
+        result.parsedContent = manifest;
+        
+        // Add identifier that this is a transform manifest
+        result.isTransformManifest = true;
+        
+        // Check required fields for transform manifests based on documentation
+        const requiredFields = ['name', 'description', 'transformVersion', 'dataTypeId', 'transformState', 'icmTeam', 'contactDL', 'relatedTable', 'kqlFilePath', 'sampleInputRecordsFilePath', 'sampleOutputRecordsFilePath'];
+        requiredFields.forEach(field => {
+            if (!manifest[field]) {
+                result.issues.push({
+                    message: `Missing required field: ${field}`,
+                    type: 'missing_field',
+                    field: field,
+                    location: 'root',
+                    severity: 'error',
+                    suggestion: `Add the required field "${field}" to the root level of your transform manifest file.`
+                });
+                result.status = 'fail';
+            }
+        });
+        
+        // Validate transform manifest should NOT have these fields (they belong to NGSchema)
+        const forbiddenFields = ['type', 'displayName', 'simplifiedSchemaVersion', 'tables', 'functions', 'queries'];
+        forbiddenFields.forEach(field => {
+            if (manifest[field]) {
+                result.issues.push({
+                    message: `Transform manifest should not contain field: ${field}`,
+                    type: 'forbidden_field',
+                    field: field,
+                    location: 'root',
+                    currentValue: manifest[field],
+                    severity: 'error',
+                    suggestion: `Remove the "${field}" field from the transform manifest. This field belongs to the main NGSchema manifest, not transform manifests.`
+                });
+                result.status = 'fail';
+            }
+        });
+        
+        // Validate descriptions
+        if (manifest.description) {
+            validateDescription(manifest.description, 'Transform description', result, 'root.description');
+        }
+        
+        // Validate transformVersion is a number >= 1
+        if (manifest.transformVersion !== undefined) {
+            if (typeof manifest.transformVersion !== 'number' || manifest.transformVersion < 1 || !Number.isInteger(manifest.transformVersion)) {
+                result.issues.push({
+                    message: 'transformVersion must be an integer >= 1',
+                    type: 'invalid_value',
+                    field: 'transformVersion',
+                    location: 'root',
+                    currentValue: manifest.transformVersion,
+                    expectedValue: 'integer >= 1',
+                    severity: 'error',
+                    suggestion: 'Change the transformVersion to a positive integer starting from 1.'
+                });
+                result.status = 'fail';
+            }
+        }
+        
+        // Validate dataTypeId follows naming convention
+        if (manifest.dataTypeId && typeof manifest.dataTypeId === 'string') {
+            if (!manifest.dataTypeId.includes('_')) {
+                result.warnings.push({
+                    message: 'dataTypeId should follow SERVICEIDENTITYNAME_LOGCATEGORYNAME convention',
+                    type: 'naming_convention_warning',
+                    field: 'dataTypeId',
+                    location: 'root.dataTypeId',
+                    currentValue: manifest.dataTypeId,
+                    severity: 'warning',
+                    suggestion: 'Consider using the naming convention SERVICEIDENTITYNAME_LOGCATEGORYNAME for better consistency (e.g., "CISCO_SECURITY").'
+                });
+            }
+        }
+        
+        // Validate transformState
+        if (manifest.transformState !== undefined) {
+            const validStates = ['Validation', 'Production'];
+            if (!validStates.includes(manifest.transformState)) {
+                result.issues.push({
+                    message: 'transformState must be either "Validation" or "Production"',
+                    type: 'invalid_value',
+                    field: 'transformState',
+                    location: 'root',
+                    currentValue: manifest.transformState,
+                    expectedValue: 'Validation or Production',
+                    severity: 'error',
+                    suggestion: 'Set transformState to either "Validation" for testing or "Production" for live deployment.'
+                });
+                result.status = 'fail';
+            }
+        }
+        
+        // Validate string fields
+        const stringFields = ['name', 'icmTeam', 'contactDL', 'relatedTable', 'kqlFilePath', 'sampleInputRecordsFilePath', 'sampleOutputRecordsFilePath'];
+        stringFields.forEach(field => {
+            if (manifest[field] && typeof manifest[field] !== 'string') {
+                result.issues.push({
+                    message: `${field} must be a string`,
+                    type: 'invalid_type',
+                    field: field,
+                    location: 'root',
+                    currentValue: typeof manifest[field],
+                    expectedValue: 'string',
+                    severity: 'error',
+                    suggestion: `Change the ${field} value to a string.`
+                });
+                result.status = 'fail';
+            }
+        });
+        
+        // Validate file paths have correct extensions
+        if (manifest.kqlFilePath && !manifest.kqlFilePath.endsWith('.kql')) {
             result.issues.push({
-                message: `${inputContext}: Input data type '${inputField.type}' should start with capital letter`,
-                type: 'incorrect_capitalization',
-                field: 'type',
-                location: `${inputLocation}.type`,
-                currentValue: inputField.type,
-                expectedValue: capitalizedType,
+                message: 'kqlFilePath must reference a .kql file',
+                type: 'invalid_file_extension',
+                field: 'kqlFilePath',
+                location: 'root',
+                currentValue: manifest.kqlFilePath,
                 severity: 'error',
-                suggestion: `Change "${inputField.type}" to "${capitalizedType}" - Azure Log Analytics requires data types to start with a capital letter.`,
-                microsoftRequirement: 'Azure Log Analytics input data types must start with a capital letter (e.g., "String" not "string").',
-                fixInstructions: `Simply capitalize the first letter: "${inputField.type}" → "${capitalizedType}"`
+                suggestion: 'Change the kqlFilePath to reference a file with .kql extension.'
             });
+            result.status = 'fail';
+        }
+        
+        if (manifest.sampleInputRecordsFilePath && !manifest.sampleInputRecordsFilePath.endsWith('.json')) {
+            result.issues.push({
+                message: 'sampleInputRecordsFilePath must reference a .json file',
+                type: 'invalid_file_extension',
+                field: 'sampleInputRecordsFilePath',
+                location: 'root',
+                currentValue: manifest.sampleInputRecordsFilePath,
+                severity: 'error',
+                suggestion: 'Change the sampleInputRecordsFilePath to reference a file with .json extension.'
+            });
+            result.status = 'fail';
+        }
+        
+        if (manifest.sampleOutputRecordsFilePath && !manifest.sampleOutputRecordsFilePath.endsWith('.json')) {
+            result.issues.push({
+                message: 'sampleOutputRecordsFilePath must reference a .json file',
+                type: 'invalid_file_extension',
+                field: 'sampleOutputRecordsFilePath',
+                location: 'root',
+                currentValue: manifest.sampleOutputRecordsFilePath,
+                severity: 'error',
+                suggestion: 'Change the sampleOutputRecordsFilePath to reference a file with .json extension.'
+            });
+            result.status = 'fail';
+        }
+        
+        // Validate optional inputFilePath if present (for new dataTypeIds)
+        if (manifest.inputFilePath !== undefined) {
+            if (typeof manifest.inputFilePath !== 'string') {
+                result.issues.push({
+                    message: 'inputFilePath must be a string',
+                    type: 'invalid_type',
+                    field: 'inputFilePath',
+                    location: 'root',
+                    severity: 'error',
+                    suggestion: 'Change the inputFilePath value to a string.'
+                });
+                result.status = 'fail';
+            } else if (!manifest.inputFilePath.endsWith('.json')) {
+                result.issues.push({
+                    message: 'inputFilePath must reference a .json file',
+                    type: 'invalid_file_extension',
+                    field: 'inputFilePath',
+                    location: 'root',
+                    currentValue: manifest.inputFilePath,
+                    severity: 'error',
+                    suggestion: 'Change the inputFilePath to reference a file with .json extension.'
+                });
+                result.status = 'fail';
+            }
+        }
+        
+        // Add informational note about what this transform does
+        if (manifest.relatedTable) {
+            result.warnings.push({
+                message: `This transform sends data to the "${manifest.relatedTable}" table`,
+                type: 'info',
+                field: 'relatedTable',
+                location: 'root.relatedTable',
+                currentValue: manifest.relatedTable,
+                severity: 'info',
+                suggestion: 'Ensure that the referenced table exists in the main NGSchema and that your transform KQL produces data compatible with that table structure.'
+            });
+        }
+        
+        if (result.issues.length === 0 && result.status !== 'fail') {
+            result.status = 'pass';
+        }
+        
+    } catch (error) {
+        result.status = 'fail';
+        result.issues.push({
+            message: 'Invalid JSON format: ' + error.message,
+            type: 'json_syntax_error',
+            field: 'file',
+            location: 'entire_file',
+            severity: 'error',
+            suggestion: 'Fix the JSON syntax errors in the file. Common issues include missing commas, unmatched brackets, or invalid characters.'
+        });
+    }
+    
+    return result;
+}
+
+// Helper function to find line number for missing function fields
+function findFunctionLineNumber(func, index, missingField) {
+    try {
+        const content = window.currentFileContent;
+        if (!content) return index + 1;
+        
+        const lines = content.split('\n');
+        let inFunctionsArray = false;
+        let functionIndex = -1;
+        let braceCount = 0;
+        let inCurrentFunction = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            // Find functions array
+            if (line.includes('"functions"') && line.includes('[')) {
+                inFunctionsArray = true;
+                continue;
+            }
+            
+            if (inFunctionsArray) {
+                // Track function objects
+                if (line.includes('{') && !line.includes('}')) {
+                    if (braceCount === 0) {
+                        functionIndex++;
+                        if (functionIndex === index) {
+                            inCurrentFunction = true;
+                        }
+                    }
+                    braceCount++;
+                } else if (line.includes('}') && !line.includes('{')) {
+                    braceCount--;
+                    if (braceCount === 0 && inCurrentFunction) {
+                        // End of current function, return line before closing brace
+                        return i;
+                    }
+                }
+                
+                // If we're in the current function and it's the closing brace
+                if (inCurrentFunction && line.trim() === '}' && braceCount === 1) {
+                    return i;
+                }
+            }
+        }
+        
+        return index + 1;
+    } catch (error) {
+        console.error('Error finding function line number:', error);
+        return index + 1;
+    }
+}
+
+// Helper function to generate fix code for missing function fields
+function generateFunctionFixCode(field, func) {
+    const examples = {
+        'name': func.name || '_ASim_ExampleFunction',
+        'displayName': func.displayName || 'Example Function Display Name',
+        'description': func.description || 'Example function description',
+        'bodyFilePath': func.bodyFilePath || 'KQL/Example/ExampleFunction.kql'
+    };
+    
+    return `"${field}": "${examples[field]}"`;
+}
+
+async function validateTransformManifestFile(file, result) {
+    const content = await readFileContent(file);
+    
+    try {
+        const manifest = JSON.parse(content);
+        
+        // Store original content for drill-down
+        result.originalContent = content;
+        result.parsedContent = manifest;
+        
+        // Add identifier that this is a transform manifest
+        result.isTransformManifest = true;
+        
+        // Check required fields for transform manifests based on documentation
+        const requiredFields = ['name', 'description', 'transformVersion', 'dataTypeId', 'transformState', 'icmTeam', 'contactDL', 'relatedTable', 'kqlFilePath', 'sampleInputRecordsFilePath', 'sampleOutputRecordsFilePath'];
+        requiredFields.forEach(field => {
+            if (!manifest[field]) {
+                result.issues.push({
+                    message: `Missing required field: ${field}`,
+                    type: 'missing_field',
+                    field: field,
+                    location: 'root',
+                    severity: 'error',
         } else {
             result.issues.push({
                 message: `${inputContext}: Invalid input data type '${inputField.type}'`,
@@ -2169,7 +2169,20 @@ function validateFunction(func, index, result) {
     const requiredFields = ['name', 'displayName', 'description', 'bodyFilePath'];
     requiredFields.forEach(field => {
         if (!func[field]) {
-            result.issues.push(`${functionContext}: Missing required field '${field}'`);
+            // Enhanced missing field validation with line numbers and fix codes
+            const lineNumber = findFunctionLineNumber(func, index, field);
+            const fixCode = generateFunctionFixCode(field, func);
+            
+            result.issues.push({
+                type: 'error',
+                category: 'missing_field',
+                message: `${functionContext}: Missing required field '${field}'`,
+                location: `functions[${index}]`,
+                lineNumber: lineNumber,
+                fieldName: field,
+                fixCode: fixCode,
+                context: functionContext
+            });
             result.status = 'fail';
         }
     });
