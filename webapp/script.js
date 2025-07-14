@@ -81,31 +81,7 @@ let validationResults = [];
  * - This is a standard web development pattern for app initialization
  */
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 DOM Content Loaded - Starting initialization...');
-    
-    // Test function availability immediately
-    console.log('Pre-init function test:', {
-        startValidationWithScroll: typeof startValidationWithScroll,
-        window_startValidationWithScroll: typeof window.startValidationWithScroll
-    });
-    
     initializeApp();
-    
-    // Test function availability after initialization
-    console.log('Post-init function test:', {
-        startValidationWithScroll: typeof startValidationWithScroll,
-        window_startValidationWithScroll: typeof window.startValidationWithScroll
-    });
-    
-    // Test if we can call the function manually
-    setTimeout(() => {
-        console.log('Testing manual function call...');
-        if (typeof startValidationWithScroll === 'function') {
-            console.log('✅ Function is available - event listeners should work');
-        } else {
-            console.error('❌ Function is NOT available');
-        }
-    }, 1000);
 });
 
 /**
@@ -132,21 +108,12 @@ document.addEventListener('DOMContentLoaded', function() {
  * 6. Prepare validation tools for immediate use
  */
 function initializeApp() {
-    console.log('🚀 Initializing Azure Log Analytics Schema Validator...');
-    
     // Check if required elements exist in the DOM
     // These elements are defined in index.html and are critical for app functionality
     const uploadSection = document.getElementById('upload-section');
     const guideSection = document.getElementById('guide-section');
     const validationBtn = document.querySelector('button[onclick="toggleValidation()"]');
     const guideBtn = document.querySelector('button[onclick="toggleGuide()"]');
-    
-    console.log('📋 Element check:', {
-        uploadSection: !!uploadSection,
-        guideSection: !!guideSection,
-        validationBtn: !!validationBtn,
-        guideBtn: !!guideBtn
-    });
     
     // Set up all event listeners for user interactions
     setupEventListeners();
@@ -169,21 +136,11 @@ function initializeApp() {
     // Get reference to validate button for later use
     const validateBtn = document.getElementById('validateBtn');
     
-    // Debug: Check if functions are properly defined
-    console.log('Function check:', {
-        startValidationWithScroll: typeof startValidationWithScroll,
-        viewGuideWithScroll: typeof viewGuideWithScroll,
-        toggleValidation: typeof toggleValidation,
-        toggleGuide: typeof toggleGuide
-    });
-    
     // Ensure functions are available globally
     window.startValidationWithScroll = startValidationWithScroll;
     window.viewGuideWithScroll = viewGuideWithScroll;
     window.toggleValidation = toggleValidation;
     window.toggleGuide = toggleGuide;
-    
-    console.log('✅ App initialization complete!');
 }
 
 /**
@@ -215,23 +172,19 @@ function setupEventListeners() {
     const viewGuideBtn = document.getElementById('viewGuideBtn');
     
     if (startValidationBtn) {
-        console.log('Adding direct event listener to start validation button');
         // Remove any existing onclick attribute that might be interfering
         startValidationBtn.removeAttribute('onclick');
         startValidationBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('Start validation button clicked via event listener');
             startValidationWithScroll();
         });
     }
     
     if (viewGuideBtn) {
-        console.log('Adding direct event listener to view guide button');
         // Remove any existing onclick attribute that might be interfering
         viewGuideBtn.removeAttribute('onclick');
         viewGuideBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log('View guide button clicked via event listener');
             viewGuideWithScroll();
         });
     }
@@ -530,11 +483,8 @@ function toggleValidation() {
 
 // Functions with auto-scroll for main buttons
 function startValidationWithScroll() {
-    console.log('🚀 startValidationWithScroll function called');
     const uploadSection = document.getElementById('upload-section');
     const button = document.getElementById('startValidationBtn');
-    
-    console.log('Elements found:', { uploadSection: !!uploadSection, button: !!button });
     
     if (!uploadSection) {
         console.error('Upload section not found!');
@@ -546,10 +496,7 @@ function startValidationWithScroll() {
         return;
     }
     
-    console.log('Current upload section display:', uploadSection.style.display);
-    
     if (uploadSection.style.display === 'none' || uploadSection.style.display === '') {
-        console.log('Showing upload section...');
         // Show the upload section
         uploadSection.style.display = 'block';
         uploadSection.classList.remove('hide');
@@ -2266,15 +2213,12 @@ function validateFunction(func, index, result, lines) {
         let inFunctionsArray = false;
         let braceDepth = 0;
         
-        console.log(`Calculating line number for function ${index}...`);
-        
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             
             // Look for the start of functions array
             if (line.includes('"functions"') && line.includes('[')) {
                 inFunctionsArray = true;
-                console.log(`Found functions array at line ${i + 1}`);
                 continue;
             }
             
@@ -2283,10 +2227,8 @@ function validateFunction(func, index, result, lines) {
                 if (line === '{' || line.endsWith('{')) {
                     if (braceDepth === 0) {
                         currentFunctionIndex++;
-                        console.log(`Found function ${currentFunctionIndex} at line ${i + 1}`);
                         if (currentFunctionIndex === index) {
                             functionStartLine = i + 1; // Convert to 1-based line number
-                            console.log(`Target function ${index} starts at line ${functionStartLine}`);
                             break;
                         }
                     }
@@ -2340,7 +2282,6 @@ function validateFunction(func, index, result, lines) {
                 lineNumber: functionStartLine
             };
             
-            console.log('Generated missing field error:', missingFieldError);
             result.issues.push(missingFieldError);
             result.status = 'fail';
         }
@@ -3333,8 +3274,6 @@ function toggleWarningDetails(detailsId, button) {
 }
 
 function showFileContent(resultIndex, location) {
-    console.log('showFileContent called with:', { resultIndex, location });
-    
     // Enhanced error handling and logging
     try {
         const results = validationResults; // Assuming this is stored globally
@@ -3364,20 +3303,10 @@ function showFileContent(resultIndex, location) {
         const warning = result.warnings ? result.warnings.find(warning => warning.location === location) : null;
         const problemItem = issue || warning;
         
-        console.log('showFileContent debug:', {
-            location,
-            issueFound: !!issue,
-            warningFound: !!warning,
-            problemItem: problemItem,
-            lineNumber: problemItem ? problemItem.lineNumber : 'no lineNumber'
-        });
-        
         if (!problemItem) {
             console.warn('Problem item not found for location:', location);
             // Still show content even if specific problem item isn't found
         }
-        
-        console.log('Creating modal for file content...');
         
         // Create a modal to show the file content
         const modalId = 'fileContentModal';
@@ -3465,14 +3394,12 @@ function showFileContent(resultIndex, location) {
         `;
         
         document.body.appendChild(modal);
-        console.log('Modal created and added to DOM');
         
         // Update the modal content
         const container = document.getElementById('fileContentContainer');
         if (container) {
             try {
                 container.innerHTML = highlightFileContent(result.originalContent, location, problemItem);
-                console.log('File content highlighted and inserted');
                 
                 // Add a unique ID to the container for scroll targeting
                 container.setAttribute('data-scroll-ready', 'true');
@@ -3490,12 +3417,10 @@ function showFileContent(resultIndex, location) {
         }
         
         // Show the modal with multiple fallback methods
-        console.log('Attempting to show modal...');
         
         // Method 1: Try Bootstrap Modal
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
             try {
-                console.log('Using Bootstrap modal');
                 const bootstrapModal = new bootstrap.Modal(modal, {
                     backdrop: true,
                     keyboard: true,
@@ -3505,16 +3430,12 @@ function showFileContent(resultIndex, location) {
                 
                 // Scroll to problematic line after modal is fully shown
                 modal.addEventListener('shown.bs.modal', function() {
-                    console.log('Modal shown, initiating scroll to problematic line');
-                    console.log('Problem item for scroll:', problemItem);
                     // Use a longer delay to ensure DOM is fully rendered
                     setTimeout(() => {
-                        console.log('Executing scroll with delay');
                         scrollToProblematicLine(location, problemItem);
                     }, 1000);
                 }, { once: true });
                 
-                console.log('Bootstrap modal shown successfully');
                 return;
             } catch (error) {
                 console.error('Bootstrap modal failed:', error);
@@ -3523,7 +3444,6 @@ function showFileContent(resultIndex, location) {
         }
         
         // Method 2: Fallback - Manual modal display
-        console.log('Using fallback modal display');
         modal.style.display = 'block';
         modal.classList.add('show');
         modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
@@ -3553,16 +3473,11 @@ function showFileContent(resultIndex, location) {
         
         // Scroll to problematic line after a short delay
         setTimeout(() => {
-            console.log('Scrolling to problematic line (fallback)');
-            console.log('Problem item for scroll (fallback):', problemItem);
             // Use a longer delay for fallback
             setTimeout(() => {
-                console.log('Executing fallback scroll with delay');
                 scrollToProblematicLine(location, problemItem);
             }, 1000);
         }, 500);
-        
-        console.log('Fallback modal displayed successfully');
         
     } catch (error) {
         console.error('Critical error in showFileContent:', error);
@@ -3583,14 +3498,6 @@ function highlightFileContent(content, location, problemItem) {
         
         // Find the line that contains the problematic field
         const problemLine = findProblemLine(lines, location, problemItem);
-        
-        // Debug output to help troubleshoot
-        console.log('Highlighting file content:', {
-            location,
-            problemItem,
-            problemLine,
-            hasCurrentValue: problemItem && problemItem.currentValue
-        });
         
         let highlightedContent = '';
         
@@ -3631,7 +3538,6 @@ function highlightFileContent(content, location, problemItem) {
                 // Add suggested fix or type recommendations in green
                 if (!problemLine.isMissingField && problemItem && (problemItem.suggestion || problemItem.currentValue)) {
                     const fixedLine = generateFixedLine(line, problemItem, location);
-                    console.log('Generated fixed line:', { originalLine: line, fixedLine, problemItem });
                     
                     if (fixedLine && fixedLine !== line) {
                         highlightedContent += `<div class="code-line fix-line">`;
@@ -3644,7 +3550,6 @@ function highlightFileContent(content, location, problemItem) {
                         highlightedContent += '</div>';
                     } else {
                         // If no fixed line generated, show a generic fix suggestion
-                        console.log('No fixed line generated, showing suggestion');
                         if (problemItem.suggestion) {
                             highlightedContent += `<div class="code-line fix-line">`;
                             highlightedContent += `<span class="line-number fix-number">!</span>`;
@@ -3758,11 +3663,8 @@ function highlightFileContent(content, location, problemItem) {
 function findProblemLine(lines, location, problemItem) {
     if (!problemItem) return null;
     
-    console.log('Finding problem line for:', { location, problemItem });
-    
     // Handle missing field cases
     if (problemItem.type === 'missing_field') {
-        console.log('Handling missing field case for:', problemItem.field);
         
         // Use the line number we calculated during validation if available
         if (problemItem.lineNumber) {
@@ -3893,7 +3795,6 @@ function findProblemLine(lines, location, problemItem) {
     
     if (location.includes('description')) {
         // For description errors, we want to find the line with the actual description content
-        console.log('Looking for description field with value:', problemItem.currentValue);
         
         // Try to find the exact line containing the problematic description
         for (let i = 0; i < lines.length; i++) {
@@ -3901,11 +3802,10 @@ function findProblemLine(lines, location, problemItem) {
             if (line.includes('"description"') && line.includes(':')) {
                 // Check if this line contains the problematic description value
                 if (problemItem && problemItem.currentValue && line.includes(problemItem.currentValue)) {
-                    console.log(`Found exact description line ${i + 1}: ${line}`);
                     return { lineNumber: i + 1, line: line };
                 }
                 // If this is a description line but not the right one, keep looking
-                console.log(`Found description line ${i + 1} but value doesn't match: ${line}`);
+                // Value doesn't match exactly, continue searching
             }
         }
         
@@ -3913,7 +3813,6 @@ function findProblemLine(lines, location, problemItem) {
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             if (line.includes('"description"')) {
-                console.log(`Fallback: Using description field line ${i + 1}: ${line}`);
                 return { lineNumber: i + 1, line: line };
             }
         }
@@ -3923,7 +3822,6 @@ function findProblemLine(lines, location, problemItem) {
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 if (line.includes(problemItem.currentValue)) {
-                    console.log(`Found problematic value line ${i + 1}: ${line}`);
                     return { lineNumber: i + 1, line: line };
                 }
             }
@@ -3989,13 +3887,11 @@ function findColumnInLines(lines, columnIndex, problemItem) {
     try {
         // Special handling for transform pattern columns
         if (problemItem && problemItem.type === 'info' && problemItem.field === 'transformName') {
-            console.log('Looking for transform pattern column specifically');
             
             // Look for transformName field first
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 if (line.includes('"transformName"') && line.includes(':')) {
-                    console.log(`Found transform pattern column at line ${i + 1}: ${line}`);
                     return {
                         lineNumber: i + 1,
                         line: line,
@@ -4008,13 +3904,11 @@ function findColumnInLines(lines, columnIndex, problemItem) {
         
         // Special handling for TenantId column issue - search for the actual TenantId field first
         if (problemItem && problemItem.type === 'forbidden_system_column' && problemItem.currentValue === 'TenantId') {
-            console.log('Looking for TenantId column specifically');
             
             // First, try to find the exact line with "TenantId" and "name" field
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 if (line.includes('"name"') && line.includes('"TenantId"')) {
-                    console.log(`Found TenantId column name field at line ${i + 1}: ${line}`);
                     return {
                         lineNumber: i + 1,
                         line: line,
@@ -4028,7 +3922,6 @@ function findColumnInLines(lines, columnIndex, problemItem) {
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 if (line.includes('TenantId')) {
-                    console.log(`Found TenantId reference at line ${i + 1}: ${line}`);
                     return {
                         lineNumber: i + 1,
                         line: line,
@@ -4052,7 +3945,6 @@ function findColumnInLines(lines, columnIndex, problemItem) {
             // Check if we're entering the columns array
             if (line.includes('"columns"') && line.includes('[')) {
                 inColumnsArray = true;
-                console.log(`Found columns array start at line ${i + 1}`);
                 continue;
             }
             
@@ -4069,18 +3961,15 @@ function findColumnInLines(lines, columnIndex, problemItem) {
                 columnStartLine = i + 1;
                 braceDepth = openBraces - closeBraces;
                 
-                console.log(`Found column ${currentColumnIndex} starting at line ${columnStartLine}, target column: ${columnIndex}`);
                 
                 // Check if this is the column we're looking for
                 if (currentColumnIndex === columnIndex) {
-                    console.log(`Found target column ${columnIndex} at line ${columnStartLine}`);
                     
                     // For transform pattern columns, look for transformName field
                     if (problemItem && problemItem.field === 'transformName') {
                         for (let j = i; j < Math.min(i + 20, lines.length); j++) {
                             const searchLine = lines[j];
                             if (searchLine.includes('"transformName"') && searchLine.includes(':')) {
-                                console.log(`Found transformName field for column ${columnIndex} at line ${j + 1}: ${searchLine}`);
                                 return {
                                     lineNumber: j + 1,
                                     line: lines[j],
@@ -4098,7 +3987,6 @@ function findColumnInLines(lines, columnIndex, problemItem) {
                     for (let j = searchStart; j < Math.min(searchEnd, lines.length); j++) {
                         const searchLine = lines[j];
                         if (searchLine.includes('"name"') && searchLine.includes(':')) {
-                            console.log(`Found name field for column ${columnIndex} at line ${j + 1}: ${searchLine}`);
                             return {
                                 lineNumber: j + 1,
                                 line: lines[j],
@@ -4123,13 +4011,11 @@ function findColumnInLines(lines, columnIndex, problemItem) {
                 // If we've closed all braces for this column, we're done with it
                 if (braceDepth <= 0) {
                     inColumnObject = false;
-                    console.log(`Finished processing column ${currentColumnIndex}`);
                 }
             }
             
             // Check if we're leaving the columns array
             if (line.includes(']') && inColumnsArray && braceDepth === 0) {
-                console.log(`Reached end of columns array at line ${i + 1}`);
                 break;
             }
         }
@@ -4137,7 +4023,6 @@ function findColumnInLines(lines, columnIndex, problemItem) {
         // Fallback: if we can't find the exact column, return the columns array start
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].includes('"columns"')) {
-                console.log(`Fallback: returning columns array start at line ${i + 1}`);
                 return {
                     lineNumber: i + 1,
                     line: lines[i],
@@ -4288,7 +4173,6 @@ function generateFixedValue(problemItem) {
 }
 
 function scrollToProblematicLine(location, issue) {
-    console.log('scrollToProblematicLine called with:', { location, issue });
     
     // Function to perform the actual scroll
     function performScroll() {
@@ -4297,7 +4181,6 @@ function scrollToProblematicLine(location, issue) {
         
         // Strategy 1: Try to find by line number if issue has lineNumber
         if (issue && issue.lineNumber) {
-            console.log('Looking for line number:', issue.lineNumber);
             targetElement = document.querySelector(`#problematic-line-${issue.lineNumber}`);
             if (!targetElement) {
                 // Try alternative selectors
@@ -4307,15 +4190,12 @@ function scrollToProblematicLine(location, issue) {
                 targetElement = document.querySelector(`#line-${issue.lineNumber}`);
             }
             if (targetElement) {
-                console.log('Found target element by line number:', targetElement);
             }
         }
         
         // Strategy 2: Find by problem-line class
         if (!targetElement) {
-            console.log('Searching for .problem-line elements');
             const problemLineElements = document.querySelectorAll('.problem-line');
-            console.log('Found problem-line elements:', problemLineElements.length);
             if (problemLineElements.length > 0) {
                 targetElement = problemLineElements[0];
             }
@@ -4323,9 +4203,7 @@ function scrollToProblematicLine(location, issue) {
         
         // Strategy 2b: Find by missing-field-line class (specific to missing fields)
         if (!targetElement) {
-            console.log('Searching for .missing-field-line elements');
             const missingFieldElements = document.querySelectorAll('.missing-field-line');
-            console.log('Found missing-field-line elements:', missingFieldElements.length);
             if (missingFieldElements.length > 0) {
                 targetElement = missingFieldElements[0];
             }
@@ -4333,9 +4211,7 @@ function scrollToProblematicLine(location, issue) {
         
         // Strategy 3: Find by highlighted content
         if (!targetElement) {
-            console.log('Searching for .highlighted-line elements');
             const highlightedElements = document.querySelectorAll('.highlighted-line');
-            console.log('Found highlighted-line elements:', highlightedElements.length);
             if (highlightedElements.length > 0) {
                 targetElement = highlightedElements[0];
             }
@@ -4343,22 +4219,17 @@ function scrollToProblematicLine(location, issue) {
         
         // Strategy 4: Find by error-line class
         if (!targetElement) {
-            console.log('Searching for .error-line elements');
             const errorLineElements = document.querySelectorAll('.error-line');
-            console.log('Found error-line elements:', errorLineElements.length);
             if (errorLineElements.length > 0) {
                 targetElement = errorLineElements[0];
             }
         }
         
         if (!targetElement) {
-            console.log('No target element found for scrolling');
             return false;
         }
         
-        console.log('Found target element:', targetElement);
         const lineNumber = targetElement.getAttribute('data-line') || 'unknown';
-        console.log('Target line number:', lineNumber);
         
         // Get the scrollable container - try multiple selectors
         let scrollContainer = document.querySelector('#fileContentContainer');
@@ -4370,11 +4241,9 @@ function scrollToProblematicLine(location, issue) {
         }
         
         if (!scrollContainer) {
-            console.log('No scroll container found');
             return false;
         }
         
-        console.log('Using scroll container:', scrollContainer);
         
         // Calculate the scroll position
         const containerRect = scrollContainer.getBoundingClientRect();
@@ -4388,13 +4257,6 @@ function scrollToProblematicLine(location, issue) {
         
         // Calculate scroll position to center the problematic line with some offset
         const scrollTop = targetTop - (containerHeight / 2) + (elementHeight / 2);
-        
-        console.log('Scroll calculation:', {
-            targetTop,
-            containerHeight,
-            elementHeight,
-            scrollTop: Math.max(0, scrollTop)
-        });
         
         // Smooth scroll to the problematic line
         scrollContainer.scrollTo({
@@ -4414,7 +4276,6 @@ function scrollToProblematicLine(location, issue) {
             targetElement.style.backgroundColor = '';
         }, 3000);
         
-        console.log('Scroll to problematic line completed');
         return true;
     }
     
@@ -4424,18 +4285,15 @@ function scrollToProblematicLine(location, issue) {
     }
     
     // If immediate scroll failed, wait for DOM to be ready
-    console.log('Immediate scroll failed, waiting for DOM...');
     let attempts = 0;
     const maxAttempts = 20;
     
     const scrollInterval = setInterval(() => {
         attempts++;
-        console.log(`Scroll attempt ${attempts}/${maxAttempts}`);
         
         if (performScroll() || attempts >= maxAttempts) {
             clearInterval(scrollInterval);
             if (attempts >= maxAttempts) {
-                console.log('Max scroll attempts reached, giving up');
             }
         }
     }, 100);
@@ -4573,7 +4431,6 @@ window.toggleValidationDetails = toggleValidationDetails;
  * - Provides fallback for cases where inline handlers might fail
  */
 function setupDragDropHandlers() {
-    console.log('🎯 Setting up drag and drop handlers...');
     
     // Find the upload area element
     const uploadArea = document.querySelector('.upload-area');
@@ -4583,7 +4440,6 @@ function setupDragDropHandlers() {
         return;
     }
     
-    console.log('✅ Upload area found, attaching handlers');
     
     // Attach event listeners programmatically as backup to inline handlers
     uploadArea.addEventListener('dragenter', dragEnterHandler);
@@ -4605,7 +4461,6 @@ function setupDragDropHandlers() {
         }
     });
     
-    console.log('✅ Drag and drop handlers setup complete');
 }
 
 function setupKeyboardShortcuts() {
@@ -4796,7 +4651,6 @@ function clearFiles() {
 // Enhanced helper functions for the improved file content viewer
 
 function copyFileContentToClipboard(resultIndex) {
-    console.log('copyFileContentToClipboard called with:', resultIndex);
     
     try {
         const results = validationResults;
@@ -4858,7 +4712,6 @@ function fallbackCopyToClipboard(text) {
 }
 
 function downloadFileContent(resultIndex, filename) {
-    console.log('downloadFileContent called with:', { resultIndex, filename });
     
     try {
         const results = validationResults;
@@ -4900,7 +4753,6 @@ function downloadFileContent(resultIndex, filename) {
 }
 
 function showFixSuggestion(resultIndex, location) {
-    console.log('showFixSuggestion called with:', { resultIndex, location });
     
     try {
         const results = validationResults;
@@ -5066,14 +4918,12 @@ function showFixSuggestion(resultIndex, location) {
         `;
         
         document.body.appendChild(modal);
-        console.log('Fix suggestion modal created');
         
         // Show the modal
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
             try {
                 const bootstrapModal = new bootstrap.Modal(modal);
                 bootstrapModal.show();
-                console.log('Bootstrap fix suggestion modal shown');
             } catch (error) {
                 console.error('Bootstrap modal failed:', error);
                 showFallbackModal(modal);
@@ -5109,7 +4959,6 @@ function showFallbackModal(modal) {
     };
     document.addEventListener('keydown', escapeHandler);
     
-    console.log('Fallback fix suggestion modal shown');
 }
 
 function copyFixSuggestion(suggestion, fixedValue) {
