@@ -2419,6 +2419,9 @@ function validateQuery(query, index, result) {
 async function validateKQLFile(file, result) {
     const content = await readFileContent(file);
     
+    // Store original content for drill-down
+    result.originalContent = content;
+    
     // Enhanced error handling for undefined content
     if (content === undefined || content === null) {
         result.status = 'fail';
@@ -2456,27 +2459,133 @@ async function validateKQLFile(file, result) {
     
     // Enhanced error handling for content.toLowerCase()
     try {
-        // Check for common KQL keywords
-        const kqlKeywords = ['let', 'datatable', 'extend', 'project', 'where', 'summarize', 'join', 'union'];
-        const hasKQLKeywords = kqlKeywords.some(keyword => {
-            if (typeof content !== 'string') {
-                // Silent error handling - content is not a string
-                return false;
+        // Perform detailed line-by-line analysis
+        const lines = content.split('\n');
+        const problematicLines = [];
+        const kqlKeywords = ['let', 'datatable', 'extend', 'project', 'where', 'summarize', 'join', 'union', 'table', 'print', 'evaluate', 'sort', 'top', 'take', 'limit', 'count', 'distinct', 'parse', 'split', 'extract', 'substring', 'replace', 'strcat', 'strlen', 'tolower', 'toupper', 'trim', 'isempty', 'isnotempty', 'isnull', 'isnotnull', 'case', 'iff', 'coalesce', 'toscalar', 'tostring', 'toint', 'tolong', 'toreal', 'todouble', 'tobool', 'todatetime', 'totimespan', 'ago', 'now', 'startofday', 'endofday', 'startofweek', 'endofweek', 'startofmonth', 'endofmonth', 'startofyear', 'endofyear', 'bin', 'floor', 'ceiling', 'round', 'abs', 'sign', 'sqrt', 'pow', 'log', 'log10', 'exp', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'degrees', 'radians', 'pi', 'rand', 'range', 'repeat', 'series', 'materialize', 'mv-expand', 'mv-apply', 'sample', 'sample-distinct', 'shuffle', 'prev', 'next', 'row_number', 'rank', 'dense_rank', 'percentile', 'percentiles', 'dcount', 'dcountif', 'hll', 'hll_merge', 'tdigest', 'tdigest_merge', 'variance', 'variances', 'stdev', 'stdevp', 'correlation', 'beta_cdf', 'beta_inv', 'beta_pdf', 'gamma_cdf', 'gamma_inv', 'gamma_pdf', 'normal_cdf', 'normal_inv', 'normal_pdf', 'poisson_cdf', 'poisson_pdf', 'weibull_cdf', 'weibull_pdf', 'zipf_cdf', 'zipf_pdf'];
+        const commonPatterns = [
+            /^\s*\/\/.*$/,  // Single-line comments
+            /^\s*\/\*[\s\S]*?\*\/\s*$/,  // Multi-line comments
+            /^\s*$/,  // Empty lines
+            /^\s*\|/,  // Pipe operations
+            /^\s*;/,  // Semicolon (statement terminators)
+            /^\s*\w+\s*\(/,  // Function calls
+            /^\s*\w+\s*=/,  // Variable assignments
+            /^\s*\w+\s*:/,  // Column references
+            /^\s*\w+\s*\|/,  // Pipe starting with identifier
+            /^\s*\d+/,  // Starting with numbers
+            /^\s*"[^"]*"/,  // String literals
+            /^\s*'[^']*'/,  // String literals (single quotes)
+            /^\s*\[.*\]/,  // Array/bracket notation
+            /^\s*\{.*\}/,  // Object/brace notation
+            /^\s*\w+\s*\w+/,  // Two word patterns (common in KQL)
+            /^\s*\w+\s*\(/,  // Function-like patterns
+            /^\s*(true|false|null)\s*$/i,  // Boolean/null literals
+            /^\s*\d+\.\d+/,  // Decimal numbers
+            /^\s*\w+\s*\.\s*\w+/,  // Property access patterns
+            /^\s*\w+\s*\[\s*\w+\s*\]/,  // Array access patterns
+            /^\s*\w+\s*\w+\s*\(/,  // Function calls with namespace
+            /^\s*\w+\s*\|\s*\w+/,  // Pipe with identifiers
+            /^\s*\w+\s*\w+\s*:/,  // Column definitions
+            /^\s*\w+\s*\w+\s*=/,  // Variable assignments
+            /^\s*\w+\s*\w+\s*\|/,  // Pipe operations
+            /^\s*\w+\s*\w+\s*\w+/,  // Three word patterns
+            /^\s*\w+\s*\w+\s*\w+\s*\(/,  // Complex function calls
+            /^\s*\w+\s*\w+\s*\w+\s*=/,  // Complex assignments
+            /^\s*\w+\s*\w+\s*\w+\s*:/,  // Complex column definitions
+        ];
+        
+        let hasAnyKQLKeywords = false;
+        let nonEmptyLines = 0;
+        let suspiciousLines = 0;
+        
+        lines.forEach((line, index) => {
+            const lineNumber = index + 1;
+            const trimmedLine = line.trim();
+            
+            // Skip empty lines and comments
+            if (trimmedLine === '' || trimmedLine.startsWith('//') || trimmedLine.startsWith('/*')) {
+                return;
             }
-            return content.toLowerCase().includes(keyword);
+            
+            nonEmptyLines++;
+            
+            // Check for KQL keywords in this line
+            const lineHasKQLKeywords = kqlKeywords.some(keyword => {
+                return trimmedLine.toLowerCase().includes(keyword.toLowerCase());
+            });
+            
+            if (lineHasKQLKeywords) {
+                hasAnyKQLKeywords = true;
+            }
+            
+            // Check if the line matches common KQL patterns
+            const matchesKQLPattern = commonPatterns.some(pattern => pattern.test(trimmedLine));
+            
+            // If line doesn't match KQL patterns and doesn't contain KQL keywords, it's suspicious
+            if (!matchesKQLPattern && !lineHasKQLKeywords && trimmedLine.length > 0) {
+                suspiciousLines++;
+                problematicLines.push({
+                    lineNumber: lineNumber,
+                    content: trimmedLine,
+                    issue: 'Line does not match expected KQL syntax patterns',
+                    suggestions: [
+                        'Ensure the line contains valid KQL syntax',
+                        'Check for proper operators (|, =, :, etc.)',
+                        'Verify function calls and variable assignments',
+                        'Common KQL patterns: "| where", "| extend", "| project", "let variable ="'
+                    ]
+                });
+            }
         });
         
-        if (!hasKQLKeywords) {
+        // If no KQL keywords found and we have non-empty lines, report detailed issues
+        if (!hasAnyKQLKeywords && nonEmptyLines > 0) {
+            let detailedMessage = 'File does not appear to contain standard KQL syntax';
+            let detailedSuggestion = 'Verify that the file contains valid KQL syntax. Common KQL keywords include: let, extend, project, where, summarize, join, union.';
+            
+            // Add specific line information if we found problematic lines
+            if (problematicLines.length > 0) {
+                detailedMessage = `File contains ${problematicLines.length} line(s) that do not match KQL syntax patterns out of ${nonEmptyLines} non-empty lines`;
+                detailedSuggestion = `Review the following problematic lines and ensure they contain valid KQL syntax:\n\n${problematicLines.map(line => `Line ${line.lineNumber}: "${line.content}"`).join('\n')}`;
+            }
+            
             result.warnings.push({
-                message: 'File does not appear to contain standard KQL syntax',
+                message: detailedMessage,
                 type: 'missing_kql_syntax_warning',
                 field: 'file_content',
                 location: 'entire_file',
                 severity: 'warning',
-                suggestion: 'Verify that the file contains valid KQL syntax. Common KQL keywords include: let, extend, project, where, summarize, join, union.',
-                microsoftRequirement: 'KQL files should contain valid Kusto Query Language syntax for Azure Log Analytics data transformation.'
+                suggestion: detailedSuggestion,
+                microsoftRequirement: 'KQL files should contain valid Kusto Query Language syntax for Azure Log Analytics data transformation.',
+                problematicLines: problematicLines.length > 0 ? problematicLines : undefined,
+                lineAnalysis: {
+                    totalLines: lines.length,
+                    nonEmptyLines: nonEmptyLines,
+                    suspiciousLines: suspiciousLines,
+                    hasKQLKeywords: hasAnyKQLKeywords
+                }
             });
         }
+        
+        // If we have a high percentage of suspicious lines, escalate to error
+        if (nonEmptyLines > 0 && suspiciousLines > 0 && (suspiciousLines / nonEmptyLines) > 0.7) {
+            result.status = 'fail';
+            result.issues.push({
+                message: `File contains ${suspiciousLines} out of ${nonEmptyLines} lines that do not match KQL syntax patterns`,
+                type: 'invalid_kql_syntax_error',
+                field: 'file_content',
+                location: 'multiple_lines',
+                severity: 'error',
+                currentValue: `${suspiciousLines}/${nonEmptyLines} problematic lines`,
+                expectedValue: 'valid KQL syntax',
+                suggestion: `Most lines in this file do not appear to contain valid KQL syntax. Review the file content and ensure it contains proper Kusto Query Language statements.`,
+                microsoftRequirement: 'KQL files must contain valid Kusto Query Language syntax for Azure Log Analytics data transformation.',
+                problematicLines: problematicLines,
+                fixInstructions: 'Review each problematic line and ensure it follows KQL syntax rules. Common KQL statements include: let, extend, project, where, summarize, join, union.'
+            });
+        }
+        
     } catch (error) {
         result.status = 'fail';
         result.issues.push({
