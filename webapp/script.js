@@ -2288,22 +2288,6 @@ function validateColumn(column, index, tableContext, result) {
         }
     });
     
-        // Add informational note for transform pattern usage (only if actually using transform pattern)
-        if (hasTransformPattern && !hasStandardName && column.transformName && column.physicalName && column.logicalName) {
-            if (!result.warnings) result.warnings = [];
-            result.warnings.push({
-                message: `${columnContext}: Using transform pattern for column type change`,
-                type: 'info',
-                field: 'transformName',
-                location: `${columnLocation}.transformName`,
-                columnIndex: index,
-                severity: 'info',
-                suggestion: `This column is using the Microsoft Azure transform pattern for changing column types. Ensure the table has "isChangeColumnInternalNameAllowed": true property.`,
-                microsoftRequirement: 'When using transform pattern, users won\'t be able to query data ingested before this change and should be notified.',
-                currentValue: `${column.transformName} -> ${column.physicalName}`
-            });
-        }
-    
     // Validate description
     if (column.description) {
         validateDescription(column.description, `${columnContext} description`, result, `${columnLocation}.description`);
