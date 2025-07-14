@@ -3794,34 +3794,145 @@ function findProblemLine(lines, location, problemItem) {
     let searchTerm = '';
     
     if (location.includes('description')) {
-        // For description errors, we want to find the line with the actual description content
+        // Enhanced handling for nested description errors like tables[1].columns[17].description
         
-        // Try to find the exact line containing the problematic description
+        // Check if this is a nested table/column description
+        if (location.includes('tables[') && location.includes('columns[')) {
+            const tableMatch = location.match(/tables\[(\d+)\]/);
+            const columnMatch = location.match(/columns\[(\d+)\]/);
+            
+            if (tableMatch && columnMatch) {
+                const tableIndex = parseInt(tableMatch[1]);
+                const columnIndex = parseInt(columnMatch[1]);
+                
+                console.log(`Enhanced search: Looking for table ${tableIndex}, column ${columnIndex} description`);
+                
+                // Find the specific table and column with proper brace tracking
+                let currentTableIndex = -1;
+                let inTablesArray = false;
+                let inTargetTable = false;
+                let currentColumnIndex = -1;
+                let inColumnsArray = false;
+                let braceDepth = 0;
+                let tableBraceDepth = 0;
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    
+                    // Update brace depth
+                    const openBraces = (line.match(/\{/g) || []).length;
+                    const closeBraces = (line.match(/\}/g) || []).length;
+                    braceDepth += openBraces - closeBraces;
+                    
+                    // Check if we're entering the tables array
+                    if (line.includes('"tables"') && line.includes('[')) {
+                        inTablesArray = true;
+                        tableBraceDepth = braceDepth;
+                        console.log(`Found tables array at line ${i + 1}, braceDepth: ${braceDepth}`);
+                        continue;
+                    }
+                    
+                    // If we're in tables array and find a table opening brace
+                    if (inTablesArray && !inTargetTable && openBraces > 0) {
+                        // Check if this is a new table (should be one level deeper than tables array)
+                        if (braceDepth === tableBraceDepth + 1) {
+                            currentTableIndex++;
+                            console.log(`Found table ${currentTableIndex} at line ${i + 1}`);
+                            if (currentTableIndex === tableIndex) {
+                                inTargetTable = true;
+                                console.log(`Entering target table ${tableIndex} at line ${i + 1}`);
+                            }
+                        }
+                    }
+                    
+                    // If we're in the target table and find the columns array
+                    if (inTargetTable && line.includes('"columns"') && line.includes('[')) {
+                        inColumnsArray = true;
+                        currentColumnIndex = -1;
+                        console.log(`Found columns array at line ${i + 1}`);
+                        continue;
+                    }
+                    
+                    // If we're in the columns array and find a column opening brace
+                    if (inTargetTable && inColumnsArray && openBraces > 0) {
+                        // Check if this starts a new column object
+                        if (line.includes('{') || (i > 0 && lines[i-1].trim().includes('{') && line.includes('"name"'))) {
+                            currentColumnIndex++;
+                            console.log(`Found column ${currentColumnIndex} at line ${i + 1}`);
+                            
+                            if (currentColumnIndex === columnIndex) {
+                                console.log(`Entering target column ${columnIndex} at line ${i + 1}`);
+                                
+                                // Look for the description field in this column
+                                for (let j = i; j < lines.length && j < i + 50; j++) {
+                                    const descLine = lines[j].trim();
+                                    
+                                    if (descLine.includes('"description"') && descLine.includes(':')) {
+                                        console.log(`Found description at line ${j + 1}: ${descLine}`);
+                                        
+                                        // Check if this line contains the problematic value
+                                        if (problemItem && problemItem.currentValue && descLine.includes(problemItem.currentValue)) {
+                                            console.log(`Found matching description with problematic value at line ${j + 1}`);
+                                            return {
+                                                lineNumber: j + 1,
+                                                line: descLine,
+                                                searchTerm: '"description"'
+                                            };
+                                        }
+                                        
+                                        // If we found a description but not the exact match, still return it
+                                        return {
+                                            lineNumber: j + 1,
+                                            line: descLine,
+                                            searchTerm: '"description"'
+                                        };
+                                    }
+                                    
+                                    // Stop if we reach the end of this column (closing brace)
+                                    if (descLine.includes('}') && !descLine.includes('"')) {
+                                        break;
+                                    }
+                                }
+                                
+                                // If we didn't find a description, return the column start
+                                return {
+                                    lineNumber: i + 1,
+                                    line: line,
+                                    searchTerm: 'column'
+                                };
+                            }
+                        }
+                    }
+                    
+                    // Check if we're leaving the target table
+                    if (inTargetTable && closeBraces > 0 && braceDepth <= tableBraceDepth) {
+                        console.log(`Left target table at line ${i + 1}`);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Fallback: General description search
+        console.log('Falling back to general description search');
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             if (line.includes('"description"') && line.includes(':')) {
-                // Check if this line contains the problematic description value
+                // Check if this line contains the problematic value
                 if (problemItem && problemItem.currentValue && line.includes(problemItem.currentValue)) {
+                    console.log(`Found matching description at line ${i + 1}: ${line}`);
                     return { lineNumber: i + 1, line: line };
                 }
-                // If this is a description line but not the right one, keep looking
-                // Value doesn't match exactly, continue searching
             }
         }
         
-        // Fallback: Find any description line (sometimes the value might be on the next line)
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.includes('"description"')) {
-                return { lineNumber: i + 1, line: line };
-            }
-        }
-        
-        // Last resort: search for the actual problem value anywhere in the file
-        if (problemItem.currentValue) {
+        // Search for the actual problem value anywhere in the file
+        if (problemItem && problemItem.currentValue) {
+            console.log(`Searching for problem value: "${problemItem.currentValue}"`);
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 if (line.includes(problemItem.currentValue)) {
+                    console.log(`Found problem value at line ${i + 1}: ${line}`);
                     return { lineNumber: i + 1, line: line };
                 }
             }

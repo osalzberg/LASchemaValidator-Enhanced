@@ -1,0 +1,125 @@
+{
+    "type": "Microsoft.SecurityInsights/TestTable",
+    "displayName": "Test Table with Issues",
+    "description": "test description without proper capitalization",
+    "tags": {},
+    "properties": {},
+    "simplifiedSchemaVersion": "2",
+    "icmTeam": "Test Team",
+    "contactDL": "test@microsoft.com",
+    "relatedTables": [],
+    "relatedFunctions": [],
+    "tables": [
+        {
+            "name": "TestTable",
+            "description": "A test table with various issues to test the modal auto-scroll functionality.",
+            "artifactVersion": 1,
+            "categories": [
+                "security"
+            ],
+            "tags": {},
+            "properties": {},
+            "dataTypeId": "TEST_TABLE",
+            "intelligencePacks": [
+                "SecurityInsights"
+            ],
+            "isResourceCentric": true,
+            "isChangeColumnInternalNameAllowed": true,
+            "isTroubleshootingAllowed": true,
+            "tableState": "Validation",
+            "isLakeAllowed": false,
+            "input": [
+                {
+                    "name": "TimeGenerated",
+                    "type": "DateTime"
+                },
+                {
+                    "name": "EventType",
+                    "type": "String"
+                },
+                {
+                    "name": "EventSubType",
+                    "type": "String"
+                },
+                {
+                    "name": "EventResult",
+                    "type": "String"
+                },
+                {
+                    "name": "EventResultDetails",
+                    "type": "String"
+                },
+                {
+                    "name": "DynamicField1",
+                    "type": "Dynamic"
+                },
+                {
+                    "name": "DynamicField2",
+                    "type": "Dynamic"
+                },
+                {
+                    "name": "DynamicField3",
+                    "type": "Dynamic"
+                },
+                {
+                    "name": "RegularField",
+                    "type": "String"
+                },
+                {
+                    "name": "AnotherDynamicField",
+                    "type": "Dynamic"
+                },
+                {
+                    "name": "LastField",
+                    "type": "String"
+                }
+            ],
+            "output": [
+                {
+                    "name": "TimeGenerated",
+                    "type": "DateTime"
+                },
+                {
+                    "name": "EventType",
+                    "type": "String"
+                },
+                {
+                    "name": "EventSubType",
+                    "type": "String"
+                },
+                {
+                    "name": "EventResult",
+                    "type": "String"
+                },
+                {
+                    "name": "EventResultDetails",
+                    "type": "String"
+                },
+                {
+                    "name": "DynamicField1",
+                    "type": "Dynamic"
+                },
+                {
+                    "name": "DynamicField2",
+                    "type": "Dynamic"
+                },
+                {
+                    "name": "DynamicField3",
+                    "type": "Dynamic"
+                },
+                {
+                    "name": "RegularField",
+                    "type": "String"
+                },
+                {
+                    "name": "AnotherDynamicField",
+                    "type": "Dynamic"
+                },
+                {
+                    "name": "LastField",
+                    "type": "String"
+                }
+            ]
+        }
+    ]
+}
