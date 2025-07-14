@@ -4353,26 +4353,59 @@ function scrollToProblematicLine(location, issue) {
         
         console.log('Final target element:', targetElement);
         
-        // Get the scrollable container - MUST be the modal's file content container
-        let scrollContainer = document.getElementById('fileContentContainer');
+        // Get the scrollable container - find the actual scrollable element within the modal
+        let scrollContainer = null;
+        
+        // First, try to find the file content container by ID
+        scrollContainer = document.getElementById('fileContentContainer');
         console.log('Primary container search result:', scrollContainer);
         
-        // If the primary container is not found, try alternative selectors in the modal context
+        // If found, check if it's actually scrollable, if not, find the scrollable child
+        if (scrollContainer) {
+            console.log('Container scroll info:', {
+                scrollHeight: scrollContainer.scrollHeight,
+                clientHeight: scrollContainer.clientHeight,
+                isScrollable: scrollContainer.scrollHeight > scrollContainer.clientHeight
+            });
+            
+            // If the container itself is not scrollable, find the scrollable child
+            if (scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+                const scrollableChild = scrollContainer.querySelector('.code-content, pre, .file-content-viewer, [style*="overflow"], [style*="max-height"]');
+                if (scrollableChild && scrollableChild.scrollHeight > scrollableChild.clientHeight) {
+                    console.log('Found scrollable child:', scrollableChild);
+                    scrollContainer = scrollableChild;
+                }
+            }
+        }
+        
+        // If still not found, try alternative selectors in the modal context
         if (!scrollContainer) {
             // Look for containers within the currently visible modal
             const visibleModal = document.querySelector('.modal.show');
             console.log('Visible modal found:', visibleModal);
             if (visibleModal) {
-                scrollContainer = visibleModal.querySelector('#fileContentContainer') ||
-                                 visibleModal.querySelector('.code-content') ||
-                                 visibleModal.querySelector('.file-content-viewer') ||
-                                 visibleModal.querySelector('.modal-body');
-                console.log('Alternative container search result:', scrollContainer);
+                // Try different selectors within the modal, prioritizing scrollable elements
+                const candidates = [
+                    visibleModal.querySelector('.code-content'),
+                    visibleModal.querySelector('pre'),
+                    visibleModal.querySelector('.file-content-viewer'),
+                    visibleModal.querySelector('[style*="overflow-y: auto"]'),
+                    visibleModal.querySelector('[style*="max-height"]'),
+                    visibleModal.querySelector('.modal-body')
+                ];
+                
+                for (const candidate of candidates) {
+                    if (candidate && candidate.scrollHeight > candidate.clientHeight) {
+                        scrollContainer = candidate;
+                        console.log('Found scrollable candidate:', candidate);
+                        break;
+                    }
+                }
             }
         }
         
         if (!scrollContainer) {
-            console.error('File content container not found for scrolling');
+            console.error('No scrollable container found for scrolling');
             return false;
         }
         
@@ -4384,19 +4417,30 @@ function scrollToProblematicLine(location, issue) {
             isScrollable: scrollContainer.scrollHeight > scrollContainer.clientHeight
         });
         
-        // Verify this is actually the scrollable container
-        if (scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
-            console.warn('Container is not scrollable or content fits within view');
-            // Still try to scroll in case content becomes scrollable
-        }
-        
         // Calculate the scroll position to center the problematic line within the modal
         try {
-            const containerRect = scrollContainer.getBoundingClientRect();
-            const targetRect = targetElement.getBoundingClientRect();
+            // Calculate the correct relative position of the target element within the scroll container
+            let targetRelativeTop = 0;
             
-            // Calculate the relative position of the target element within the scroll container
-            const targetRelativeTop = targetElement.offsetTop;
+            // Walk up the DOM tree to calculate the position relative to the scroll container
+            let currentElement = targetElement;
+            while (currentElement && currentElement !== scrollContainer) {
+                targetRelativeTop += currentElement.offsetTop;
+                currentElement = currentElement.offsetParent;
+                
+                // If we've reached the scroll container, stop
+                if (currentElement === scrollContainer) {
+                    break;
+                }
+            }
+            
+            // If we didn't find the scroll container in the parent chain, use getBoundingClientRect
+            if (currentElement !== scrollContainer) {
+                const containerRect = scrollContainer.getBoundingClientRect();
+                const targetRect = targetElement.getBoundingClientRect();
+                targetRelativeTop = targetRect.top - containerRect.top + scrollContainer.scrollTop;
+            }
+            
             const containerHeight = scrollContainer.clientHeight;
             const elementHeight = targetElement.offsetHeight;
             
