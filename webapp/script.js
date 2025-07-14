@@ -372,14 +372,26 @@ function setupFileInput() {
     if (fileInput) {
         fileInput.addEventListener('change', function(e) {
             console.log('File input changed:', e.target.files.length, 'files');
+            console.log('File input webkitdirectory:', e.target.webkitdirectory);
             handleFiles(e.target.files);
+        });
+        
+        // Add click listener to debug
+        fileInput.addEventListener('click', function(e) {
+            console.log('File input clicked');
         });
     }
     
     if (folderInput) {
         folderInput.addEventListener('change', function(e) {
             console.log('Folder input changed:', e.target.files.length, 'files');
+            console.log('Folder input webkitdirectory:', e.target.webkitdirectory);
             handleFiles(e.target.files);
+        });
+        
+        // Add click listener to debug
+        folderInput.addEventListener('click', function(e) {
+            console.log('Folder input clicked');
         });
     }
     
@@ -410,6 +422,25 @@ function setupFileInputButtons() {
     
     // Add a flag to prevent simultaneous clicks
     let isProcessingClick = false;
+    let lastClickType = null;
+    
+    // Function to completely disable an input element
+    function disableInput(input) {
+        if (input) {
+            input.disabled = true;
+            input.style.pointerEvents = 'none';
+            input.style.display = 'none';
+        }
+    }
+    
+    // Function to enable an input element
+    function enableInput(input) {
+        if (input) {
+            input.disabled = false;
+            input.style.pointerEvents = 'auto';
+            input.style.display = 'block';
+        }
+    }
     
     if (selectFilesBtn) {
         selectFilesBtn.addEventListener('click', function(e) {
@@ -423,30 +454,38 @@ function setupFileInputButtons() {
             }
             
             isProcessingClick = true;
+            lastClickType = 'files';
             console.log('Select Files button clicked');
             
             const fileInput = document.getElementById('fileInput');
             const folderInput = document.getElementById('folderInput');
             
             if (fileInput) {
-                // Ensure folder input is cleared and doesn't interfere
-                if (folderInput) {
-                    folderInput.value = '';
-                }
+                // Completely disable folder input to prevent interference
+                disableInput(folderInput);
                 
                 // Reset the file input to ensure change event fires even for same files
                 fileInput.value = '';
                 
+                // Make sure file input is enabled and visible
+                enableInput(fileInput);
+                
                 // Use longer timeout to prevent interference
                 setTimeout(() => {
+                    console.log('About to click file input');
                     fileInput.click();
-                    // Reset the processing flag after click
+                    
+                    // Reset the processing flag and re-enable folder input after click
                     setTimeout(() => {
+                        enableInput(folderInput);
                         isProcessingClick = false;
-                    }, 100);
-                }, 50);
+                        lastClickType = null;
+                        console.log('File input processing completed');
+                    }, 200);
+                }, 100);
             } else {
                 isProcessingClick = false;
+                lastClickType = null;
             }
         });
     }
@@ -463,30 +502,38 @@ function setupFileInputButtons() {
             }
             
             isProcessingClick = true;
+            lastClickType = 'folder';
             console.log('Select Folder button clicked');
             
             const fileInput = document.getElementById('fileInput');
             const folderInput = document.getElementById('folderInput');
             
             if (folderInput) {
-                // Ensure file input is cleared and doesn't interfere
-                if (fileInput) {
-                    fileInput.value = '';
-                }
+                // Completely disable file input to prevent interference
+                disableInput(fileInput);
                 
                 // Reset the folder input to ensure change event fires even for same folders
                 folderInput.value = '';
                 
+                // Make sure folder input is enabled and visible
+                enableInput(folderInput);
+                
                 // Use longer timeout to prevent interference
                 setTimeout(() => {
+                    console.log('About to click folder input');
                     folderInput.click();
-                    // Reset the processing flag after click
+                    
+                    // Reset the processing flag and re-enable file input after click
                     setTimeout(() => {
+                        enableInput(fileInput);
                         isProcessingClick = false;
-                    }, 100);
-                }, 50);
+                        lastClickType = null;
+                        console.log('Folder input processing completed');
+                    }, 200);
+                }, 100);
             } else {
                 isProcessingClick = false;
+                lastClickType = null;
             }
         });
     }
