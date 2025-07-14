@@ -4356,50 +4356,49 @@ function scrollToProblematicLine(location, issue) {
         // Get the scrollable container - find the actual scrollable element within the modal
         let scrollContainer = null;
         
-        // First, try to find the file content container by ID
-        scrollContainer = document.getElementById('fileContentContainer');
-        console.log('Primary container search result:', scrollContainer);
+        // Strategy 1: Look for the actual scrollable .code-content element (most specific)
+        const visibleModal = document.querySelector('.modal.show');
+        if (visibleModal) {
+            scrollContainer = visibleModal.querySelector('.code-content');
+            if (scrollContainer && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+                console.log('Found scrollable .code-content element:', scrollContainer);
+            } else {
+                scrollContainer = null;
+            }
+        }
         
-        // If found, check if it's actually scrollable, if not, find the scrollable child
-        if (scrollContainer) {
-            console.log('Container scroll info:', {
-                scrollHeight: scrollContainer.scrollHeight,
-                clientHeight: scrollContainer.clientHeight,
-                isScrollable: scrollContainer.scrollHeight > scrollContainer.clientHeight
-            });
-            
-            // If the container itself is not scrollable, find the scrollable child
-            if (scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+        // Strategy 2: If no .code-content, try fileContentContainer
+        if (!scrollContainer) {
+            scrollContainer = document.getElementById('fileContentContainer');
+            if (scrollContainer && scrollContainer.scrollHeight > scrollContainer.clientHeight) {
+                console.log('Found scrollable fileContentContainer:', scrollContainer);
+            } else if (scrollContainer) {
+                // If fileContentContainer exists but is not scrollable, find scrollable child
                 const scrollableChild = scrollContainer.querySelector('.code-content, pre, .file-content-viewer, [style*="overflow"], [style*="max-height"]');
                 if (scrollableChild && scrollableChild.scrollHeight > scrollableChild.clientHeight) {
                     console.log('Found scrollable child:', scrollableChild);
                     scrollContainer = scrollableChild;
+                } else {
+                    scrollContainer = null;
                 }
             }
         }
         
-        // If still not found, try alternative selectors in the modal context
-        if (!scrollContainer) {
-            // Look for containers within the currently visible modal
-            const visibleModal = document.querySelector('.modal.show');
-            console.log('Visible modal found:', visibleModal);
-            if (visibleModal) {
-                // Try different selectors within the modal, prioritizing scrollable elements
-                const candidates = [
-                    visibleModal.querySelector('.code-content'),
-                    visibleModal.querySelector('pre'),
-                    visibleModal.querySelector('.file-content-viewer'),
-                    visibleModal.querySelector('[style*="overflow-y: auto"]'),
-                    visibleModal.querySelector('[style*="max-height"]'),
-                    visibleModal.querySelector('.modal-body')
-                ];
-                
-                for (const candidate of candidates) {
-                    if (candidate && candidate.scrollHeight > candidate.clientHeight) {
-                        scrollContainer = candidate;
-                        console.log('Found scrollable candidate:', candidate);
-                        break;
-                    }
+        // Strategy 3: Try other potential scrollable elements in modal
+        if (!scrollContainer && visibleModal) {
+            const candidates = [
+                visibleModal.querySelector('pre'),
+                visibleModal.querySelector('.file-content-viewer'),
+                visibleModal.querySelector('[style*="overflow-y: auto"]'),
+                visibleModal.querySelector('[style*="max-height"]'),
+                visibleModal.querySelector('.modal-body')
+            ];
+            
+            for (const candidate of candidates) {
+                if (candidate && candidate.scrollHeight > candidate.clientHeight) {
+                    scrollContainer = candidate;
+                    console.log('Found scrollable candidate:', candidate);
+                    break;
                 }
             }
         }
