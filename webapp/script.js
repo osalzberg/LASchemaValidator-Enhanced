@@ -81,7 +81,31 @@ let validationResults = [];
  * - This is a standard web development pattern for app initialization
  */
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 DOM Content Loaded - Starting initialization...');
+    
+    // Test function availability immediately
+    console.log('Pre-init function test:', {
+        startValidationWithScroll: typeof startValidationWithScroll,
+        window_startValidationWithScroll: typeof window.startValidationWithScroll
+    });
+    
     initializeApp();
+    
+    // Test function availability after initialization
+    console.log('Post-init function test:', {
+        startValidationWithScroll: typeof startValidationWithScroll,
+        window_startValidationWithScroll: typeof window.startValidationWithScroll
+    });
+    
+    // Test if we can call the function manually
+    setTimeout(() => {
+        console.log('Testing manual function call...');
+        if (typeof startValidationWithScroll === 'function') {
+            console.log('✅ Function is available - event listeners should work');
+        } else {
+            console.error('❌ Function is NOT available');
+        }
+    }, 1000);
 });
 
 /**
@@ -145,6 +169,20 @@ function initializeApp() {
     // Get reference to validate button for later use
     const validateBtn = document.getElementById('validateBtn');
     
+    // Debug: Check if functions are properly defined
+    console.log('Function check:', {
+        startValidationWithScroll: typeof startValidationWithScroll,
+        viewGuideWithScroll: typeof viewGuideWithScroll,
+        toggleValidation: typeof toggleValidation,
+        toggleGuide: typeof toggleGuide
+    });
+    
+    // Ensure functions are available globally
+    window.startValidationWithScroll = startValidationWithScroll;
+    window.viewGuideWithScroll = viewGuideWithScroll;
+    window.toggleValidation = toggleValidation;
+    window.toggleGuide = toggleGuide;
+    
     console.log('✅ App initialization complete!');
 }
 
@@ -171,6 +209,32 @@ function setupEventListeners() {
     uploadTypeRadios.forEach(radio => {
         radio.addEventListener('change', updateUploadInstructions);
     });
+    
+    // Setup direct event listeners for main buttons as backup
+    const startValidationBtn = document.getElementById('startValidationBtn');
+    const viewGuideBtn = document.getElementById('viewGuideBtn');
+    
+    if (startValidationBtn) {
+        console.log('Adding direct event listener to start validation button');
+        // Remove any existing onclick attribute that might be interfering
+        startValidationBtn.removeAttribute('onclick');
+        startValidationBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Start validation button clicked via event listener');
+            startValidationWithScroll();
+        });
+    }
+    
+    if (viewGuideBtn) {
+        console.log('Adding direct event listener to view guide button');
+        // Remove any existing onclick attribute that might be interfering
+        viewGuideBtn.removeAttribute('onclick');
+        viewGuideBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('View guide button clicked via event listener');
+            viewGuideWithScroll();
+        });
+    }
     
     // Toggle buttons - using onclick attributes in HTML, no need for additional event listeners
     const toggleValidationBtn = document.querySelector('button[onclick="toggleValidation()"]');
@@ -466,18 +530,26 @@ function toggleValidation() {
 
 // Functions with auto-scroll for main buttons
 function startValidationWithScroll() {
+    console.log('🚀 startValidationWithScroll function called');
     const uploadSection = document.getElementById('upload-section');
     const button = document.getElementById('startValidationBtn');
     
+    console.log('Elements found:', { uploadSection: !!uploadSection, button: !!button });
+    
     if (!uploadSection) {
+        console.error('Upload section not found!');
         return;
     }
     
     if (!button) {
+        console.error('Start validation button not found!');
         return;
     }
     
+    console.log('Current upload section display:', uploadSection.style.display);
+    
     if (uploadSection.style.display === 'none' || uploadSection.style.display === '') {
+        console.log('Showing upload section...');
         // Show the upload section
         uploadSection.style.display = 'block';
         uploadSection.classList.remove('hide');
@@ -1305,8 +1377,11 @@ async function validateManifestFile(file, result) {
                 });
                 result.status = 'fail';
             } else if (manifest.functions.length > 0) {
+                // Split content into lines for line number detection
+                const lines = content.split('\n');
+                
                 manifest.functions.forEach((func, index) => {
-                    validateFunction(func, index, result);
+                    validateFunction(func, index, result, lines);
                 });
             }
         }
@@ -1619,376 +1694,376 @@ async function validateTransformManifestFile(file, result) {
     return result;
 }
 
-// Helper function to find line number for missing function fields
-function findFunctionLineNumber(func, index, missingField) {
-    try {
-        const content = window.currentFileContent;
-        if (!content) return index + 1;
-        
-        const lines = content.split('\n');
-        let inFunctionsArray = false;
-        let functionIndex = -1;
-        let braceCount = 0;
-        let inCurrentFunction = false;
-        
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            
-            // Find functions array
-            if (line.includes('"functions"') && line.includes('[')) {
-                inFunctionsArray = true;
-                continue;
-            }
-            
-            if (inFunctionsArray) {
-                // Track function objects
-                if (line.includes('{') && !line.includes('}')) {
-                    if (braceCount === 0) {
-                        functionIndex++;
-                        if (functionIndex === index) {
-                            inCurrentFunction = true;
-                        }
-                    }
-                    braceCount++;
-                } else if (line.includes('}') && !line.includes('{')) {
-                    braceCount--;
-                    if (braceCount === 0 && inCurrentFunction) {
-                        // End of current function, return line before closing brace
-                        return i;
-                    }
-                }
-                
-                // If we're in the current function and it's the closing brace
-                if (inCurrentFunction && line.trim() === '}' && braceCount === 1) {
-                    return i;
-                }
-            }
-        }
-        
-        return index + 1;
-    } catch (error) {
-        console.error('Error finding function line number:', error);
-        return index + 1;
-    }
-}
-
-// Helper function to generate fix code for missing function fields
-function generateFunctionFixCode(field, func) {
-    const examples = {
-        'name': func.name || '_ASim_ExampleFunction',
-        'displayName': func.displayName || 'Example Function Display Name',
-        'description': func.description || 'Example function description',
-        'bodyFilePath': func.bodyFilePath || 'KQL/Example/ExampleFunction.kql'
-    };
-    
-    return `"${field}": "${examples[field]}"`;
-}
-
-async function validateTransformManifestFile(file, result) {
-    const content = await readFileContent(file);
-    
-    try {
-        const manifest = JSON.parse(content);
-        
-        // Store original content for drill-down
-        result.originalContent = content;
-        result.parsedContent = manifest;
-        
-        // Add identifier that this is a transform manifest
-        result.isTransformManifest = true;
-        
-        // Check required fields for transform manifests based on documentation
-        const requiredFields = ['name', 'description', 'transformVersion', 'dataTypeId', 'transformState', 'icmTeam', 'contactDL', 'relatedTable', 'kqlFilePath', 'sampleInputRecordsFilePath', 'sampleOutputRecordsFilePath'];
-        requiredFields.forEach(field => {
-            if (!manifest[field]) {
-                result.issues.push({
-                    message: `Missing required field: ${field}`,
-                    type: 'missing_field',
-                    field: field,
-                    location: 'root',
-                    severity: 'error',
-                    suggestion: `Add the required field "${field}" to the root level of your transform manifest file.`
-                });
-                result.status = 'fail';
-            }
-        });
-        
-        // Validate transform manifest should NOT have these fields (they belong to NGSchema)
-        const forbiddenFields = ['type', 'displayName', 'simplifiedSchemaVersion', 'tables', 'functions', 'queries'];
-        forbiddenFields.forEach(field => {
-            if (manifest[field]) {
-                result.issues.push({
-                    message: `Transform manifest should not contain field: ${field}`,
-                    type: 'forbidden_field',
-                    field: field,
-                    location: 'root',
-                    currentValue: manifest[field],
-                    severity: 'error',
-                    suggestion: `Remove the "${field}" field from the transform manifest. This field belongs to the main NGSchema manifest, not transform manifests.`
-                });
-                result.status = 'fail';
-            }
-        });
-        
-        // Validate descriptions
-        if (manifest.description) {
-            validateDescription(manifest.description, 'Transform description', result, 'root.description');
-        }
-        
-        // Validate transformVersion is a number >= 1
-        if (manifest.transformVersion !== undefined) {
-            if (typeof manifest.transformVersion !== 'number' || manifest.transformVersion < 1 || !Number.isInteger(manifest.transformVersion)) {
-                result.issues.push({
-                    message: 'transformVersion must be an integer >= 1',
-                    type: 'invalid_value',
-                    field: 'transformVersion',
-                    location: 'root',
-                    currentValue: manifest.transformVersion,
-                    expectedValue: 'integer >= 1',
-                    severity: 'error',
-                    suggestion: 'Change the transformVersion to a positive integer starting from 1.'
-                });
-                result.status = 'fail';
-            }
-        }
-        
-        // Validate dataTypeId follows naming convention
-        if (manifest.dataTypeId && typeof manifest.dataTypeId === 'string') {
-            if (!manifest.dataTypeId.includes('_')) {
-                result.warnings.push({
-                    message: 'dataTypeId should follow SERVICEIDENTITYNAME_LOGCATEGORYNAME convention',
-                    type: 'naming_convention_warning',
-                    field: 'dataTypeId',
-                    location: 'root.dataTypeId',
-                    currentValue: manifest.dataTypeId,
-                    severity: 'warning',
-                    suggestion: 'Consider using the naming convention SERVICEIDENTITYNAME_LOGCATEGORYNAME for better consistency (e.g., "CISCO_SECURITY").'
-                });
-            }
-        }
-        
-        // Validate transformState
-        if (manifest.transformState !== undefined) {
-            const validStates = ['Validation', 'Production'];
-            if (!validStates.includes(manifest.transformState)) {
-                result.issues.push({
-                    message: 'transformState must be either "Validation" or "Production"',
-                    type: 'invalid_value',
-                    field: 'transformState',
-                    location: 'root',
-                    currentValue: manifest.transformState,
-                    expectedValue: 'Validation or Production',
-                    severity: 'error',
-                    suggestion: 'Set transformState to either "Validation" for testing or "Production" for live deployment.'
-                });
-                result.status = 'fail';
-            }
-        }
-        
-        // Validate string fields
-        const stringFields = ['name', 'icmTeam', 'contactDL', 'relatedTable', 'kqlFilePath', 'sampleInputRecordsFilePath', 'sampleOutputRecordsFilePath'];
-        stringFields.forEach(field => {
-            if (manifest[field] && typeof manifest[field] !== 'string') {
-                result.issues.push({
-                    message: `${field} must be a string`,
-                    type: 'invalid_type',
-                    field: field,
-                    location: 'root',
-                    currentValue: typeof manifest[field],
-                    expectedValue: 'string',
-                    severity: 'error',
-                    suggestion: `Change the ${field} value to a string.`
-                });
-                result.status = 'fail';
-            }
-        });
-        
-        // Validate file paths have correct extensions
-        if (manifest.kqlFilePath && !manifest.kqlFilePath.endsWith('.kql')) {
-            result.issues.push({
-                message: 'kqlFilePath must reference a .kql file',
-                type: 'invalid_file_extension',
-                field: 'kqlFilePath',
-                location: 'root',
-                currentValue: manifest.kqlFilePath,
-                severity: 'error',
-                suggestion: 'Change the kqlFilePath to reference a file with .kql extension.'
-            });
-            result.status = 'fail';
-        }
-        
-        if (manifest.sampleInputRecordsFilePath && !manifest.sampleInputRecordsFilePath.endsWith('.json')) {
-            result.issues.push({
-                message: 'sampleInputRecordsFilePath must reference a .json file',
-                type: 'invalid_file_extension',
-                field: 'sampleInputRecordsFilePath',
-                location: 'root',
-                currentValue: manifest.sampleInputRecordsFilePath,
-                severity: 'error',
-                suggestion: 'Change the sampleInputRecordsFilePath to reference a file with .json extension.'
-            });
-            result.status = 'fail';
-        }
-        
-        if (manifest.sampleOutputRecordsFilePath && !manifest.sampleOutputRecordsFilePath.endsWith('.json')) {
-            result.issues.push({
-                message: 'sampleOutputRecordsFilePath must reference a .json file',
-                type: 'invalid_file_extension',
-                field: 'sampleOutputRecordsFilePath',
-                location: 'root',
-                currentValue: manifest.sampleOutputRecordsFilePath,
-                severity: 'error',
-                suggestion: 'Change the sampleOutputRecordsFilePath to reference a file with .json extension.'
-            });
-            result.status = 'fail';
-        }
-        
-        // Validate optional inputFilePath if present (for new dataTypeIds)
-        if (manifest.inputFilePath !== undefined) {
-            if (typeof manifest.inputFilePath !== 'string') {
-                result.issues.push({
-                    message: 'inputFilePath must be a string',
-                    type: 'invalid_type',
-                    field: 'inputFilePath',
-                    location: 'root',
-                    severity: 'error',
-                    suggestion: 'Change the inputFilePath value to a string.'
-                });
-                result.status = 'fail';
-            } else if (!manifest.inputFilePath.endsWith('.json')) {
-                result.issues.push({
-                    message: 'inputFilePath must reference a .json file',
-                    type: 'invalid_file_extension',
-                    field: 'inputFilePath',
-                    location: 'root',
-                    currentValue: manifest.inputFilePath,
-                    severity: 'error',
-                    suggestion: 'Change the inputFilePath to reference a file with .json extension.'
-                });
-                result.status = 'fail';
-            }
-        }
-        
-        // Add informational note about what this transform does
-        if (manifest.relatedTable) {
-            result.warnings.push({
-                message: `This transform sends data to the "${manifest.relatedTable}" table`,
-                type: 'info',
-                field: 'relatedTable',
-                location: 'root.relatedTable',
-                currentValue: manifest.relatedTable,
-                severity: 'info',
-                suggestion: 'Ensure that the referenced table exists in the main NGSchema and that your transform KQL produces data compatible with that table structure.'
-            });
-        }
-        
-        if (result.issues.length === 0 && result.status !== 'fail') {
-            result.status = 'pass';
-        }
-        
-    } catch (error) {
-        result.status = 'fail';
+function validateDescription(description, context, result, location) {
+    if (!description || typeof description !== 'string') {
         result.issues.push({
-            message: 'Invalid JSON format: ' + error.message,
-            type: 'json_syntax_error',
-            field: 'file',
-            location: 'entire_file',
+            message: `${context}: Description must be a non-empty string`,
+            type: 'invalid_type',
+            field: 'description',
+            location: location,
             severity: 'error',
-            suggestion: 'Fix the JSON syntax errors in the file. Common issues include missing commas, unmatched brackets, or invalid characters.'
+            suggestion: `Provide a valid non-empty string for the ${context.toLowerCase()}.`
+        });
+        result.status = 'fail';
+        return;
+    }
+    
+    if (!description.charAt(0).match(/[A-Z]/)) {
+        result.issues.push({
+            message: `${context}: Description must start with a capital letter`,
+            type: 'formatting_error',
+            field: 'description',
+            location: location,
+            currentValue: description,
+            severity: 'error',
+            suggestion: `Change the first character of "${description}" to a capital letter.`
+        });
+        result.status = 'fail';
+    }
+    
+    if (!description.endsWith('.')) {
+        result.issues.push({
+            message: `${context}: Description must end with a period`,
+            type: 'formatting_error',
+            field: 'description',
+            location: location,
+            currentValue: description,
+            severity: 'error',
+            suggestion: `Add a period at the end of "${description}".`
+        });
+        result.status = 'fail';
+    }
+}
+
+function validateTable(table, index, result) {
+    const tableContext = `Table ${index + 1}`;
+    const tableLocation = `tables[${index}]`;
+    
+    // Check for table name - either standard 'name' OR transform pattern (workflowName + transformName + physicalName + logicalName)
+    const hasStandardName = table.name;
+    const hasTransformPattern = table.workflowName && table.transformName && table.physicalName && table.logicalName;
+    
+    if (!hasStandardName && !hasTransformPattern) {
+        result.issues.push({
+            message: `${tableContext}: Missing required field 'name' or transform pattern (workflowName, transformName, physicalName, logicalName)`,
+            type: 'missing_field',
+            field: 'name',
+            location: `${tableLocation}.name`,
+            severity: 'error',
+            suggestion: `Add either a 'name' field OR the complete transform pattern with 'workflowName', 'transformName', 'physicalName', and 'logicalName' fields for table type changes.`,
+            microsoftRequirement: 'Tables must have either a standard "name" field or use the transform pattern (workflowName, transformName, physicalName, logicalName) when changing table types in Azure Log Analytics.'
+        });
+        result.status = 'fail';
+    }
+    
+    // Add informational note for transform pattern usage
+    if (hasTransformPattern && !hasStandardName) {
+        if (!result.warnings) result.warnings = [];
+        result.warnings.push({
+            message: `${tableContext}: Using transform pattern for table type change`,
+            type: 'info',
+            field: 'workflowName',
+            location: `${tableLocation}.workflowName`,
+            severity: 'info',
+            suggestion: `This table is using the Microsoft Azure transform pattern for changing table types. This allows multiple tables to share the same physical table while having different logical names.`,
+            microsoftRequirement: 'When using transform pattern, multiple tables can map to the same physical table with different logical representations.',
+            currentValue: `${table.workflowName} -> ${table.physicalName} (${table.logicalName})`
         });
     }
     
-    return result;
-}
-
-// Helper function to find line number for missing function fields
-function findFunctionLineNumber(func, index, missingField) {
-    try {
-        const content = window.currentFileContent;
-        if (!content) return index + 1;
-        
-        const lines = content.split('\n');
-        let inFunctionsArray = false;
-        let functionIndex = -1;
-        let braceCount = 0;
-        let inCurrentFunction = false;
-        
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
+    // Required fields based on official documentation (excluding name since it can be replaced by transform pattern)
+    const requiredFields = ['description', 'dataTypeId', 'artifactVersion', 'input', 'transformFilePath', 'columns'];
+    requiredFields.forEach(field => {
+        if (!table[field]) {
+            result.issues.push({
+                message: `${tableContext}: Missing required field '${field}'`,
+                type: 'missing_field',
+                field: field,
+                location: `${tableLocation}.${field}`,
+                severity: 'error',
+                suggestion: `Add the required field "${field}" to ${tableContext}.`
+            });
+            result.status = 'fail';
+        }
+    });
+    
+    // Validate table name length
+    if (table.name && table.name.length > 45) {
+        result.issues.push({
+            message: `${tableContext}: Table name must be 45 characters or less`,
+            type: 'invalid_length',
+            field: 'name',
+            location: `${tableLocation}.name`,
+            currentValue: `${table.name.length} characters`,
+            expectedValue: '45 characters or less',
+            severity: 'error',
+            suggestion: `Shorten the table name "${table.name}" to 45 characters or less.`
+        });
+        result.status = 'fail';
+    }
+    
+    // Validate description
+    if (table.description) {
+        validateDescription(table.description, `${tableContext} description`, result, `${tableLocation}.description`);
+    }
+    
+    // Validate artifactVersion is a number >= 1
+    if (table.artifactVersion !== undefined) {
+        if (typeof table.artifactVersion !== 'number' || table.artifactVersion < 1 || !Number.isInteger(table.artifactVersion)) {
+            result.issues.push(`${tableContext}: artifactVersion must be an integer >= 1`);
+            result.status = 'fail';
+        }
+    }
+    
+    // Validate dataTypeId follows naming convention
+    if (table.dataTypeId && typeof table.dataTypeId === 'string') {
+        if (!table.dataTypeId.includes('_')) {
+            result.warnings.push(`${tableContext}: dataTypeId should follow SERVICEIDENTITYNAME_LOGCATEGORYNAME convention`);
+        }
+    }
+    
+    // Validate categories array (optional)
+    if (table.categories !== undefined) {
+        if (!Array.isArray(table.categories)) {
+            result.issues.push(`${tableContext}: categories must be an array`);
+            result.status = 'fail';
+        }
+    }
+    
+    // Validate boolean fields (optional)
+    const booleanFields = ['isResourceCentric', 'isHidden', 'isTroubleshootingAllowed', 'isLakeAllowed', 'isChangeColumnInternalNameAllowed'];
+    booleanFields.forEach(field => {
+        if (table[field] !== undefined && typeof table[field] !== 'boolean') {
+            result.issues.push(`${tableContext}: ${field} must be a boolean`);
+            result.status = 'fail';
+        }
+    });
+    
+    // Validate tableState
+    if (table.tableState !== undefined) {
+        const validStates = ['Validation', 'Production'];
+        if (!validStates.includes(table.tableState)) {
+            result.issues.push(`${tableContext}: tableState must be either "Validation" or "Production"`);
+            result.status = 'fail';
+        }
+    }
+    
+    // Validate input array
+    if (table.input && Array.isArray(table.input)) {
+        table.input.forEach((inputField, inputIndex) => {
+            validateInputField(inputField, inputIndex, tableContext, result);
+        });
+    } else if (table.input !== undefined) {
+        result.issues.push(`${tableContext}: input must be an array`);
+        result.status = 'fail';
+    }
+    
+    // Validate columns array
+    if (table.columns && Array.isArray(table.columns)) {
+        if (table.columns.length === 0) {
+            result.issues.push(`${tableContext}: columns array cannot be empty`);
+            result.status = 'fail';
+        } else {
+            table.columns.forEach((column, colIndex) => {
+                validateColumn(column, colIndex, tableContext, result);
+            });
             
-            // Find functions array
-            if (line.includes('"functions"') && line.includes('[')) {
-                inFunctionsArray = true;
-                continue;
-            }
-            
-            if (inFunctionsArray) {
-                // Track function objects
-                if (line.includes('{') && !line.includes('}')) {
-                    if (braceCount === 0) {
-                        functionIndex++;
-                        if (functionIndex === index) {
-                            inCurrentFunction = true;
-                        }
-                    }
-                    braceCount++;
-                } else if (line.includes('}') && !line.includes('{')) {
-                    braceCount--;
-                    if (braceCount === 0 && inCurrentFunction) {
-                        // End of current function, return line before closing brace
-                        return i;
-                    }
+            // Check for required TimeGenerated column
+            const timeGeneratedColumn = table.columns.find(col => col.name === 'TimeGenerated');
+            if (!timeGeneratedColumn) {
+                result.issues.push({
+                    message: `${tableContext}: Missing required TimeGenerated column`,
+                    type: 'missing_required_column',
+                    field: 'TimeGenerated',
+                    location: `${tableLocation}.columns`,
+                    severity: 'error',
+                    suggestion: 'Add a TimeGenerated column with type "DateTime" to your table. This column is required for all Log Analytics tables and must map to the $.time JSON path in Shoebox.'
+                });
+                result.status = 'fail';
+            } else {
+                // Validate TimeGenerated column properties
+                if (timeGeneratedColumn.type !== 'DateTime') {
+                    result.issues.push({
+                        message: `${tableContext}: TimeGenerated column must be of type "DateTime"`,
+                        type: 'invalid_column_type',
+                        field: 'TimeGenerated.type',
+                        location: `${tableLocation}.columns.TimeGenerated.type`,
+                        currentValue: timeGeneratedColumn.type,
+                        expectedValue: 'DateTime',
+                        severity: 'error',
+                        suggestion: 'Change the TimeGenerated column type to "DateTime".'
+                    });
+                    result.status = 'fail';
                 }
                 
-                // If we're in the current function and it's the closing brace
-                if (inCurrentFunction && line.trim() === '}' && braceCount === 1) {
-                    return i;
+                // Note: The JSON path mapping ($.time) is typically handled at the ingestion pipeline level
+                // and may not be explicitly defined in the manifest, so we don't validate it here
+            }
+            
+            // Check for forbidden system-added columns (these will be added by the ingestion pipeline)
+            const systemAddedColumns = ['Type', 'TenantId', '_ResourceId', '_SubscriptionId'];
+            table.columns.forEach((column, colIndex) => {
+                if (systemAddedColumns.includes(column.name)) {
+                    result.issues.push({
+                        message: `${tableContext}: Column "${column.name}" is automatically added by the ingestion pipeline and should not be included in your schema`,
+                        type: 'forbidden_system_column',
+                        field: `columns[${colIndex}].name`,
+                        location: `${tableLocation}.columns[${colIndex}].name`,
+                        currentValue: column.name,
+                        severity: 'error',
+                        suggestion: `Remove the "${column.name}" column from your schema. This column will be automatically added by the Azure Log Analytics ingestion pipeline.`
+                    });
+                    result.status = 'fail';
                 }
+            });
+            
+            // Check for reserved column names that are blocked
+            const reservedColumns = ['resource', 'resourceid', 'resourcename', 'resourcetype', 'subscriptionid'];
+            table.columns.forEach((column, colIndex) => {
+                // Enhanced error handling for column.name.toLowerCase()
+                try {
+                    // Check if column has either standard name or transform pattern
+                    const hasStandardName = column.name && typeof column.name === 'string';
+                    const hasTransformPattern = column.transformName && column.physicalName && column.logicalName;
+                    
+                    if (!hasStandardName && !hasTransformPattern) {
+                        result.issues.push({
+                            message: `${tableContext}: Column ${colIndex + 1} has invalid or missing name`,
+                            type: 'invalid_column_name',
+                            field: `columns[${colIndex}].name`,
+                            location: `${tableLocation}.columns[${colIndex}].name`,
+                            currentValue: column.name ? typeof column.name : 'undefined',
+                            expectedValue: 'valid string name or transform pattern',
+                            severity: 'error',
+                            suggestion: 'Ensure each column has either a valid string name property OR the complete transform pattern (transformName, physicalName, logicalName).',
+                            microsoftRequirement: 'All columns must have valid string names or use the transform pattern for Azure Log Analytics validation.'
+                        });
+                        result.status = 'fail';
+                        return; // Skip further processing for this column
+                    }
+                    
+                    // Only check reserved names for standard columns (not transform pattern)
+                    if (!hasStandardName) {
+                        return; // Skip reserved name check for transform pattern columns
+                    }
+                    
+                    if (reservedColumns.includes(column.name.toLowerCase())) {
+                        result.issues.push({
+                            message: `${tableContext}: Column name "${column.name}" is reserved and will be blocked at validation`,
+                            type: 'reserved_column_name',
+                            field: `columns[${colIndex}].name`,
+                            location: `${tableLocation}.columns[${colIndex}].name`,
+                            currentValue: column.name,
+                            severity: 'error',
+                            suggestion: `Choose a different name for the "${column.name}" column. Reserved names: resource, resourceid, resourcename, resourcetype, subscriptionid.`
+                        });
+                        result.status = 'fail';
+                    }
+                } catch (error) {
+                    result.issues.push({
+                        message: `${tableContext}: Error processing column ${colIndex + 1} name - ${error.message}`,
+                        type: 'column_name_processing_error',
+                        field: `columns[${colIndex}].name`,
+                        location: `${tableLocation}.columns[${colIndex}].name`,
+                        severity: 'error',
+                        currentValue: column.name,
+                        expectedValue: 'valid string',
+                        suggestion: 'Ensure the column name is a valid string that can be processed.',
+                        microsoftRequirement: 'Column names must be valid strings for Azure Log Analytics processing.',
+                        fixInstructions: 'Check the column name for invalid characters or encoding issues.',
+                        errorDetails: `JavaScript error: ${error.message}`
+                    });
+                    result.status = 'fail';
+                }
+            });
+            
+            // Check for tenantid column (special case - will be overridden by system)
+            try {
+                const tenantIdColumn = table.columns.find(col => {
+                    if (!col.name || typeof col.name !== 'string') {
+                        return false; // Skip invalid column names
+                    }
+                    try {
+                        return col.name.toLowerCase() === 'tenantid';
+                    } catch (error) {
+                        // Silent error handling - unable to process column name
+                        return false;
+                    }
+                });
+                
+                if (tenantIdColumn) {
+                    result.issues.push({
+                        message: `${tableContext}: Column "tenantid" is reserved and its value will be overridden by the system (contains workspaceId, not tenantId)`,
+                        type: 'reserved_overridden_column',
+                        field: 'tenantid',
+                        location: `${tableLocation}.columns.tenantid`,
+                        currentValue: tenantIdColumn.name,
+                        severity: 'error',
+                        suggestion: 'Remove the "tenantid" column from your schema. If you need tenant information, use a different column name. Note that the system-provided tenantid actually contains the workspaceId.'
+                    });
+                    result.status = 'fail';
+                }
+            } catch (error) {
+                result.issues.push({
+                    message: `${tableContext}: Error checking for reserved tenantid column - ${error.message}`,
+                    type: 'tenantid_check_error',
+                    field: 'columns',
+                    location: `${tableLocation}.columns`,
+                    severity: 'error',
+                    suggestion: 'Check that all column names are valid strings.',
+                    microsoftRequirement: 'Column validation requires all column names to be processable as strings.',
+                    fixInstructions: 'Ensure all columns have valid string names.',
+                    errorDetails: `JavaScript error: ${error.message}`
+                });
+                result.status = 'fail';
             }
         }
-        
-        return index + 1;
-    } catch (error) {
-        console.error('Error finding function line number:', error);
-        return index + 1;
+    } else if (table.columns !== undefined) {
+        result.issues.push(`${tableContext}: columns must be an array`);
+        result.status = 'fail';
     }
 }
 
-// Helper function to generate fix code for missing function fields
-function generateFunctionFixCode(field, func) {
-    const examples = {
-        'name': func.name || '_ASim_ExampleFunction',
-        'displayName': func.displayName || 'Example Function Display Name',
-        'description': func.description || 'Example function description',
-        'bodyFilePath': func.bodyFilePath || 'KQL/Example/ExampleFunction.kql'
-    };
+function validateInputField(inputField, index, tableContext, result) {
+    const inputContext = `${tableContext}, Input field ${index + 1}`;
+    const inputLocation = `${tableContext.replace(' ', '').toLowerCase()}.input[${index}]`;
     
-    return `"${field}": "${examples[field]}"`;
-}
-
-async function validateTransformManifestFile(file, result) {
-    const content = await readFileContent(file);
+    // Required fields for input
+    const requiredFields = ['name', 'type'];
+    requiredFields.forEach(field => {
+        if (!inputField[field]) {
+            result.issues.push({
+                message: `${inputContext}: Missing required field '${field}'`,
+                type: 'missing_field',
+                field: field,
+                location: `${inputLocation}.${field}`,
+                severity: 'error',
+                suggestion: `Add the required field "${field}" to the input field definition.`
+            });
+            result.status = 'fail';
+        }
+    });
     
-    try {
-        const manifest = JSON.parse(content);
+    // Validate input data type
+    const validInputTypes = ['Bool', 'SByte', 'Byte', 'Short', 'UShort', 'Int', 'UInt', 'Long', 'ULong', 'Float', 'Double', 'String', 'DateTime', 'Guid', 'Dynamic'];
+    if (inputField.type && !validInputTypes.includes(inputField.type)) {
+        // Check if this is a lowercase version of a valid type
+        const capitalizedType = inputField.type.charAt(0).toUpperCase() + inputField.type.slice(1);
+        const isLowercaseValidType = validInputTypes.includes(capitalizedType);
         
-        // Store original content for drill-down
-        result.originalContent = content;
-        result.parsedContent = manifest;
-        
-        // Add identifier that this is a transform manifest
-        result.isTransformManifest = true;
-        
-        // Check required fields for transform manifests based on documentation
-        const requiredFields = ['name', 'description', 'transformVersion', 'dataTypeId', 'transformState', 'icmTeam', 'contactDL', 'relatedTable', 'kqlFilePath', 'sampleInputRecordsFilePath', 'sampleOutputRecordsFilePath'];
-        requiredFields.forEach(field => {
-            if (!manifest[field]) {
-                result.issues.push({
-                    message: `Missing required field: ${field}`,
-                    type: 'missing_field',
-                    field: field,
-                    location: 'root',
-                    severity: 'error',
+        if (isLowercaseValidType) {
+            result.issues.push({
+                message: `${inputContext}: Input data type '${inputField.type}' should start with capital letter`,
+                type: 'incorrect_capitalization',
+                field: 'type',
+                location: `${inputLocation}.type`,
+                currentValue: inputField.type,
+                expectedValue: capitalizedType,
+                severity: 'error',
+                suggestion: `Change "${inputField.type}" to "${capitalizedType}" - Azure Log Analytics requires data types to start with a capital letter.`,
+                microsoftRequirement: 'Azure Log Analytics input data types must start with a capital letter (e.g., "String" not "string").',
+                fixInstructions: `Simply capitalize the first letter: "${inputField.type}" → "${capitalizedType}"`
+            });
         } else {
             result.issues.push({
                 message: `${inputContext}: Invalid input data type '${inputField.type}'`,
@@ -2162,27 +2237,93 @@ function validateColumn(column, index, tableContext, result) {
     }
 }
 
-function validateFunction(func, index, result) {
+function validateFunction(func, index, result, lines) {
     const functionContext = `Function ${index + 1}`;
+    const functionLocation = `functions[${index}]`;
+    
+    // Calculate the actual line number where this function starts in the file
+    let functionStartLine = null;
+    if (lines) {
+        let currentFunctionIndex = -1;
+        let inFunctionsArray = false;
+        let braceDepth = 0;
+        
+        console.log(`Calculating line number for function ${index}...`);
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            // Look for the start of functions array
+            if (line.includes('"functions"') && line.includes('[')) {
+                inFunctionsArray = true;
+                console.log(`Found functions array at line ${i + 1}`);
+                continue;
+            }
+            
+            if (inFunctionsArray) {
+                // Track opening braces that might start a function
+                if (line === '{' || line.endsWith('{')) {
+                    if (braceDepth === 0) {
+                        currentFunctionIndex++;
+                        console.log(`Found function ${currentFunctionIndex} at line ${i + 1}`);
+                        if (currentFunctionIndex === index) {
+                            functionStartLine = i + 1; // Convert to 1-based line number
+                            console.log(`Target function ${index} starts at line ${functionStartLine}`);
+                            break;
+                        }
+                    }
+                    braceDepth++;
+                }
+                
+                // Track closing braces
+                if (line === '}' || line.startsWith('}')) {
+                    braceDepth--;
+                    if (braceDepth < 0) {
+                        // We've gone past the functions array
+                        break;
+                    }
+                }
+            }
+        }
+    }
     
     // Required fields based on official documentation
     const requiredFields = ['name', 'displayName', 'description', 'bodyFilePath'];
     requiredFields.forEach(field => {
         if (!func[field]) {
-            // Enhanced missing field validation with line numbers and fix codes
-            const lineNumber = findFunctionLineNumber(func, index, field);
-            const fixCode = generateFunctionFixCode(field, func);
+            // Generate appropriate fix code for the missing field
+            let fixCode = '';
+            switch (field) {
+                case 'name':
+                    fixCode = `"name": "_Function_Name"`;
+                    break;
+                case 'displayName':
+                    fixCode = `"displayName": "Function Display Name"`;
+                    break;
+                case 'description':
+                    fixCode = `"description": "Function description."`;
+                    break;
+                case 'bodyFilePath':
+                    fixCode = `"bodyFilePath": "KQL/Function.kql"`;
+                    break;
+                default:
+                    fixCode = `"${field}": "value"`;
+            }
             
-            result.issues.push({
-                type: 'error',
-                category: 'missing_field',
+            const missingFieldError = {
                 message: `${functionContext}: Missing required field '${field}'`,
-                location: `functions[${index}]`,
-                lineNumber: lineNumber,
-                fieldName: field,
+                type: 'missing_field',
+                field: field,
+                location: `${functionLocation}.${field}`,
+                severity: 'error',
+                suggestion: `Add the required field "${field}" to ${functionContext}.`,
                 fixCode: fixCode,
-                context: functionContext
-            });
+                microsoftRequirement: `Functions must include all required fields: name, displayName, description, and bodyFilePath.`,
+                lineNumber: functionStartLine
+            };
+            
+            console.log('Generated missing field error:', missingFieldError);
+            result.issues.push(missingFieldError);
             result.status = 'fail';
         }
     });
@@ -2194,14 +2335,32 @@ function validateFunction(func, index, result) {
     
     // Validate parameters (optional string)
     if (func.parameters !== undefined && typeof func.parameters !== 'string') {
-        result.issues.push(`${functionContext}: parameters must be a string (e.g., "Param1:string, Param2:datetime")`);
+        result.issues.push({
+            message: `${functionContext}: parameters must be a string (e.g., "Param1:string, Param2:datetime")`,
+            type: 'invalid_type',
+            field: 'parameters',
+            location: `${functionLocation}.parameters`,
+            currentValue: typeof func.parameters,
+            expectedValue: 'string',
+            severity: 'error',
+            suggestion: `Change the parameters field to a string format.`
+        });
         result.status = 'fail';
     }
     
     // Validate categories (optional array)
     if (func.categories !== undefined) {
         if (!Array.isArray(func.categories)) {
-            result.issues.push(`${functionContext}: categories must be an array`);
+            result.issues.push({
+                message: `${functionContext}: categories must be an array`,
+                type: 'invalid_type',
+                field: 'categories',
+                location: `${functionLocation}.categories`,
+                currentValue: typeof func.categories,
+                expectedValue: 'array',
+                severity: 'error',
+                suggestion: `Change the categories field to an array format.`
+            });
             result.status = 'fail';
         }
     }
@@ -3187,6 +3346,14 @@ function showFileContent(resultIndex, location) {
         const warning = result.warnings ? result.warnings.find(warning => warning.location === location) : null;
         const problemItem = issue || warning;
         
+        console.log('showFileContent debug:', {
+            location,
+            issueFound: !!issue,
+            warningFound: !!warning,
+            problemItem: problemItem,
+            lineNumber: problemItem ? problemItem.lineNumber : 'no lineNumber'
+        });
+        
         if (!problemItem) {
             console.warn('Problem item not found for location:', location);
             // Still show content even if specific problem item isn't found
@@ -3288,6 +3455,10 @@ function showFileContent(resultIndex, location) {
             try {
                 container.innerHTML = highlightFileContent(result.originalContent, location, problemItem);
                 console.log('File content highlighted and inserted');
+                
+                // Add a unique ID to the container for scroll targeting
+                container.setAttribute('data-scroll-ready', 'true');
+                
             } catch (error) {
                 console.error('Error highlighting file content:', error);
                 container.innerHTML = `
@@ -3316,8 +3487,13 @@ function showFileContent(resultIndex, location) {
                 
                 // Scroll to problematic line after modal is fully shown
                 modal.addEventListener('shown.bs.modal', function() {
-                    console.log('Modal shown, scrolling to problematic line');
-                    setTimeout(() => scrollToProblematicLine(location, problemItem), 100);
+                    console.log('Modal shown, initiating scroll to problematic line');
+                    console.log('Problem item for scroll:', problemItem);
+                    // Use a longer delay to ensure DOM is fully rendered
+                    setTimeout(() => {
+                        console.log('Executing scroll with delay');
+                        scrollToProblematicLine(location, problemItem);
+                    }, 1000);
                 }, { once: true });
                 
                 console.log('Bootstrap modal shown successfully');
@@ -3360,8 +3536,13 @@ function showFileContent(resultIndex, location) {
         // Scroll to problematic line after a short delay
         setTimeout(() => {
             console.log('Scrolling to problematic line (fallback)');
-            scrollToProblematicLine(location, problemItem);
-        }, 300);
+            console.log('Problem item for scroll (fallback):', problemItem);
+            // Use a longer delay for fallback
+            setTimeout(() => {
+                console.log('Executing fallback scroll with delay');
+                scrollToProblematicLine(location, problemItem);
+            }, 1000);
+        }, 500);
         
         console.log('Fallback modal displayed successfully');
         
@@ -3402,35 +3583,15 @@ function highlightFileContent(content, location, problemItem) {
             if (isProblematicLine) {
                 // Special handling for missing fields
                 if (problemLine.isMissingField) {
-                    // Show the line where the field should be inserted
-                    if (problemLine.insertAfter) {
-                        highlightedContent += `<div class="code-line" data-line="${lineNumber - 1}">`;
-                        highlightedContent += `<span class="line-number">${lineNumber - 1}</span>`;
-                        highlightedContent += `<span class="line-content">${escapeHtml(problemLine.insertAfter)}</span>`;
-                        highlightedContent += '</div>';
-                    }
-                    
-                    // Show the missing field insertion point
+                    // Show the missing field insertion point at the current line position
                     highlightedContent += `<div class="code-line missing-field-line error-line" id="problematic-line-${lineNumber}" data-line="${lineNumber}">`;
                     highlightedContent += `<span class="line-number missing-number">+</span>`;
                     highlightedContent += `<span class="line-content missing-content">`;
-                    highlightedContent += `<span class="missing-field-placeholder">  ${escapeHtml(problemLine.fixCode)},</span>`;
+                    highlightedContent += `<span class="missing-field-placeholder">  ${escapeHtml(problemLine.fixCode)}</span>`;
                     highlightedContent += `</span>`;
                     highlightedContent += `<span class="problem-indicator error-indicator">`;
                     highlightedContent += `<i class="fas fa-plus-circle"></i> `;
                     highlightedContent += `<span class="problem-text">ADD MISSING FIELD</span>`;
-                    highlightedContent += `</span>`;
-                    highlightedContent += '</div>';
-                    
-                    // Add explanation
-                    highlightedContent += `<div class="code-line fix-line">`;
-                    highlightedContent += `<span class="line-number fix-number">!</span>`;
-                    highlightedContent += `<span class="line-content">`;
-                    highlightedContent += `<em class="fix-explanation">Add the missing "${problemLine.fieldName}" field above</em>`;
-                    highlightedContent += `</span>`;
-                    highlightedContent += `<span class="fix-indicator">`;
-                    highlightedContent += `<i class="fas fa-lightbulb"></i> `;
-                    highlightedContent += `<span class="fix-text">REQUIRED</span>`;
                     highlightedContent += `</span>`;
                     highlightedContent += '</div>';
                 } else {
@@ -3595,12 +3756,86 @@ function findProblemLine(lines, location, problemItem) {
                 line: insertLine,
                 isMissingField: true,
                 fixCode: problemItem.fixCode,
-                fieldName: problemItem.field,
-                insertAfter: lineNumber > 1 ? lines[lineNumber - 2] : null
+                fieldName: problemItem.field
             };
         }
         
-        // Fallback: find a good insertion point
+        // For function missing fields, find the specific function in the array
+        if (location.includes('functions[')) {
+            const functionIndex = location.match(/functions\[(\d+)\]/)?.[1];
+            if (functionIndex) {
+                // Find the function object at this index
+                let currentFunctionIndex = -1;
+                let functionStartLine = -1;
+                let inFunction = false;
+                let braceDepth = 0;
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    
+                    // Look for the start of functions array
+                    if (line.includes('"functions"') && line.includes('[')) {
+                        continue;
+                    }
+                    
+                    // Track opening braces that might start a function
+                    if (line === '{' || line.endsWith('{')) {
+                        if (functionStartLine === -1) {
+                            currentFunctionIndex++;
+                            if (currentFunctionIndex.toString() === functionIndex) {
+                                functionStartLine = i;
+                                inFunction = true;
+                                braceDepth = 1;
+                            }
+                        } else if (inFunction) {
+                            braceDepth++;
+                        }
+                    }
+                    
+                    // Track closing braces
+                    if (line === '}' || line.startsWith('}')) {
+                        if (inFunction) {
+                            braceDepth--;
+                            if (braceDepth === 0) {
+                                // We've found the end of our target function
+                                // Suggest inserting the field just before the closing brace
+                                return {
+                                    lineNumber: i,
+                                    line: lines[i],
+                                    isMissingField: true,
+                                    fixCode: problemItem.fixCode,
+                                    fieldName: problemItem.field
+                                };
+                            }
+                        }
+                    }
+                    
+                    // If we're in the target function, look for existing fields to determine order
+                    if (inFunction && braceDepth === 1) {
+                        const fieldOrder = ['id', 'name', 'displayName', 'parameters', 'description', 'bodyFilePath', 'solutions', 'tags', 'properties'];
+                        const currentFieldIndex = fieldOrder.indexOf(problemItem.field);
+                        
+                        // Look for fields that should come before the missing field
+                        for (let j = currentFieldIndex - 1; j >= 0; j--) {
+                            const previousField = fieldOrder[j];
+                            if (line.includes(`"${previousField}"`) && line.includes(':')) {
+                                // Found a field that should come before our missing field
+                                // Suggest inserting after this line
+                                return {
+                                    lineNumber: i + 1,
+                                    line: i + 1 < lines.length ? lines[i + 1] : '',
+                                    isMissingField: true,
+                                    fixCode: problemItem.fixCode,
+                                    fieldName: problemItem.field
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Fallback: find a good insertion point for general missing fields
         const fieldOrder = ['type', 'displayName', 'description', 'simplifiedSchemaVersion', 'tables'];
         const currentFieldIndex = fieldOrder.indexOf(problemItem.field);
         
@@ -3610,12 +3845,11 @@ function findProblemLine(lines, location, problemItem) {
             for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
                 if (lines[lineIndex].includes(`"${previousField}"`)) {
                     return { 
-                        lineNumber: lineIndex + 2, 
-                        line: lineIndex + 1 < lines.length ? lines[lineIndex + 1] : '',
+                        lineNumber: lineIndex + 1, 
+                        line: lines[lineIndex],
                         isMissingField: true,
                         fixCode: problemItem.fixCode,
-                        fieldName: problemItem.field,
-                        insertAfter: lines[lineIndex]
+                        fieldName: problemItem.field
                     };
                 }
             }
@@ -3625,12 +3859,11 @@ function findProblemLine(lines, location, problemItem) {
         for (let i = 0; i < lines.length; i++) {
             if (lines[i].trim() === '{') {
                 return { 
-                    lineNumber: i + 2, 
-                    line: i + 1 < lines.length ? lines[i + 1] : '',
+                    lineNumber: i + 1, 
+                    line: lines[i],
                     isMissingField: true,
                     fixCode: problemItem.fixCode,
-                    fieldName: problemItem.field,
-                    insertAfter: lines[i]
+                    fieldName: problemItem.field
                 };
             }
         }
@@ -4037,56 +4270,157 @@ function generateFixedValue(problemItem) {
 }
 
 function scrollToProblematicLine(location, issue) {
+    console.log('scrollToProblematicLine called with:', { location, issue });
     
-    // Find the problematic line element
-    const problemLineElements = document.querySelectorAll('.problem-line');
-    
-    if (problemLineElements.length === 0) {
-        return;
-    }
-    
-    // Get the first problematic line (main issue)
-    const targetElement = problemLineElements[0];
-    const lineNumber = targetElement.getAttribute('data-line');
-    
-    
-    // Get the code content container for scrolling
-    const codeContent = document.querySelector('.code-content');
-    if (!codeContent) {
-        return;
-    }
-    
-    // Calculate the scroll position
-    const containerTop = codeContent.offsetTop;
-    const elementTop = targetElement.offsetTop;
-    const containerHeight = codeContent.clientHeight;
-    const elementHeight = targetElement.offsetHeight;
-    
-    // Calculate scroll position to center the problematic line
-    const scrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
-    
-    
-    // Smooth scroll to the problematic line
-    codeContent.scrollTo({
-        top: Math.max(0, scrollTop),
-        behavior: 'smooth'
-    });
-    
-    // Add a temporary highlight animation to draw attention
-    targetElement.style.animation = 'none';
-    setTimeout(() => {
-        targetElement.style.animation = 'highlightProblem 2s ease-in-out';
-    }, 100);
-    
-    // Also scroll the modal body if the code content is inside a modal
-    const modalBody = targetElement.closest('.modal-body');
-    if (modalBody) {
-        const modalScrollTop = targetElement.offsetTop - modalBody.offsetTop - (modalBody.clientHeight / 2);
-        modalBody.scrollTo({
-            top: Math.max(0, modalScrollTop),
+    // Function to perform the actual scroll
+    function performScroll() {
+        // Multiple strategies to find the problematic line
+        let targetElement = null;
+        
+        // Strategy 1: Try to find by line number if issue has lineNumber
+        if (issue && issue.lineNumber) {
+            console.log('Looking for line number:', issue.lineNumber);
+            targetElement = document.querySelector(`#problematic-line-${issue.lineNumber}`);
+            if (!targetElement) {
+                // Try alternative selectors
+                targetElement = document.querySelector(`[data-line="${issue.lineNumber}"]`);
+            }
+            if (!targetElement) {
+                targetElement = document.querySelector(`#line-${issue.lineNumber}`);
+            }
+            if (targetElement) {
+                console.log('Found target element by line number:', targetElement);
+            }
+        }
+        
+        // Strategy 2: Find by problem-line class
+        if (!targetElement) {
+            console.log('Searching for .problem-line elements');
+            const problemLineElements = document.querySelectorAll('.problem-line');
+            console.log('Found problem-line elements:', problemLineElements.length);
+            if (problemLineElements.length > 0) {
+                targetElement = problemLineElements[0];
+            }
+        }
+        
+        // Strategy 2b: Find by missing-field-line class (specific to missing fields)
+        if (!targetElement) {
+            console.log('Searching for .missing-field-line elements');
+            const missingFieldElements = document.querySelectorAll('.missing-field-line');
+            console.log('Found missing-field-line elements:', missingFieldElements.length);
+            if (missingFieldElements.length > 0) {
+                targetElement = missingFieldElements[0];
+            }
+        }
+        
+        // Strategy 3: Find by highlighted content
+        if (!targetElement) {
+            console.log('Searching for .highlighted-line elements');
+            const highlightedElements = document.querySelectorAll('.highlighted-line');
+            console.log('Found highlighted-line elements:', highlightedElements.length);
+            if (highlightedElements.length > 0) {
+                targetElement = highlightedElements[0];
+            }
+        }
+        
+        // Strategy 4: Find by error-line class
+        if (!targetElement) {
+            console.log('Searching for .error-line elements');
+            const errorLineElements = document.querySelectorAll('.error-line');
+            console.log('Found error-line elements:', errorLineElements.length);
+            if (errorLineElements.length > 0) {
+                targetElement = errorLineElements[0];
+            }
+        }
+        
+        if (!targetElement) {
+            console.log('No target element found for scrolling');
+            return false;
+        }
+        
+        console.log('Found target element:', targetElement);
+        const lineNumber = targetElement.getAttribute('data-line') || 'unknown';
+        console.log('Target line number:', lineNumber);
+        
+        // Get the scrollable container - try multiple selectors
+        let scrollContainer = document.querySelector('#fileContentContainer');
+        if (!scrollContainer) {
+            scrollContainer = document.querySelector('.code-content');
+        }
+        if (!scrollContainer) {
+            scrollContainer = document.querySelector('.modal-body');
+        }
+        
+        if (!scrollContainer) {
+            console.log('No scroll container found');
+            return false;
+        }
+        
+        console.log('Using scroll container:', scrollContainer);
+        
+        // Calculate the scroll position
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const targetRect = targetElement.getBoundingClientRect();
+        const containerScrollTop = scrollContainer.scrollTop;
+        
+        // Calculate position relative to scroll container
+        const targetTop = targetRect.top - containerRect.top + containerScrollTop;
+        const containerHeight = scrollContainer.clientHeight;
+        const elementHeight = targetElement.offsetHeight;
+        
+        // Calculate scroll position to center the problematic line with some offset
+        const scrollTop = targetTop - (containerHeight / 2) + (elementHeight / 2);
+        
+        console.log('Scroll calculation:', {
+            targetTop,
+            containerHeight,
+            elementHeight,
+            scrollTop: Math.max(0, scrollTop)
+        });
+        
+        // Smooth scroll to the problematic line
+        scrollContainer.scrollTo({
+            top: Math.max(0, scrollTop),
             behavior: 'smooth'
         });
+        
+        // Add a temporary highlight animation to draw attention
+        targetElement.style.transition = 'all 0.3s ease';
+        targetElement.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.5)';
+        targetElement.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
+        
+        // Remove the highlight after 3 seconds
+        setTimeout(() => {
+            targetElement.style.transition = 'all 0.5s ease';
+            targetElement.style.boxShadow = '';
+            targetElement.style.backgroundColor = '';
+        }, 3000);
+        
+        console.log('Scroll to problematic line completed');
+        return true;
     }
+    
+    // Try to scroll immediately
+    if (performScroll()) {
+        return;
+    }
+    
+    // If immediate scroll failed, wait for DOM to be ready
+    console.log('Immediate scroll failed, waiting for DOM...');
+    let attempts = 0;
+    const maxAttempts = 20;
+    
+    const scrollInterval = setInterval(() => {
+        attempts++;
+        console.log(`Scroll attempt ${attempts}/${maxAttempts}`);
+        
+        if (performScroll() || attempts >= maxAttempts) {
+            clearInterval(scrollInterval);
+            if (attempts >= maxAttempts) {
+                console.log('Max scroll attempts reached, giving up');
+            }
+        }
+    }, 100);
 }
 
 function escapeHtml(text) {

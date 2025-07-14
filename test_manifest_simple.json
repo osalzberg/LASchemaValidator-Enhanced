@@ -1,0 +1,84 @@
+{
+  "type": "Microsoft.SecurityInsights/GCP",
+  "displayName": "Azure Sentinel GCP",
+  "description": "All tables related to GCP.",
+  "tags": {},
+  "properties": {},
+  "simplifiedSchemaVersion": "3",
+  "icmTeam": "Microsoft Azure Sentinel/Data Collection and Processing",
+  "contactDL": "asipolarbearseng@microsoft.com",
+  "relatedTables": [],
+  "relatedFunctions": [],
+  "tables": [
+    {
+      "name": "GCPAuditLogs",
+      "description": "The Google Cloud Platform (GCP) audit logs, ingested from Sentinel's connector, enable you to capture three types of audit logs: admin activity logs, data access logs, and access transparency logs. Google cloud audit Logs record a trail that practitioners can use to monitor access and detect potential threats across Google Cloud Platform (GCP) resources.",
+      "categories": [
+        "security"
+      ],
+      "tags": {},
+      "properties": {},
+      "artifactVersion": 3,
+      "dataTypeId": "SENTINEL_GCP_AUDIT_LOGS",
+      "intelligencePacks": [
+        "SecurityInsights"
+      ],
+      "isResourceCentric": false,
+      "tableState": "Production",
+      "isTroubleshootingAllowed": true,
+      "isLakeAllowed": true,
+      "input": [
+        {
+          "name": "protoPayload",
+          "type": "Dynamic"
+        },
+        {
+          "name": "insertId",
+          "type": "String"
+        },
+        {
+          "name": "resource",
+          "type": "Dynamic"
+        },
+        {
+          "name": "severity",
+          "type": "String"
+        },
+        {
+          "name": "logName",
+          "type": "String"
+        },
+        {
+          "name": "receiveTimestamp",
+          "type": "DateTime"
+        },
+        {
+          "name": "timestamp",
+          "type": "DateTime"
+        }
+      ],
+      "transformFilePath": "KQL/GCPAuditLogsTransform.kql",
+      "columns": [
+        {
+          "name": "TimeGenerated",
+          "type": "DateTime",
+          "description": "The time the log entry was received by logging."
+        },
+        {
+          "name": "ServiceName",
+          "type": "String",
+          "description": "The name of the API service performing the operation. For example, 'compute.googleapis.com'."
+        },
+        {
+          "name": "MethodName",
+          "type": "String",
+          "description": "The name of the service method or operation. For API calls, this should be the name of the API method."
+        }
+      ],
+      "sampleInputRecordsFilePath": "SampleInputRecords/GCPAuditLogsSample.json",
+      "sampleOutputRecordsFilePath": "SampleOutputRecords/GCPAuditLogsSample.json"
+    }
+  ],
+  "functions": [],
+  "queries": []
+}

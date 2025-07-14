@@ -1,0 +1,46 @@
+{
+  "type": "Microsoft.SecurityInsights/GCP",
+  "displayName": "Azure Sentinel GCP",
+  "description": "All tables related to GCP.",
+  "tags": {},
+  "properties": {},
+  "simplifiedSchemaVersion": "3",
+  "icmTeam": "Microsoft Azure Sentinel/Data Collection and Processing",
+  "contactDL": "asipolarbearseng@microsoft.com",
+  "relatedTables": [],
+  "relatedFunctions": [],
+  "tables": [
+    {
+      "name": "TestTable",
+      "description": "A test table.",
+      "categories": ["security"],
+      "tags": {},
+      "properties": {},
+      "artifactVersion": 1,
+      "dataTypeId": "TEST_TABLE",
+      "intelligencePacks": ["SecurityInsights"],
+      "isResourceCentric": false,
+      "tableState": "Production",
+      "isTroubleshootingAllowed": true,
+      "isLakeAllowed": true,
+      "input": [
+        {
+          "name": "testField",
+          "type": "String"
+        }
+      ],
+      "transformFilePath": "KQL/TestTransform.kql",
+      "columns": [
+        {
+          "name": "TimeGenerated",
+          "type": "DateTime",
+          "description": "The time the log entry was received."
+        }
+      ],
+      "sampleInputRecordsFilePath": "SampleInputRecords/Test.json",
+      "sampleOutputRecordsFilePath": "SampleOutputRecords/Test.json"
+    }
+  ],
+  "functions": [],
+  "queries": []
+}
