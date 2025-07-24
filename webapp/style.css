@@ -1683,3 +1683,49 @@ footer {
         padding: 0.75rem;
     }
 }
+
+/* Full-width layout optimizations */
+#upload-section .container-fluid,
+#guide-section .container-fluid {
+    max-width: none;
+}
+
+/* Optimize upload area for wider screens */
+.upload-area {
+    min-height: 200px;
+}
+
+/* Results section full-width optimization */
+#results {
+    width: 100%;
+}
+
+/* Validation results container improvements */
+.validation-results-container {
+    width: 100%;
+}
+
+/* File list improvements for wider layout */
+#fileList .list-group {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Responsive adjustments for very wide screens */
+@media (min-width: 1400px) {
+    #upload-section .card-body,
+    #guide-section .card-body {
+        padding: 3rem 4rem;
+    }
+    
+    .upload-area {
+        min-height: 250px;
+    }
+}
+
+@media (min-width: 1800px) {
+    #upload-section .card-body,
+    #guide-section .card-body {
+        padding: 4rem 5rem;
+    }
+}
