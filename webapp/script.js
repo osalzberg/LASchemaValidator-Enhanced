@@ -1545,12 +1545,23 @@ async function validateManifestFile(file, result) {
         const hasTables = manifest.tables && Array.isArray(manifest.tables) && manifest.tables.length > 0;
         
         if (!hasQueries && hasTables) {
+            // Find the line number where "queries": appears
+            const lines = content.split('\n');
+            let queriesLineNumber = null;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].trim().includes('"queries"')) {
+                    queriesLineNumber = i + 1; // Line numbers are 1-based
+                    break;
+                }
+            }
+            
             result.warnings.push({
                 message: 'No example queries found in the manifest',
                 type: 'missing_queries',
                 field: 'queries',
-                location: 'root',
+                location: 'root.queries',
                 severity: 'warning',
+                lineNumber: queriesLineNumber,
                 suggestion: 'Consider adding example queries to demonstrate how to use the tables in this schema. Each table should have at least one example query to help users understand how to query the data.'
             });
         }
@@ -3859,6 +3870,16 @@ function highlightFileContent(content, location, problemItem) {
                     highlightedContent += `<span class="problem-text">ADD MISSING FIELD</span>`;
                     highlightedContent += `</span>`;
                     highlightedContent += '</div>';
+                } else if (problemLine.isMissingQueries) {
+                    // Special handling for missing queries - highlight the queries line with warning
+                    highlightedContent += `<div class="code-line missing-queries-line warning-line" id="problematic-line-${lineNumber}" data-line="${lineNumber}">`;
+                    highlightedContent += `<span class="line-number warning-number">${lineNumber}</span>`;
+                    highlightedContent += `<span class="line-content">${escapeHtml(line)}</span>`;
+                    highlightedContent += `<span class="problem-indicator warning-indicator">`;
+                    highlightedContent += `<i class="fas fa-exclamation-triangle"></i> `;
+                    highlightedContent += `<span class="problem-text">NO EXAMPLE QUERIES</span>`;
+                    highlightedContent += `</span>`;
+                    highlightedContent += '</div>';
                 } else {
                     // Highlight the problematic line in red (existing behavior)
                     highlightedContent += `<div class="code-line problem-line ${problemType}-line" id="problematic-line-${lineNumber}" data-line="${lineNumber}" data-column-index="${problemItem.columnIndex || ''}">`;
@@ -3876,7 +3897,7 @@ function highlightFileContent(content, location, problemItem) {
                 }
                 
                 // Add suggested fix or type recommendations in green
-                if (!problemLine.isMissingField && problemItem && (problemItem.suggestion || problemItem.currentValue)) {
+                if (!problemLine.isMissingField && !problemLine.isMissingQueries && problemItem && (problemItem.suggestion || problemItem.currentValue)) {
                     const fixedLine = generateFixedLine(line, problemItem, location);
                     
                     if (fixedLine && fixedLine !== line) {
@@ -4003,6 +4024,34 @@ function highlightFileContent(content, location, problemItem) {
 function findProblemLine(lines, location, problemItem) {
     
     if (!problemItem) return null;
+    
+    // Handle missing queries case
+    if (problemItem.type === 'missing_queries') {
+        // Use the line number we calculated during validation if available
+        if (problemItem.lineNumber) {
+            const lineNumber = problemItem.lineNumber;
+            const line = lineNumber <= lines.length ? lines[lineNumber - 1] || '' : '';
+            
+            return { 
+                lineNumber: lineNumber, 
+                line: line,
+                isMissingQueries: true,
+                fieldName: 'queries'
+            };
+        }
+        
+        // Fallback: find the "queries": line
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].trim().includes('"queries"')) {
+                return { 
+                    lineNumber: i + 1, 
+                    line: lines[i],
+                    isMissingQueries: true,
+                    fieldName: 'queries'
+                };
+            }
+        }
+    }
     
     // Handle missing field cases
     if (problemItem.type === 'missing_field') {
