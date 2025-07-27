@@ -1540,6 +1540,47 @@ async function validateManifestFile(file, result) {
             }
         }
         
+        // Validate that queries exist and are related to tables
+        const hasQueries = manifest.queries && Array.isArray(manifest.queries) && manifest.queries.length > 0;
+        const hasTables = manifest.tables && Array.isArray(manifest.tables) && manifest.tables.length > 0;
+        
+        if (!hasQueries && hasTables) {
+            result.warnings.push({
+                message: 'No example queries found in the manifest',
+                type: 'missing_queries',
+                field: 'queries',
+                location: 'root',
+                severity: 'warning',
+                suggestion: 'Consider adding example queries to demonstrate how to use the tables in this schema. Each table should have at least one example query to help users understand how to query the data.'
+            });
+        }
+        
+        // Check if each table has at least one related query
+        if (hasTables && hasQueries) {
+            manifest.tables.forEach((table, tableIndex) => {
+                const tableName = table.name;
+                if (tableName) {
+                    // Check if any queries reference this table
+                    const hasRelatedQueries = manifest.queries.some(query => {
+                        const relatedTables = query.relatedTables || [];
+                        return relatedTables.includes(tableName);
+                    });
+                    
+                    if (!hasRelatedQueries) {
+                        result.warnings.push({
+                            message: `Table '${tableName}' has no related example queries`,
+                            type: 'missing_table_queries',
+                            field: 'queries',
+                            location: `tables[${tableIndex}]`,
+                            tableName: tableName,
+                            severity: 'warning',
+                            suggestion: `Add at least one example query that demonstrates how to use the '${tableName}' table. Include the table name in the query's 'relatedTables' array.`
+                        });
+                    }
+                }
+            });
+        }
+        
         // Validate optional fields when present
         if (manifest.icmTeam && typeof manifest.icmTeam !== 'string') {
             result.issues.push({
