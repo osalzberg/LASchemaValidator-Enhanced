@@ -1701,6 +1701,23 @@ async function validateManifestFile(file, result) {
                 return relativePath.includes(sampleOutputPath) && file.name.endsWith('.json');
             });
             
+            // Check if there are any sample output files at all
+            const hasSampleOutputFiles = sampleOutputFiles.length > 0;
+            
+            // If no sample output files exist at all, give one general warning
+            if (!hasSampleOutputFiles && !manifest.sampleOutputRecordsFilePath) {
+                result.warnings.push({
+                    message: `No sample output files found in ${sampleOutputPath} folder`,
+                    type: 'missing_sample_output_folder',
+                    field: 'sampleOutputFiles',
+                    location: 'root',
+                    severity: 'warning',
+                    suggestion: `Create the ${sampleOutputPath} folder and add sample output files for your tables. Each table should have a corresponding sample output file named <tableName>Sample.json.`,
+                    microsoftRequirement: `Sample output files are required for schema validation and E2E testing.`,
+                    fixInstructions: `1. Create the ${sampleOutputPath} folder\n2. Add sample output files for each table following the naming convention <tableName>Sample.json\n3. Ensure the sample data matches the output schema defined in each table's 'columns' field`
+                });
+            }
+            
             manifest.tables.forEach((table, tableIndex) => {
                 const tableName = table.name;
                 if (tableName) {
@@ -1738,34 +1755,38 @@ async function validateManifestFile(file, result) {
                         }
                     }
                     
-                    // Check if the expected sample output file exists
-                    const hasSampleOutputFile = sampleOutputFiles.some(file => file.name === expectedFileName);
-                    
-                    if (!hasSampleOutputFile) {
-                        const warningType = manifest.sampleOutputRecordsFilePath ? 'error' : 'warning';
-                        const messageContent = manifest.sampleOutputRecordsFilePath ? 
-                            `Table '${tableName}' requires sample output file '${expectedFileName}' in declared path '${sampleOutputPath}' but file is missing` :
-                            `Table '${tableName}' is missing sample output file '${expectedFileName}'`;
-                            
-                        const warningObj = {
-                            message: messageContent,
-                            type: 'missing_sample_output',
-                            field: 'sampleOutputFile',
-                            location: `tables[${tableIndex}]`,
-                            tableName: tableName,
-                            expectedFileName: expectedFileName,
-                            severity: warningType,
-                            declaredPath: manifest.sampleOutputRecordsFilePath || null,
-                            suggestion: `Create a sample output file named '${expectedFileName}' in the ${sampleOutputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the expected output format after transformation for this table.`,
-                            microsoftRequirement: `Each table in the manifest must have a corresponding sample output file in the ${sampleOutputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
-                            fixInstructions: `1. Create a file named '${expectedFileName}' in the ${sampleOutputPath} folder\n2. Add sample JSON data that represents the expected output format for the '${tableName}' table after transformation\n3. Ensure the sample data matches the output schema defined in the table's 'columns' field\n4. Do not include system-generated fields like _ResourceId, _SubscriptionId, TenantId, or Type`
-                        };
+                    // Only check individual table sample output files if there are sample output files present
+                    // OR if the path is explicitly declared in manifest
+                    if (hasSampleOutputFiles || manifest.sampleOutputRecordsFilePath) {
+                        // Check if the expected sample output file exists
+                        const hasSampleOutputFile = sampleOutputFiles.some(file => file.name === expectedFileName);
                         
-                        if (warningType === 'error') {
-                            result.issues.push(warningObj);
-                            result.status = 'fail';
-                        } else {
-                            result.warnings.push(warningObj);
+                        if (!hasSampleOutputFile) {
+                            const warningType = manifest.sampleOutputRecordsFilePath ? 'error' : 'warning';
+                            const messageContent = manifest.sampleOutputRecordsFilePath ? 
+                                `Table '${tableName}' requires sample output file '${expectedFileName}' in declared path '${sampleOutputPath}' but file is missing` :
+                                `Table '${tableName}' is missing sample output file '${expectedFileName}'`;
+                                
+                            const warningObj = {
+                                message: messageContent,
+                                type: 'missing_sample_output',
+                                field: 'sampleOutputFile',
+                                location: `tables[${tableIndex}]`,
+                                tableName: tableName,
+                                expectedFileName: expectedFileName,
+                                severity: warningType,
+                                declaredPath: manifest.sampleOutputRecordsFilePath || null,
+                                suggestion: `Create a sample output file named '${expectedFileName}' in the ${sampleOutputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the expected output format after transformation for this table.`,
+                                microsoftRequirement: `Each table in the manifest must have a corresponding sample output file in the ${sampleOutputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
+                                fixInstructions: `1. Create a file named '${expectedFileName}' in the ${sampleOutputPath} folder\n2. Add sample JSON data that represents the expected output format for the '${tableName}' table after transformation\n3. Ensure the sample data matches the output schema defined in the table's 'columns' field\n4. Do not include system-generated fields like _ResourceId, _SubscriptionId, TenantId, or Type`
+                            };
+                            
+                            if (warningType === 'error') {
+                                result.issues.push(warningObj);
+                                result.status = 'fail';
+                            } else {
+                                result.warnings.push(warningObj);
+                            }
                         }
                     }
                 }

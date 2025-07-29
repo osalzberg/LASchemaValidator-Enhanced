@@ -1,0 +1,22 @@
+{
+    "displayName": "No Sample Output Test",
+    "description": "Test manifest with tables but no sample output files to demonstrate general warning",
+    "tables": [
+        {
+            "name": "Table1",
+            "displayName": "First Table",
+            "columns": [
+                {"name": "TimeGenerated", "type": "DateTime"},
+                {"name": "Data", "type": "String"}
+            ]
+        },
+        {
+            "name": "Table2", 
+            "displayName": "Second Table",
+            "columns": [
+                {"name": "TimeGenerated", "type": "DateTime"},
+                {"name": "Value", "type": "Int"}
+            ]
+        }
+    ]
+}
