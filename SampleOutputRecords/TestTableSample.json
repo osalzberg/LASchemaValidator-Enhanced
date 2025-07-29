@@ -1,0 +1,16 @@
+[
+    {
+        "TimeGenerated": "2024-01-15T10:30:00Z",
+        "Computer": "SERVER01",
+        "EventId": 1001,
+        "Level": "Information",
+        "Data": {"source": "application", "category": "security"}
+    },
+    {
+        "TimeGenerated": "2024-01-15T10:31:00Z", 
+        "Computer": "SERVER02",
+        "EventId": 2002,
+        "Level": "Warning",
+        "Data": {"source": "system", "category": "performance"}
+    }
+]

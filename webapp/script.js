@@ -1334,6 +1334,23 @@ async function validateFile(file) {
     try {
         if (fileType === 'manifest') {
             validationResult = await validateManifestFile(file, validationResult);
+            
+            // Process pending schema validations
+            if (window.pendingSchemaValidations && window.pendingSchemaValidations.length > 0) {
+                const schemaResults = await validateTransformationSchemaMatch(window.pendingSchemaValidations);
+                
+                // Merge schema validation results into the manifest validation result
+                if (schemaResults.issues.length > 0) {
+                    validationResult.issues.push(...schemaResults.issues);
+                    validationResult.status = 'fail';
+                }
+                if (schemaResults.warnings.length > 0) {
+                    validationResult.warnings.push(...schemaResults.warnings);
+                }
+                
+                // Clear the pending validations
+                window.pendingSchemaValidations = [];
+            }
         } else if (fileType === 'transform-manifest') {
             validationResult = await validateTransformManifestFile(file, validationResult);
         } else if (fileType === 'kql') {
@@ -1651,6 +1668,59 @@ async function validateManifestFile(file, result) {
             });
         }
         
+        // Validate transformation output schema matches table schema
+        if (hasTables && uploadedFiles && uploadedFiles.length > 0) {
+            // Get all KQL files for schema comparison
+            const kqlFiles = uploadedFiles.filter(file => {
+                const relativePath = file.webkitRelativePath || file.relativePath || '';
+                return file.name.endsWith('.kql') && relativePath.includes('KQL/');
+            });
+            
+            manifest.tables.forEach((table, tableIndex) => {
+                const tableName = table.name;
+                const transformFilePath = table.transformFilePath;
+                
+                if (tableName && transformFilePath && table.columns) {
+                    // Find the corresponding KQL file
+                    const kqlFile = kqlFiles.find(file => {
+                        const relativePath = file.webkitRelativePath || file.relativePath || '';
+                        return relativePath.endsWith(transformFilePath) || 
+                               (file.name.toLowerCase().includes(tableName.toLowerCase()) && 
+                                transformFilePath.includes(file.name));
+                    });
+                    
+                    if (kqlFile) {
+                        // We'll validate the schema match asynchronously
+                        // For now, we'll add this to a queue for later processing
+                        if (!result.pendingSchemaValidations) {
+                            result.pendingSchemaValidations = [];
+                        }
+                        
+                        result.pendingSchemaValidations.push({
+                            tableIndex: tableIndex,
+                            tableName: tableName,
+                            transformFilePath: transformFilePath,
+                            kqlFile: kqlFile,
+                            expectedColumns: table.columns
+                        });
+                    } else {
+                        result.warnings.push({
+                            message: `Table '${tableName}' references transformation file '${transformFilePath}' but the file was not found in uploaded files`,
+                            type: 'missing_transformation_file',
+                            field: 'transformFilePath',
+                            location: `tables[${tableIndex}].transformFilePath`,
+                            tableName: tableName,
+                            transformFilePath: transformFilePath,
+                            severity: 'warning',
+                            suggestion: `Ensure the transformation file '${transformFilePath}' is included in the uploaded files. The file should be located in the KQL folder and contain the data transformation logic for the '${tableName}' table.`,
+                            microsoftRequirement: 'Each table must have a corresponding KQL transformation file that defines how input data is transformed to match the table schema.',
+                            fixInstructions: `1. Check that the file '${transformFilePath}' exists in your upload\n2. Verify the file path is correct in the manifest\n3. Ensure the transformation file contains valid KQL syntax\n4. Confirm the transformation output matches the table's column schema`
+                        });
+                    }
+                }
+            });
+        }
+        
         // Validate optional fields when present
         if (manifest.icmTeam && typeof manifest.icmTeam !== 'string') {
             result.issues.push({
@@ -1721,6 +1791,290 @@ async function validateManifestFile(file, result) {
     }
     
     return result;
+}
+
+async function validateTransformationSchemaMatch(manifestResult, kqlFiles) {
+    if (!manifestResult.pendingSchemaValidations || manifestResult.pendingSchemaValidations.length === 0) {
+        return manifestResult;
+    }
+    
+    for (const validation of manifestResult.pendingSchemaValidations) {
+        try {
+            const kqlContent = await readFileContent(validation.kqlFile);
+            const transformationSchema = extractTransformationOutputSchema(kqlContent);
+            const tableSchema = validation.expectedColumns;
+            
+            // Compare schemas
+            const schemaMismatches = compareSchemas(transformationSchema, tableSchema, validation.tableName);
+            
+            if (schemaMismatches.length > 0) {
+                schemaMismatches.forEach(mismatch => {
+                    manifestResult.issues.push({
+                        message: `Table '${validation.tableName}': Transformation output schema mismatch - ${mismatch.message}`,
+                        type: 'schema_mismatch_error',
+                        field: 'transformation_schema',
+                        location: `tables[${validation.tableIndex}].${mismatch.columnName || 'schema'}`,
+                        tableName: validation.tableName,
+                        columnName: mismatch.columnName,
+                        transformFilePath: validation.transformFilePath,
+                        severity: 'error',
+                        currentValue: mismatch.transformationValue,
+                        expectedValue: mismatch.expectedValue,
+                        suggestion: `Update the transformation file '${validation.transformFilePath}' to ensure the output schema matches the table definition. ${mismatch.suggestion}`,
+                        microsoftRequirement: 'Transformation output schema must exactly match the table column definitions for successful data ingestion.',
+                        fixInstructions: `1. Open the transformation file '${validation.transformFilePath}'\n2. ${mismatch.fixInstructions}\n3. Ensure the project statement includes all required columns with correct data types\n4. Verify column names match exactly (case-sensitive)`
+                    });
+                });
+                manifestResult.status = 'fail';
+            }
+            
+        } catch (error) {
+            manifestResult.warnings.push({
+                message: `Table '${validation.tableName}': Could not validate transformation schema - ${error.message}`,
+                type: 'schema_validation_error',
+                field: 'transformation_schema',
+                location: `tables[${validation.tableIndex}]`,
+                tableName: validation.tableName,
+                transformFilePath: validation.transformFilePath,
+                severity: 'warning',
+                suggestion: `Check the transformation file '${validation.transformFilePath}' for syntax errors or ensure it contains a valid project statement.`,
+                errorDetails: error.message
+            });
+        }
+    }
+    
+    // Clean up the pending validations
+    delete manifestResult.pendingSchemaValidations;
+    return manifestResult;
+}
+
+function extractTransformationOutputSchema(kqlContent) {
+    const outputColumns = {};
+    
+    // Look for project statements in the KQL content
+    const projectRegex = /\|\s*project\s+([^|;]+)/gi;
+    const matches = kqlContent.match(projectRegex);
+    
+    if (matches && matches.length > 0) {
+        // Take the last project statement (most likely the final output)
+        const lastProject = matches[matches.length - 1];
+        
+        // Extract column definitions from project statement
+        const projectContent = lastProject.replace(/\|\s*project\s+/i, '').trim();
+        
+        // Split by commas but handle nested functions and expressions
+        const columnExpressions = parseProjectColumns(projectContent);
+        
+        columnExpressions.forEach(expr => {
+            const columnMatch = expr.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=?\s*(.*)$/);
+            if (columnMatch) {
+                const columnName = columnMatch[1].trim();
+                const expression = columnMatch[2].trim() || columnName;
+                
+                // Try to infer the data type from the expression
+                const dataType = inferDataTypeFromExpression(expression);
+                outputColumns[columnName] = {
+                    name: columnName,
+                    type: dataType,
+                    expression: expression
+                };
+            }
+        });
+    }
+    
+    // Also look for extend statements that might add columns
+    const extendRegex = /\|\s*extend\s+([^|;]+)/gi;
+    const extendMatches = kqlContent.match(extendRegex);
+    
+    if (extendMatches) {
+        extendMatches.forEach(extendStatement => {
+            const extendContent = extendStatement.replace(/\|\s*extend\s+/i, '').trim();
+            const columnExpressions = parseProjectColumns(extendContent);
+            
+            columnExpressions.forEach(expr => {
+                const columnMatch = expr.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
+                if (columnMatch) {
+                    const columnName = columnMatch[1].trim();
+                    const expression = columnMatch[2].trim();
+                    const dataType = inferDataTypeFromExpression(expression);
+                    
+                    outputColumns[columnName] = {
+                        name: columnName,
+                        type: dataType,
+                        expression: expression
+                    };
+                }
+            });
+        });
+    }
+    
+    return outputColumns;
+}
+
+function parseProjectColumns(projectContent) {
+    const columns = [];
+    let current = '';
+    let depth = 0;
+    let inString = false;
+    let stringChar = '';
+    
+    for (let i = 0; i < projectContent.length; i++) {
+        const char = projectContent[i];
+        
+        if (!inString && (char === '"' || char === "'")) {
+            inString = true;
+            stringChar = char;
+        } else if (inString && char === stringChar) {
+            inString = false;
+            stringChar = '';
+        } else if (!inString) {
+            if (char === '(' || char === '[' || char === '{') {
+                depth++;
+            } else if (char === ')' || char === ']' || char === '}') {
+                depth--;
+            } else if (char === ',' && depth === 0) {
+                if (current.trim()) {
+                    columns.push(current.trim());
+                }
+                current = '';
+                continue;
+            }
+        }
+        
+        current += char;
+    }
+    
+    if (current.trim()) {
+        columns.push(current.trim());
+    }
+    
+    return columns;
+}
+
+function inferDataTypeFromExpression(expression) {
+    // Try to infer data type from KQL expressions
+    const expr = expression.toLowerCase().trim();
+    
+    // DateTime functions
+    if (expr.includes('todatetime') || expr.includes('now()') || expr.includes('ago(') || 
+        expr.includes('startofday') || expr.includes('endofday') || expr.includes('timegenerated')) {
+        return 'DateTime';
+    }
+    
+    // String functions
+    if (expr.includes('tostring') || expr.includes('strcat') || expr.includes('substring') || 
+        expr.includes('replace(') || expr.includes('trim(') || expr.startsWith('"') || expr.startsWith("'")) {
+        return 'String';
+    }
+    
+    // Numeric functions
+    if (expr.includes('toint') || expr.includes('parseint')) {
+        return 'Int';
+    }
+    
+    if (expr.includes('tolong') || expr.includes('parselong')) {
+        return 'Long';
+    }
+    
+    if (expr.includes('toreal') || expr.includes('todouble') || expr.includes('parsereal')) {
+        return 'Double';
+    }
+    
+    // Boolean functions
+    if (expr.includes('tobool') || expr.includes('parsebool') || expr === 'true' || expr === 'false') {
+        return 'Bool';
+    }
+    
+    // GUID functions
+    if (expr.includes('toguid') || expr.includes('parseguid')) {
+        return 'Guid';
+    }
+    
+    // Dynamic/JSON
+    if (expr.includes('parsejson') || expr.includes('todynamic') || expr.includes('bag(')) {
+        return 'Dynamic';
+    }
+    
+    // If we can't determine, return Dynamic as a safe default
+    return 'Dynamic';
+}
+
+function compareSchemas(transformationSchema, tableColumns, tableName) {
+    const mismatches = [];
+    
+    // Check each column in the table schema
+    tableColumns.forEach(expectedColumn => {
+        const columnName = expectedColumn.name;
+        const expectedType = expectedColumn.type;
+        
+        if (!transformationSchema[columnName]) {
+            mismatches.push({
+                message: `Column '${columnName}' is defined in table schema but not produced by transformation`,
+                columnName: columnName,
+                transformationValue: 'missing',
+                expectedValue: expectedType,
+                suggestion: `Add '${columnName}' to the project statement in the transformation.`,
+                fixInstructions: `Add '${columnName} = <expression>' to your project statement to produce this column`
+            });
+        } else {
+            const transformationType = transformationSchema[columnName].type;
+            
+            // Check if types match (with some flexibility for compatible types)
+            if (!areTypesCompatible(transformationType, expectedType)) {
+                mismatches.push({
+                    message: `Column '${columnName}' type mismatch`,
+                    columnName: columnName,
+                    transformationValue: transformationType,
+                    expectedValue: expectedType,
+                    suggestion: `Modify the expression for '${columnName}' to produce ${expectedType} type instead of ${transformationType}.`,
+                    fixInstructions: `Update the expression for '${columnName}' to use appropriate conversion functions (e.g., tostring(), toint(), todatetime(), etc.)`
+                });
+            }
+        }
+    });
+    
+    // Check for extra columns in transformation that aren't in table schema
+    Object.keys(transformationSchema).forEach(transformationColumn => {
+        const isInTableSchema = tableColumns.some(col => col.name === transformationColumn);
+        
+        if (!isInTableSchema) {
+            mismatches.push({
+                message: `Column '${transformationColumn}' is produced by transformation but not defined in table schema`,
+                columnName: transformationColumn,
+                transformationValue: transformationSchema[transformationColumn].type,
+                expectedValue: 'should be removed or added to table schema',
+                suggestion: `Either remove '${transformationColumn}' from the transformation project statement or add it to the table's columns definition.`,
+                fixInstructions: `Remove '${transformationColumn}' from the project statement or add it as a column in the table schema`
+            });
+        }
+    });
+    
+    return mismatches;
+}
+
+function areTypesCompatible(transformationType, expectedType) {
+    // Exact match
+    if (transformationType === expectedType) {
+        return true;
+    }
+    
+    // Compatible numeric types
+    const numericTypes = ['Int', 'Long', 'Double', 'Float', 'Real'];
+    if (numericTypes.includes(transformationType) && numericTypes.includes(expectedType)) {
+        return true;
+    }
+    
+    // String compatibility
+    if (transformationType === 'String' && expectedType === 'String') {
+        return true;
+    }
+    
+    // Dynamic can be converted to most types
+    if (transformationType === 'Dynamic') {
+        return true; // Dynamic is flexible but we'll issue a warning
+    }
+    
+    return false;
 }
 
 async function validateTransformManifestFile(file, result) {

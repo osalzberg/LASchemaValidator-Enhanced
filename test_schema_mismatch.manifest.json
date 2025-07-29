@@ -1,0 +1,17 @@
+{
+    "displayName": "Schema Mismatch Test",
+    "description": "Test manifest with intentional schema mismatches",
+    "tables": [
+        {
+            "name": "TestTable",
+            "displayName": "Test Table",
+            "columns": [
+                {"name": "TimeGenerated", "type": "DateTime"},
+                {"name": "Computer", "type": "String"},
+                {"name": "EventId", "type": "Int"},
+                {"name": "Level", "type": "String"},
+                {"name": "Data", "type": "Dynamic"}
+            ]
+        }
+    ]
+}
