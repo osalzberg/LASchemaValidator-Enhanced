@@ -1,5 +1,0 @@
-MetricsRaw
-| extend MetricName = tostring(Name)
-| extend Value = todouble(MetricValue)
-| extend Tags = parse_json(TagsJson)
-| project TimeGenerated, MetricName, Value, Tags
