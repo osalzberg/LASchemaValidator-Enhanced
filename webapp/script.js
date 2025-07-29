@@ -1611,9 +1611,83 @@ async function validateManifestFile(file, result) {
         
         // Validate that each table has a corresponding sample input file
         if (hasTables && uploadedFiles && uploadedFiles.length > 0) {
+            // First validate that sample file path fields are properly declared if they exist
+            if (manifest.sampleInputRecordsFilePath !== undefined) {
+                if (typeof manifest.sampleInputRecordsFilePath !== 'string' || manifest.sampleInputRecordsFilePath.trim() === '') {
+                    result.issues.push({
+                        message: 'sampleInputRecordsFilePath must be a non-empty string',
+                        type: 'invalid_field_type',
+                        field: 'sampleInputRecordsFilePath',
+                        location: 'root',
+                        severity: 'error',
+                        currentValue: manifest.sampleInputRecordsFilePath,
+                        expectedType: 'string',
+                        suggestion: 'Provide a valid folder path (e.g., "SampleInputRecords/") or file path for sample input records.'
+                    });
+                    result.status = 'fail';
+                }
+            }
+            
+            if (manifest.sampleOutputRecordsFilePath !== undefined) {
+                if (typeof manifest.sampleOutputRecordsFilePath !== 'string' || manifest.sampleOutputRecordsFilePath.trim() === '') {
+                    result.issues.push({
+                        message: 'sampleOutputRecordsFilePath must be a non-empty string',
+                        type: 'invalid_field_type',
+                        field: 'sampleOutputRecordsFilePath',
+                        location: 'root',
+                        severity: 'error',
+                        currentValue: manifest.sampleOutputRecordsFilePath,
+                        expectedType: 'string',
+                        suggestion: 'Provide a valid folder path (e.g., "SampleOutputRecords/") or file path for sample output records.'
+                    });
+                    result.status = 'fail';
+                }
+            }
+            
             // Get the sample input records path from manifest or use default
             const sampleInputPath = manifest.sampleInputRecordsFilePath || 'SampleInputRecords/';
             const sampleOutputPath = manifest.sampleOutputRecordsFilePath || 'SampleOutputRecords/';
+            
+            // Verify that the declared paths actually exist in uploaded files
+            if (manifest.sampleInputRecordsFilePath) {
+                const hasInputFiles = uploadedFiles.some(file => {
+                    const relativePath = file.webkitRelativePath || file.relativePath || '';
+                    return relativePath.includes(sampleInputPath);
+                });
+                
+                if (!hasInputFiles) {
+                    result.issues.push({
+                        message: `Sample input path '${sampleInputPath}' declared in manifest but no files found in this path`,
+                        type: 'missing_declared_path',
+                        field: 'sampleInputRecordsFilePath',
+                        location: 'root',
+                        severity: 'error',
+                        declaredPath: sampleInputPath,
+                        suggestion: `Ensure that files exist in the declared path '${sampleInputPath}' or update the sampleInputRecordsFilePath to match your actual folder structure.`
+                    });
+                    result.status = 'fail';
+                }
+            }
+            
+            if (manifest.sampleOutputRecordsFilePath) {
+                const hasOutputFiles = uploadedFiles.some(file => {
+                    const relativePath = file.webkitRelativePath || file.relativePath || '';
+                    return relativePath.includes(sampleOutputPath);
+                });
+                
+                if (!hasOutputFiles) {
+                    result.issues.push({
+                        message: `Sample output path '${sampleOutputPath}' declared in manifest but no files found in this path`,
+                        type: 'missing_declared_path',
+                        field: 'sampleOutputRecordsFilePath',
+                        location: 'root',
+                        severity: 'error',
+                        declaredPath: sampleOutputPath,
+                        suggestion: `Ensure that files exist in the declared path '${sampleOutputPath}' or update the sampleOutputRecordsFilePath to match your actual folder structure.`
+                    });
+                    result.status = 'fail';
+                }
+            }
             
             // Get all files in the specified sample input folder
             const sampleInputFiles = uploadedFiles.filter(file => {
@@ -1637,36 +1711,62 @@ async function validateManifestFile(file, result) {
                     const hasSampleInputFile = sampleInputFiles.some(file => file.name === expectedFileName);
                     
                     if (!hasSampleInputFile) {
-                        result.warnings.push({
-                            message: `Table '${tableName}' is missing sample input file '${expectedFileName}'`,
+                        const warningType = manifest.sampleInputRecordsFilePath ? 'error' : 'warning';
+                        const messageContent = manifest.sampleInputRecordsFilePath ? 
+                            `Table '${tableName}' requires sample input file '${expectedFileName}' in declared path '${sampleInputPath}' but file is missing` :
+                            `Table '${tableName}' is missing sample input file '${expectedFileName}'`;
+                            
+                        const warningObj = {
+                            message: messageContent,
                             type: 'missing_sample_input',
                             field: 'sampleInputFile',
                             location: `tables[${tableIndex}]`,
                             tableName: tableName,
                             expectedFileName: expectedFileName,
-                            severity: 'warning',
+                            severity: warningType,
+                            declaredPath: manifest.sampleInputRecordsFilePath || null,
                             suggestion: `Create a sample input file named '${expectedFileName}' in the ${sampleInputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the input format for this table.`,
                             microsoftRequirement: `Each table in the manifest must have a corresponding sample input file in the ${sampleInputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
                             fixInstructions: `1. Create a file named '${expectedFileName}' in the ${sampleInputPath} folder\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`
-                        });
+                        };
+                        
+                        if (warningType === 'error') {
+                            result.issues.push(warningObj);
+                            result.status = 'fail';
+                        } else {
+                            result.warnings.push(warningObj);
+                        }
                     }
                     
                     // Check if the expected sample output file exists
                     const hasSampleOutputFile = sampleOutputFiles.some(file => file.name === expectedFileName);
                     
                     if (!hasSampleOutputFile) {
-                        result.warnings.push({
-                            message: `Table '${tableName}' is missing sample output file '${expectedFileName}'`,
+                        const warningType = manifest.sampleOutputRecordsFilePath ? 'error' : 'warning';
+                        const messageContent = manifest.sampleOutputRecordsFilePath ? 
+                            `Table '${tableName}' requires sample output file '${expectedFileName}' in declared path '${sampleOutputPath}' but file is missing` :
+                            `Table '${tableName}' is missing sample output file '${expectedFileName}'`;
+                            
+                        const warningObj = {
+                            message: messageContent,
                             type: 'missing_sample_output',
                             field: 'sampleOutputFile',
                             location: `tables[${tableIndex}]`,
                             tableName: tableName,
                             expectedFileName: expectedFileName,
-                            severity: 'warning',
+                            severity: warningType,
+                            declaredPath: manifest.sampleOutputRecordsFilePath || null,
                             suggestion: `Create a sample output file named '${expectedFileName}' in the ${sampleOutputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the expected output format after transformation for this table.`,
                             microsoftRequirement: `Each table in the manifest must have a corresponding sample output file in the ${sampleOutputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
                             fixInstructions: `1. Create a file named '${expectedFileName}' in the ${sampleOutputPath} folder\n2. Add sample JSON data that represents the expected output format for the '${tableName}' table after transformation\n3. Ensure the sample data matches the output schema defined in the table's 'columns' field\n4. Do not include system-generated fields like _ResourceId, _SubscriptionId, TenantId, or Type`
-                        });
+                        };
+                        
+                        if (warningType === 'error') {
+                            result.issues.push(warningObj);
+                            result.status = 'fail';
+                        } else {
+                            result.warnings.push(warningObj);
+                        }
                     }
                 }
             });

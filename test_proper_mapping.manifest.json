@@ -1,0 +1,16 @@
+{
+    "displayName": "Proper Mapping Test",
+    "description": "Test manifest with declared paths and corresponding files",
+    "sampleInputRecordsFilePath": "ProperInputs/",
+    "sampleOutputRecordsFilePath": "ProperOutputs/",
+    "tables": [
+        {
+            "name": "ProperTable",
+            "displayName": "Table with Proper Sample Files",
+            "columns": [
+                {"name": "TimeGenerated", "type": "DateTime"},
+                {"name": "Data", "type": "String"}
+            ]
+        }
+    ]
+}

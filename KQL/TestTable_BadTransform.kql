@@ -1,0 +1,6 @@
+RawData
+| extend Computer = tostring(Properties.Computer)
+| extend EventId = tostring(Properties.EventId)  // This should be Int but we're making it String
+| extend Level = toint(Properties.Level)         // This should be String but we're making it Int
+| extend Data = Properties.AdditionalData
+| project TimeGenerated, Computer, EventId, Level, Data

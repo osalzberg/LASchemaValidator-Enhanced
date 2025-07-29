@@ -1,0 +1,16 @@
+{
+    "displayName": "Missing Files Test",
+    "description": "Test manifest with declared paths but missing sample files",
+    "sampleInputRecordsFilePath": "MyCustomInputs/",
+    "sampleOutputRecordsFilePath": "MyCustomOutputs/",
+    "tables": [
+        {
+            "name": "MissingTable",
+            "displayName": "Table with Missing Sample Files",
+            "columns": [
+                {"name": "TimeGenerated", "type": "DateTime"},
+                {"name": "Data", "type": "String"}
+            ]
+        }
+    ]
+}
