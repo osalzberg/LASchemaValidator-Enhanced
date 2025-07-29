@@ -1,6 +1,8 @@
 {
     "displayName": "Complete Validation Test",
     "description": "Test manifest for comprehensive validation including schema matching",
+    "sampleInputRecordsFilePath": "SampleInputRecords/",
+    "sampleOutputRecordsFilePath": "SampleOutputRecords/",
     "tables": [
         {
             "name": "TestTable",

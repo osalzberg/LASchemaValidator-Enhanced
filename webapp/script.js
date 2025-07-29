@@ -1611,16 +1611,20 @@ async function validateManifestFile(file, result) {
         
         // Validate that each table has a corresponding sample input file
         if (hasTables && uploadedFiles && uploadedFiles.length > 0) {
-            // Get all files in SampleInputRecords folder
+            // Get the sample input records path from manifest or use default
+            const sampleInputPath = manifest.sampleInputRecordsFilePath || 'SampleInputRecords/';
+            const sampleOutputPath = manifest.sampleOutputRecordsFilePath || 'SampleOutputRecords/';
+            
+            // Get all files in the specified sample input folder
             const sampleInputFiles = uploadedFiles.filter(file => {
                 const relativePath = file.webkitRelativePath || file.relativePath || '';
-                return relativePath.includes('SampleInputRecords/') && file.name.endsWith('.json');
+                return relativePath.includes(sampleInputPath) && file.name.endsWith('.json');
             });
             
-            // Get all files in SampleOutputRecords folder
+            // Get all files in the specified sample output folder
             const sampleOutputFiles = uploadedFiles.filter(file => {
                 const relativePath = file.webkitRelativePath || file.relativePath || '';
-                return relativePath.includes('SampleOutputRecords/') && file.name.endsWith('.json');
+                return relativePath.includes(sampleOutputPath) && file.name.endsWith('.json');
             });
             
             manifest.tables.forEach((table, tableIndex) => {
@@ -1641,9 +1645,9 @@ async function validateManifestFile(file, result) {
                             tableName: tableName,
                             expectedFileName: expectedFileName,
                             severity: 'warning',
-                            suggestion: `Create a sample input file named '${expectedFileName}' in the SampleInputRecords folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the input format for this table.`,
-                            microsoftRequirement: 'Each table in the manifest must have a corresponding sample input file in the SampleInputRecords folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.',
-                            fixInstructions: `1. Create a file named '${expectedFileName}' in the SampleInputRecords folder\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`
+                            suggestion: `Create a sample input file named '${expectedFileName}' in the ${sampleInputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the input format for this table.`,
+                            microsoftRequirement: `Each table in the manifest must have a corresponding sample input file in the ${sampleInputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
+                            fixInstructions: `1. Create a file named '${expectedFileName}' in the ${sampleInputPath} folder\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`
                         });
                     }
                     
@@ -1659,9 +1663,9 @@ async function validateManifestFile(file, result) {
                             tableName: tableName,
                             expectedFileName: expectedFileName,
                             severity: 'warning',
-                            suggestion: `Create a sample output file named '${expectedFileName}' in the SampleOutputRecords folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the expected output format after transformation for this table.`,
-                            microsoftRequirement: 'Each table in the manifest must have a corresponding sample output file in the SampleOutputRecords folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.',
-                            fixInstructions: `1. Create a file named '${expectedFileName}' in the SampleOutputRecords folder\n2. Add sample JSON data that represents the expected output format for the '${tableName}' table after transformation\n3. Ensure the sample data matches the output schema defined in the table's 'columns' field\n4. Do not include system-generated fields like _ResourceId, _SubscriptionId, TenantId, or Type`
+                            suggestion: `Create a sample output file named '${expectedFileName}' in the ${sampleOutputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the expected output format after transformation for this table.`,
+                            microsoftRequirement: `Each table in the manifest must have a corresponding sample output file in the ${sampleOutputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
+                            fixInstructions: `1. Create a file named '${expectedFileName}' in the ${sampleOutputPath} folder\n2. Add sample JSON data that represents the expected output format for the '${tableName}' table after transformation\n3. Ensure the sample data matches the output schema defined in the table's 'columns' field\n4. Do not include system-generated fields like _ResourceId, _SubscriptionId, TenantId, or Type`
                         });
                     }
                 }
