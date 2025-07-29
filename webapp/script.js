@@ -1600,16 +1600,22 @@ async function validateManifestFile(file, result) {
                 return relativePath.includes('SampleInputRecords/') && file.name.endsWith('.json');
             });
             
+            // Get all files in SampleOutputRecords folder
+            const sampleOutputFiles = uploadedFiles.filter(file => {
+                const relativePath = file.webkitRelativePath || file.relativePath || '';
+                return relativePath.includes('SampleOutputRecords/') && file.name.endsWith('.json');
+            });
+            
             manifest.tables.forEach((table, tableIndex) => {
                 const tableName = table.name;
                 if (tableName) {
                     // Expected sample file name: <tableName>Sample.json
                     const expectedFileName = `${tableName}Sample.json`;
                     
-                    // Check if the expected sample file exists
-                    const hasSampleFile = sampleInputFiles.some(file => file.name === expectedFileName);
+                    // Check if the expected sample input file exists
+                    const hasSampleInputFile = sampleInputFiles.some(file => file.name === expectedFileName);
                     
-                    if (!hasSampleFile) {
+                    if (!hasSampleInputFile) {
                         result.warnings.push({
                             message: `Table '${tableName}' is missing sample input file '${expectedFileName}'`,
                             type: 'missing_sample_input',
@@ -1621,6 +1627,24 @@ async function validateManifestFile(file, result) {
                             suggestion: `Create a sample input file named '${expectedFileName}' in the SampleInputRecords folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the input format for this table.`,
                             microsoftRequirement: 'Each table in the manifest must have a corresponding sample input file in the SampleInputRecords folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.',
                             fixInstructions: `1. Create a file named '${expectedFileName}' in the SampleInputRecords folder\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`
+                        });
+                    }
+                    
+                    // Check if the expected sample output file exists
+                    const hasSampleOutputFile = sampleOutputFiles.some(file => file.name === expectedFileName);
+                    
+                    if (!hasSampleOutputFile) {
+                        result.warnings.push({
+                            message: `Table '${tableName}' is missing sample output file '${expectedFileName}'`,
+                            type: 'missing_sample_output',
+                            field: 'sampleOutputFile',
+                            location: `tables[${tableIndex}]`,
+                            tableName: tableName,
+                            expectedFileName: expectedFileName,
+                            severity: 'warning',
+                            suggestion: `Create a sample output file named '${expectedFileName}' in the SampleOutputRecords folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the expected output format after transformation for this table.`,
+                            microsoftRequirement: 'Each table in the manifest must have a corresponding sample output file in the SampleOutputRecords folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.',
+                            fixInstructions: `1. Create a file named '${expectedFileName}' in the SampleOutputRecords folder\n2. Add sample JSON data that represents the expected output format for the '${tableName}' table after transformation\n3. Ensure the sample data matches the output schema defined in the table's 'columns' field\n4. Do not include system-generated fields like _ResourceId, _SubscriptionId, TenantId, or Type`
                         });
                     }
                 }
