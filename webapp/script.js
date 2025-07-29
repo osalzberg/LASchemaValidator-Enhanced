@@ -1726,29 +1726,44 @@ async function validateManifestFile(file, result) {
                     const expectedFileName = `${tableName}Sample.json`;
                     
                     // Check if the expected sample input file exists
-                    const hasSampleInputFile = sampleInputFiles.some(file => file.name === expectedFileName);
+                    let hasSampleInputFile = false;
+                    
+                    if (manifest.sampleInputRecordsFilePath && manifest.sampleInputRecordsFilePath.endsWith('.json')) {
+                        // If sampleInputRecordsFilePath points to a specific file, check if that file exists
+                        const specifiedFilePath = manifest.sampleInputRecordsFilePath;
+                        hasSampleInputFile = uploadedFiles.some(file => {
+                            const relativePath = file.webkitRelativePath || file.relativePath || '';
+                            return relativePath.endsWith(specifiedFilePath) || relativePath === specifiedFilePath;
+                        });
+                    } else {
+                        // If sampleInputRecordsFilePath is a folder or not specified, use the folder-based approach
+                        hasSampleInputFile = sampleInputFiles.some(file => file.name === expectedFileName);
+                    }
                     
                     if (!hasSampleInputFile) {
-                    // Check if there's a file with the table name but missing "Sample" suffix
+                        // Check if there's a file with the table name but missing "Sample" suffix (only for folder-based approach)
+                        let hasIncorrectlyNamedFile = false;
                         const incorrectFileName = `${tableName}.json`;
-                        const hasIncorrectlyNamedFile = sampleInputFiles.some(file => file.name === incorrectFileName);
+                        
+                        if (!manifest.sampleInputRecordsFilePath || !manifest.sampleInputRecordsFilePath.endsWith('.json')) {
+                            hasIncorrectlyNamedFile = sampleInputFiles.some(file => file.name === incorrectFileName);
+                        }
                         
                         let messageContent, suggestion, fixInstructions;
                         
-                        if (hasIncorrectlyNamedFile) {
+                        if (manifest.sampleInputRecordsFilePath && manifest.sampleInputRecordsFilePath.endsWith('.json')) {
+                            // Specific file path is declared but file is missing
+                            messageContent = `Table '${tableName}' requires sample input file at declared path '${manifest.sampleInputRecordsFilePath}' but file is missing`;
+                            suggestion = `Create the sample input file at the exact path specified in the manifest: '${manifest.sampleInputRecordsFilePath}'. This file should contain sample JSON data that represents the input format for this table.`;
+                            fixInstructions = `1. Create a file at the exact path '${manifest.sampleInputRecordsFilePath}'\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`;
+                        } else if (hasIncorrectlyNamedFile) {
                             // File exists but has wrong name (missing "Sample")
-                            messageContent = manifest.sampleInputRecordsFilePath ? 
-                                `Table '${tableName}' has incorrectly named sample input file '${incorrectFileName}' in declared path '${sampleInputPath}' - should be named '${expectedFileName}'` :
-                                `Table '${tableName}' has incorrectly named sample input file '${incorrectFileName}' - should be named '${expectedFileName}'`;
-                            
+                            messageContent = `Table '${tableName}' has incorrectly named sample input file '${incorrectFileName}' - should be named '${expectedFileName}'`;
                             suggestion = `Rename the existing file '${incorrectFileName}' to '${expectedFileName}' to follow the required naming convention. The file content appears to be correct, only the filename needs to be updated.`;
                             fixInstructions = `1. Locate the file '${incorrectFileName}' in the ${sampleInputPath} folder\n2. Rename it to '${expectedFileName}'\n3. The naming convention requires the word "Sample" to be added between the table name and file extension`;
                         } else {
                             // File doesn't exist at all
-                            messageContent = manifest.sampleInputRecordsFilePath ? 
-                                `Table '${tableName}' requires sample input file '${expectedFileName}' in declared path '${sampleInputPath}' but file is missing` :
-                                `Table '${tableName}' is missing sample input file '${expectedFileName}'`;
-                            
+                            messageContent = `Table '${tableName}' is missing sample input file '${expectedFileName}'`;
                             suggestion = `Create a sample input file named '${expectedFileName}' in the ${sampleInputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the input format for this table.`;
                             fixInstructions = `1. Create a file named '${expectedFileName}' in the ${sampleInputPath} folder\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`;
                         }
@@ -1764,7 +1779,7 @@ async function validateManifestFile(file, result) {
                             severity: 'error',
                             declaredPath: manifest.sampleInputRecordsFilePath || null,
                             suggestion: suggestion,
-                            microsoftRequirement: `Each table in the manifest must have a corresponding sample input file in the ${sampleInputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
+                            microsoftRequirement: `Each table in the manifest must have a corresponding sample input file following the proper naming convention for schema validation and E2E testing.`,
                             fixInstructions: fixInstructions
                         };
                         
