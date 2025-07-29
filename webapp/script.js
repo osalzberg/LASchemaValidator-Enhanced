@@ -1706,16 +1706,17 @@ async function validateManifestFile(file, result) {
             
             // If no sample output files exist at all AND path is not explicitly declared, give one general warning
             if (!hasSampleOutputFiles && !manifest.sampleOutputRecordsFilePath) {
-                result.warnings.push({
+                result.issues.push({
                     message: `No sample output files found in ${sampleOutputPath} folder`,
                     type: 'missing_sample_output_folder',
                     field: 'sampleOutputFiles',
                     location: 'root',
-                    severity: 'warning',
+                    severity: 'error',
                     suggestion: `Create the ${sampleOutputPath} folder and add sample output files for your tables. Each table should have a corresponding sample output file named <tableName>Sample.json.`,
                     microsoftRequirement: `Sample output files are required for schema validation and E2E testing.`,
                     fixInstructions: `1. Create the ${sampleOutputPath} folder\n2. Add sample output files for each table following the naming convention <tableName>Sample.json\n3. Ensure the sample data matches the output schema defined in each table's 'columns' field`
                 });
+                result.status = 'fail';
             }
             
             manifest.tables.forEach((table, tableIndex) => {
@@ -1728,11 +1729,9 @@ async function validateManifestFile(file, result) {
                     const hasSampleInputFile = sampleInputFiles.some(file => file.name === expectedFileName);
                     
                     if (!hasSampleInputFile) {
-                        // Check if there's a file with the table name but missing "Sample" suffix
+                    // Check if there's a file with the table name but missing "Sample" suffix
                         const incorrectFileName = `${tableName}.json`;
                         const hasIncorrectlyNamedFile = sampleInputFiles.some(file => file.name === incorrectFileName);
-                        
-                        const warningType = manifest.sampleInputRecordsFilePath ? 'error' : 'warning';
                         
                         let messageContent, suggestion, fixInstructions;
                         
@@ -1754,7 +1753,7 @@ async function validateManifestFile(file, result) {
                             fixInstructions = `1. Create a file named '${expectedFileName}' in the ${sampleInputPath} folder\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`;
                         }
                             
-                        const warningObj = {
+                        const errorObj = {
                             message: messageContent,
                             type: hasIncorrectlyNamedFile ? 'incorrect_sample_file_name' : 'missing_sample_input',
                             field: 'sampleInputFile',
@@ -1762,19 +1761,15 @@ async function validateManifestFile(file, result) {
                             tableName: tableName,
                             expectedFileName: expectedFileName,
                             incorrectFileName: hasIncorrectlyNamedFile ? incorrectFileName : null,
-                            severity: warningType,
+                            severity: 'error',
                             declaredPath: manifest.sampleInputRecordsFilePath || null,
                             suggestion: suggestion,
                             microsoftRequirement: `Each table in the manifest must have a corresponding sample input file in the ${sampleInputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
                             fixInstructions: fixInstructions
                         };
                         
-                        if (warningType === 'error') {
-                            result.issues.push(warningObj);
-                            result.status = 'fail';
-                        } else {
-                            result.warnings.push(warningObj);
-                        }
+                        result.issues.push(errorObj);
+                        result.status = 'fail';
                     }
                     
                     // Only check individual table sample output files if:
@@ -1790,8 +1785,6 @@ async function validateManifestFile(file, result) {
                             // Check if there's a file with the table name but missing "Sample" suffix
                             const incorrectFileName = `${tableName}.json`;
                             const hasIncorrectlyNamedFile = sampleOutputFiles.some(file => file.name === incorrectFileName);
-                            
-                            const warningType = manifest.sampleOutputRecordsFilePath ? 'error' : 'warning';
                             
                             let messageContent, suggestion, fixInstructions;
                             
@@ -1813,7 +1806,7 @@ async function validateManifestFile(file, result) {
                                 fixInstructions = `1. Create a file named '${expectedFileName}' in the ${sampleOutputPath} folder\n2. Add sample JSON data that represents the expected output format for the '${tableName}' table after transformation\n3. Ensure the sample data matches the output schema defined in the table's 'columns' field\n4. Do not include system-generated fields like _ResourceId, _SubscriptionId, TenantId, or Type`;
                             }
                                 
-                            const warningObj = {
+                            const errorObj = {
                                 message: messageContent,
                                 type: hasIncorrectlyNamedFile ? 'incorrect_sample_file_name' : 'missing_sample_output',
                                 field: 'sampleOutputFile',
@@ -1821,19 +1814,15 @@ async function validateManifestFile(file, result) {
                                 tableName: tableName,
                                 expectedFileName: expectedFileName,
                                 incorrectFileName: hasIncorrectlyNamedFile ? incorrectFileName : null,
-                                severity: warningType,
+                                severity: 'error',
                                 declaredPath: manifest.sampleOutputRecordsFilePath || null,
                                 suggestion: suggestion,
                                 microsoftRequirement: `Each table in the manifest must have a corresponding sample output file in the ${sampleOutputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
                                 fixInstructions: fixInstructions
                             };
                             
-                            if (warningType === 'error') {
-                                result.issues.push(warningObj);
-                                result.status = 'fail';
-                            } else {
-                                result.warnings.push(warningObj);
-                            }
+                            result.issues.push(errorObj);
+                            result.status = 'fail';
                         }
                     }
                 }
@@ -6290,6 +6279,10 @@ function getIssueCategoryName(type) {
         'missing_required_column': 'Missing Required Columns',
         'invalid_column_type': 'Invalid Column Types',
         'folder_structure': 'Folder Structure Issues',
+        'missing_sample_input': 'Sample File Validation Failures',
+        'missing_sample_output': 'Sample File Validation Failures',
+        'incorrect_sample_file_name': 'Sample File Validation Failures',
+        'missing_sample_output_folder': 'Sample File Validation Failures',
         'unknown': 'Other Issues'
     };
     
@@ -6325,6 +6318,10 @@ function getIssueCategoryIcon(type) {
         'missing_required_column': 'fas fa-table',
         'invalid_column_type': 'fas fa-columns',
         'folder_structure': 'fas fa-folder-open',
+        'missing_sample_input': 'fas fa-file-import',
+        'missing_sample_output': 'fas fa-file-export',
+        'incorrect_sample_file_name': 'fas fa-file-signature',
+        'missing_sample_output_folder': 'fas fa-folder-plus',
         'unknown': 'fas fa-question-circle'
     };
     
@@ -6360,6 +6357,10 @@ function getIssueCategoryDescription(type) {
         'missing_required_column': 'Required columns like TimeGenerated that are missing',
         'invalid_column_type': 'Column data types that are invalid for the specified usage',
         'folder_structure': 'Issues with the organization and structure of your schema package',
+        'missing_sample_input': 'Required sample input files that are missing from your schema package',
+        'missing_sample_output': 'Required sample output files that are missing from your schema package',
+        'incorrect_sample_file_name': 'Sample files with incorrect naming conventions (missing "Sample" suffix)',
+        'missing_sample_output_folder': 'The sample output folder is missing from your schema package',
         'unknown': 'Other validation issues that need attention'
     };
     
