@@ -1704,7 +1704,7 @@ async function validateManifestFile(file, result) {
             // Check if there are any sample output files at all
             const hasSampleOutputFiles = sampleOutputFiles.length > 0;
             
-            // If no sample output files exist at all, give one general warning
+            // If no sample output files exist at all AND path is not explicitly declared, give one general warning
             if (!hasSampleOutputFiles && !manifest.sampleOutputRecordsFilePath) {
                 result.warnings.push({
                     message: `No sample output files found in ${sampleOutputPath} folder`,
@@ -1755,9 +1755,12 @@ async function validateManifestFile(file, result) {
                         }
                     }
                     
-                    // Only check individual table sample output files if there are sample output files present
-                    // OR if the path is explicitly declared in manifest
-                    if (hasSampleOutputFiles || manifest.sampleOutputRecordsFilePath) {
+                    // Only check individual table sample output files if:
+                    // 1. There are sample output files present (partial implementation), OR
+                    // 2. The path is explicitly declared in manifest (strict validation required)
+                    const shouldCheckIndividualOutputFiles = hasSampleOutputFiles || manifest.sampleOutputRecordsFilePath;
+                    
+                    if (shouldCheckIndividualOutputFiles) {
                         // Check if the expected sample output file exists
                         const hasSampleOutputFile = sampleOutputFiles.some(file => file.name === expectedFileName);
                         
