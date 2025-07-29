@@ -1745,17 +1745,52 @@ async function validateManifestFile(file, result) {
                         let hasIncorrectlyNamedFile = false;
                         const incorrectFileName = `${tableName}.json`;
                         
+                        // Check for case mismatch first
+                        let hasCaseMismatchFile = false;
+                        let caseMismatchFileName = '';
+                        
                         if (!manifest.sampleInputRecordsFilePath || !manifest.sampleInputRecordsFilePath.endsWith('.json')) {
                             hasIncorrectlyNamedFile = sampleInputFiles.some(file => file.name === incorrectFileName);
+                            
+                            // Check for case-insensitive match
+                            const caseMismatchFile = sampleInputFiles.find(file => 
+                                file.name.toLowerCase() === expectedFileName.toLowerCase() && 
+                                file.name !== expectedFileName
+                            );
+                            
+                            if (caseMismatchFile) {
+                                hasCaseMismatchFile = true;
+                                caseMismatchFileName = caseMismatchFile.name;
+                            }
                         }
                         
                         let messageContent, suggestion, fixInstructions;
                         
                         if (manifest.sampleInputRecordsFilePath && manifest.sampleInputRecordsFilePath.endsWith('.json')) {
-                            // Specific file path is declared but file is missing
-                            messageContent = `Table '${tableName}' requires sample input file at declared path '${manifest.sampleInputRecordsFilePath}' but file is missing`;
-                            suggestion = `Create the sample input file at the exact path specified in the manifest: '${manifest.sampleInputRecordsFilePath}'. This file should contain sample JSON data that represents the input format for this table.`;
-                            fixInstructions = `1. Create a file at the exact path '${manifest.sampleInputRecordsFilePath}'\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`;
+                            // Check for case mismatch in declared file path
+                            const declaredFileName = manifest.sampleInputRecordsFilePath.split('/').pop();
+                            const caseMismatchDeclaredFile = uploadedFiles.find(file => {
+                                const fileName = (file.webkitRelativePath || file.relativePath || file.name).split('/').pop();
+                                return fileName.toLowerCase() === declaredFileName.toLowerCase() && 
+                                       fileName !== declaredFileName;
+                            });
+                            
+                            if (caseMismatchDeclaredFile) {
+                                const actualFileName = (caseMismatchDeclaredFile.webkitRelativePath || caseMismatchDeclaredFile.relativePath || caseMismatchDeclaredFile.name).split('/').pop();
+                                messageContent = `Table '${tableName}' sample input file found with incorrect casing: expected '${declaredFileName}', found '${actualFileName}'`;
+                                suggestion = `Rename the file '${actualFileName}' to '${declaredFileName}' to match the exact casing specified in the manifest. File names are case-sensitive in Azure Log Analytics validation.`;
+                                fixInstructions = `1. Locate the file '${actualFileName}'\n2. Rename it to '${declaredFileName}' (note the exact capitalization)\n3. Ensure the file path matches exactly what is declared in the manifest`;
+                            } else {
+                                // Specific file path is declared but file is missing
+                                messageContent = `Table '${tableName}' requires sample input file at declared path '${manifest.sampleInputRecordsFilePath}' but file is missing`;
+                                suggestion = `Create the sample input file at the exact path specified in the manifest: '${manifest.sampleInputRecordsFilePath}'. This file should contain sample JSON data that represents the input format for this table.`;
+                                fixInstructions = `1. Create a file at the exact path '${manifest.sampleInputRecordsFilePath}'\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`;
+                            }
+                        } else if (hasCaseMismatchFile) {
+                            // File exists but has incorrect casing
+                            messageContent = `Table '${tableName}' sample input file found with incorrect casing: expected '${expectedFileName}', found '${caseMismatchFileName}'`;
+                            suggestion = `Rename the file '${caseMismatchFileName}' to '${expectedFileName}' to match the exact casing required. File names are case-sensitive in Azure Log Analytics validation.`;
+                            fixInstructions = `1. Locate the file '${caseMismatchFileName}' in the ${sampleInputPath} folder\n2. Rename it to '${expectedFileName}' (note the exact capitalization)\n3. File names must match exactly including case sensitivity`;
                         } else if (hasIncorrectlyNamedFile) {
                             // File exists but has wrong name (missing "Sample")
                             messageContent = `Table '${tableName}' has incorrectly named sample input file '${incorrectFileName}' - should be named '${expectedFileName}'`;
@@ -1770,12 +1805,14 @@ async function validateManifestFile(file, result) {
                             
                         const errorObj = {
                             message: messageContent,
-                            type: hasIncorrectlyNamedFile ? 'incorrect_sample_file_name' : 'missing_sample_input',
+                            type: hasCaseMismatchFile ? 'incorrect_sample_file_casing' : 
+                                  (hasIncorrectlyNamedFile ? 'incorrect_sample_file_name' : 'missing_sample_input'),
                             field: 'sampleInputFile',
                             location: `tables[${tableIndex}]`,
                             tableName: tableName,
                             expectedFileName: expectedFileName,
                             incorrectFileName: hasIncorrectlyNamedFile ? incorrectFileName : null,
+                            caseMismatchFileName: hasCaseMismatchFile ? caseMismatchFileName : null,
                             severity: 'error',
                             declaredPath: manifest.sampleInputRecordsFilePath || null,
                             suggestion: suggestion,
@@ -1866,6 +1903,22 @@ async function validateManifestFile(file, result) {
                     });
                     
                     if (kqlFile) {
+                        // Find the corresponding sample input file
+                        const expectedSampleFileName = `${tableName}Sample.json`;
+                        let sampleInputFile = null;
+                        
+                        if (manifest.sampleInputRecordsFilePath && manifest.sampleInputRecordsFilePath.endsWith('.json')) {
+                            // If sampleInputRecordsFilePath points to a specific file
+                            const specifiedFilePath = manifest.sampleInputRecordsFilePath;
+                            sampleInputFile = uploadedFiles.find(file => {
+                                const relativePath = file.webkitRelativePath || file.relativePath || '';
+                                return relativePath.endsWith(specifiedFilePath) || relativePath === specifiedFilePath;
+                            });
+                        } else {
+                            // Use folder-based approach
+                            sampleInputFile = sampleInputFiles.find(file => file.name === expectedSampleFileName);
+                        }
+                        
                         // We'll validate the schema match asynchronously
                         // For now, we'll add this to a queue for later processing
                         if (!result.pendingSchemaValidations) {
@@ -1877,7 +1930,8 @@ async function validateManifestFile(file, result) {
                             tableName: tableName,
                             transformFilePath: transformFilePath,
                             kqlFile: kqlFile,
-                            expectedColumns: table.columns
+                            expectedColumns: table.columns,
+                            sampleInputFile: sampleInputFile
                         });
                     } else {
                         result.warnings.push({
@@ -2002,6 +2056,26 @@ async function validateTransformationSchemaMatch(manifestResult, kqlFiles) {
                     });
                 });
                 manifestResult.status = 'fail';
+            }
+            
+            // Check for unused input columns if sample input file is available
+            if (validation.sampleInputFile) {
+                try {
+                    const sampleInputContent = await readFileContent(validation.sampleInputFile);
+                    const sampleInputData = JSON.parse(sampleInputContent);
+                    
+                    const unusedColumnWarnings = checkForUnusedInputColumns(sampleInputData, kqlContent, validation.tableName);
+                    unusedColumnWarnings.forEach(warning => {
+                        manifestResult.warnings.push({
+                            ...warning,
+                            tableIndex: validation.tableIndex,
+                            tableName: validation.tableName,
+                            transformFilePath: validation.transformFilePath
+                        });
+                    });
+                } catch (error) {
+                    console.warn(`Could not check unused columns for table '${validation.tableName}':`, error);
+                }
             }
             
         } catch (error) {
@@ -2251,6 +2325,157 @@ function areTypesCompatible(transformationType, expectedType) {
     }
     
     return false;
+}
+
+function extractTransformationInputColumns(kqlContent) {
+    const inputColumns = new Set();
+    
+    // Remove comments and normalize whitespace
+    const cleanContent = kqlContent
+        .replace(/\/\/.*$/gm, '') // Remove single-line comments
+        .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+    
+    // Look for column references in the KQL content
+    // Focus on project statements and other column references
+    
+    // Find project statements and extract column references
+    const projectRegex = /\|\s*project\s+([^|;]+)/gi;
+    const projectMatches = cleanContent.match(projectRegex);
+    
+    if (projectMatches) {
+        projectMatches.forEach(projectStatement => {
+            const projectContent = projectStatement.replace(/\|\s*project\s+/i, '').trim();
+            
+            // Look for column assignments like "OutputCol = InputCol" or just "InputCol"
+            const columnExpressions = parseProjectColumns(projectContent);
+            
+            columnExpressions.forEach(expr => {
+                // Extract input column references from expressions
+                const inputRefs = extractInputColumnReferences(expr);
+                inputRefs.forEach(ref => inputColumns.add(ref));
+            });
+        });
+    }
+    
+    // Also look for extend statements
+    const extendRegex = /\|\s*extend\s+([^|;]+)/gi;
+    const extendMatches = cleanContent.match(extendRegex);
+    
+    if (extendMatches) {
+        extendMatches.forEach(extendStatement => {
+            const extendContent = extendStatement.replace(/\|\s*extend\s+/i, '').trim();
+            const columnExpressions = parseProjectColumns(extendContent);
+            
+            columnExpressions.forEach(expr => {
+                const inputRefs = extractInputColumnReferences(expr);
+                inputRefs.forEach(ref => inputColumns.add(ref));
+            });
+        });
+    }
+    
+    // Look for where clauses that might reference input columns
+    const whereRegex = /\|\s*where\s+([^|;]+)/gi;
+    const whereMatches = cleanContent.match(whereRegex);
+    
+    if (whereMatches) {
+        whereMatches.forEach(whereStatement => {
+            const whereContent = whereStatement.replace(/\|\s*where\s+/i, '').trim();
+            const inputRefs = extractInputColumnReferences(whereContent);
+            inputRefs.forEach(ref => inputColumns.add(ref));
+        });
+    }
+    
+    return Array.from(inputColumns);
+}
+
+function extractInputColumnReferences(expression) {
+    const inputColumns = new Set();
+    
+    // KQL functions and keywords to exclude
+    const kqlKeywords = new Set([
+        'let', 'extend', 'project', 'where', 'summarize', 'join', 'union', 'sort', 'order', 'take', 'limit',
+        'count', 'distinct', 'group', 'by', 'on', 'kind', 'has', 'contains', 'startswith', 'endswith',
+        'matches', 'regex', 'parse', 'extract', 'split', 'strcat', 'substring', 'replace', 'trim',
+        'tolower', 'toupper', 'tostring', 'toint', 'tolong', 'toreal', 'todatetime', 'totimespan',
+        'now', 'ago', 'datetime', 'timespan', 'true', 'false', 'null', 'and', 'or', 'not', 'in', 'between',
+        'case', 'iff', 'isnull', 'isempty', 'isnan', 'isinf', 'pack', 'unpack', 'bag_keys', 'bag_values',
+        'source', 'data'
+    ]);
+    
+    // Look for identifiers that could be column references
+    const columnPattern = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
+    let match;
+    
+    while ((match = columnPattern.exec(expression)) !== null) {
+        const identifier = match[1];
+        
+        // Skip KQL keywords and functions
+        if (!kqlKeywords.has(identifier.toLowerCase())) {
+            // Skip obvious function calls (followed by parentheses)
+            const nextChar = expression.charAt(match.index + match[0].length);
+            const prevChar = expression.charAt(match.index - 1);
+            
+            // Skip if it's a function call or part of an assignment target
+            if (nextChar !== '(' && prevChar !== '=' && !expression.slice(match.index).match(/^\w+\s*=\s*[^=]/)) {
+                inputColumns.add(identifier);
+            }
+        }
+    }
+    
+    return Array.from(inputColumns);
+}
+
+function checkForUnusedInputColumns(sampleInputData, kqlContent, tableName) {
+    const warnings = [];
+    
+    try {
+        if (!Array.isArray(sampleInputData) || sampleInputData.length === 0) {
+            return warnings;
+        }
+        
+        // Extract all columns from sample input data
+        const inputColumns = new Set();
+        sampleInputData.forEach(record => {
+            if (record && typeof record === 'object') {
+                Object.keys(record).forEach(key => inputColumns.add(key));
+            }
+        });
+        
+        if (inputColumns.size === 0) {
+            return warnings;
+        }
+        
+        // Extract columns referenced in the KQL transformation
+        const referencedColumns = new Set(extractTransformationInputColumns(kqlContent));
+        
+        // Find columns that exist in input but are not referenced in transformation
+        const unusedColumns = Array.from(inputColumns).filter(col => !referencedColumns.has(col));
+        
+        if (unusedColumns.length > 0) {
+            warnings.push({
+                message: `Some columns in sample input file aren't used in transformation but incurring Azure costs. Verify if possible to remove unused columns from input to optimize pipeline resources.`,
+                type: 'unused_input_columns',
+                field: 'sampleInputRecords',
+                location: `table_${tableName}_sample_input`,
+                severity: 'warning',
+                currentValue: `${unusedColumns.length} unused columns: ${unusedColumns.join(', ')}`,
+                expectedValue: 'All input columns used in transformation',
+                suggestion: `Consider removing unused columns from sample input to optimize Azure ingestion costs. Unused columns: ${unusedColumns.join(', ')}. Review your data pipeline to determine if these columns can be filtered out at the source.`,
+                microsoftRequirement: 'Azure Log Analytics charges for data ingestion and storage. Removing unused columns can reduce costs and improve query performance.',
+                fixInstructions: `1. Review the transformation file to confirm these columns are not needed\n2. Remove unused columns from the sample input file\n3. Update your data pipeline to exclude these columns at the source\n4. This optimization can reduce Azure ingestion and storage costs`,
+                unusedColumns: unusedColumns,
+                totalInputColumns: inputColumns.size,
+                referencedColumns: Array.from(referencedColumns)
+            });
+        }
+        
+    } catch (error) {
+        console.warn('Error checking for unused input columns:', error);
+    }
+    
+    return warnings;
 }
 
 async function validateTransformManifestFile(file, result) {
@@ -6167,6 +6392,22 @@ function showFixSuggestion(resultIndex, location) {
                                             </div>
                                         </div>
                                     ` : ''}
+                                    ${isWarning && problemItem.type === 'unused_input_columns' ? `
+                                        <div class="mt-2">
+                                            <small class="text-warning d-block"><strong>Unused columns identified:</strong></small>
+                                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                                ${problemItem.unusedColumns ? problemItem.unusedColumns.map(col => `<span class="badge bg-warning text-dark">${escapeHtml(col)}</span>`).join('') : ''}
+                                            </div>
+                                            ${problemItem.referencedColumns && problemItem.referencedColumns.length > 0 ? `
+                                                <div class="mt-2">
+                                                    <small class="text-success d-block"><strong>Used columns:</strong></small>
+                                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                                        ${problemItem.referencedColumns.map(col => `<span class="badge bg-success">${escapeHtml(col)}</span>`).join('')}
+                                                    </div>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>
@@ -6206,6 +6447,27 @@ function showFixSuggestion(resultIndex, location) {
                                     <li><strong>Type Safety:</strong> Prevents runtime errors from type mismatches</li>
                                     <li><strong>Storage Efficiency:</strong> More efficient data compression and storage</li>
                                 </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${isWarning && problemItem.type === 'unused_input_columns' ? `
+                            <div class="alert alert-warning">
+                                <h6 class="alert-heading"><i class="fas fa-dollar-sign me-2"></i>Cost Optimization Impact</h6>
+                                <p class="mb-2">Unused input columns are incurring unnecessary Azure costs. Consider these benefits of removing unused columns:</p>
+                                <ul class="mb-0">
+                                    <li><strong>Reduced Ingestion Costs:</strong> Lower data volume means lower Azure Log Analytics ingestion charges</li>
+                                    <li><strong>Storage Savings:</strong> Less data stored means reduced storage costs over time</li>
+                                    <li><strong>Improved Performance:</strong> Smaller payload size leads to faster data processing</li>
+                                    <li><strong>Simplified Pipeline:</strong> Cleaner data with only necessary columns reduces complexity</li>
+                                </ul>
+                                ${problemItem.unusedColumns && problemItem.unusedColumns.length > 0 ? `
+                                    <div class="mt-3">
+                                        <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Columns to Consider Removing:</h6>
+                                        <div class="d-flex flex-wrap gap-1 mt-2">
+                                            ${problemItem.unusedColumns.map(col => `<span class="badge bg-warning text-dark">${escapeHtml(col)}</span>`).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
                             </div>
                         ` : ''}
                     </div>
@@ -6297,6 +6559,7 @@ function getIssueCategoryName(type) {
         'missing_sample_input': 'Sample File Validation Failures',
         'missing_sample_output': 'Sample File Validation Failures',
         'incorrect_sample_file_name': 'Sample File Validation Failures',
+        'incorrect_sample_file_casing': 'Sample File Validation Failures',
         'missing_sample_output_folder': 'Sample File Validation Failures',
         'unknown': 'Other Issues'
     };
@@ -6313,6 +6576,7 @@ function getWarningCategoryName(type) {
         'empty_sample_data': 'Sample Data Issues',
         'invalid_record_structure': 'Record Structure Issues',
         'missing_kql_syntax_warning': 'KQL Syntax Issues',
+        'unused_input_columns': 'Resource Optimization Warnings',
         'unknown': 'Other Warnings'
     };
     
@@ -6352,6 +6616,7 @@ function getWarningCategoryIcon(type) {
         'empty_sample_data': 'fas fa-database',
         'invalid_record_structure': 'fas fa-list-alt',
         'missing_kql_syntax_warning': 'fas fa-search',
+        'unused_input_columns': 'fas fa-dollar-sign',
         'unknown': 'fas fa-exclamation-triangle'
     };
     
@@ -6391,6 +6656,7 @@ function getWarningCategoryDescription(type) {
         'empty_sample_data': 'Sample data files that are empty or have no records',
         'invalid_record_structure': 'Sample records that don\'t follow proper structure',
         'missing_kql_syntax_warning': 'KQL files that may not contain valid query syntax',
+        'unused_input_columns': 'Input columns that may be incurring unnecessary Azure costs',
         'unknown': 'Other warnings and suggestions for improvement'
     };
     
@@ -6662,6 +6928,33 @@ function showCategoryItemDetails(resultIndex, issueType, itemIndex) {
                         </div>
                     </div>
                 </div>
+            ` : ''}
+            
+            ${!isIssue && item.type === 'unused_input_columns' ? `
+                <div class="alert alert-warning py-2 mb-3">
+                    <i class="fas fa-dollar-sign me-2"></i>
+                    <strong>Cost Impact:</strong> Azure Log Analytics charges for data ingestion and storage. Unused columns in your input data are incurring unnecessary costs.
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Unused Columns:</h6>
+                    <div class="p-3 bg-light border border-warning rounded">
+                        <div class="d-flex flex-wrap gap-1">
+                            ${item.unusedColumns ? item.unusedColumns.map(col => `<span class="badge bg-warning text-dark">${escapeHtml(col)}</span>`).join('') : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                ${item.referencedColumns && item.referencedColumns.length > 0 ? `
+                    <div class="mb-3">
+                        <h6 class="text-success"><i class="fas fa-check me-1"></i>Currently Used Columns:</h6>
+                        <div class="p-3 bg-light border border-success rounded">
+                            <div class="d-flex flex-wrap gap-1">
+                                ${item.referencedColumns.map(col => `<span class="badge bg-success">${escapeHtml(col)}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
             ` : ''}
             
             <div class="d-flex gap-2 flex-wrap">

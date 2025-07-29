@@ -1,0 +1,37 @@
+{
+  "type": "Microsoft.OperationalInsights/workspaces/providers/dataTypeDefinitions",
+  "displayName": "Test Unused Columns",
+  "description": "Example showing unused column detection",
+  "simplifiedSchemaVersion": 3,
+  "tables": [
+    {
+      "name": "TestTable",
+      "description": "A test table to demonstrate unused column detection.",
+      "dataTypeId": "TestTable_CL",
+      "artifactVersion": "1.0.0",
+      "input": "Custom",
+      "transformFilePath": "TestTableTransform.kql",
+      "columns": [
+        {
+          "name": "TimeGenerated",
+          "description": "Time when the event was generated.",
+          "type": "DateTime",
+          "isHidden": false
+        },
+        {
+          "name": "EventMessage",
+          "description": "The main event message.",
+          "type": "String",
+          "isHidden": false
+        },
+        {
+          "name": "EventLevel",
+          "description": "The severity level of the event.",
+          "type": "String",
+          "isHidden": false
+        }
+      ]
+    }
+  ],
+  "queries": []
+}

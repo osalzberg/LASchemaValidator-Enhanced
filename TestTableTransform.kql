@@ -1,0 +1,7 @@
+// Test transformation that only uses some of the input columns
+source
+| project 
+    TimeGenerated = todatetime(timestamp),
+    EventMessage = tostring(message),
+    EventLevel = tostring(level)
+| where isnotempty(EventMessage)
