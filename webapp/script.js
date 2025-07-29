@@ -1592,6 +1592,41 @@ async function validateManifestFile(file, result) {
             });
         }
         
+        // Validate that each table has a corresponding sample input file
+        if (hasTables && uploadedFiles && uploadedFiles.length > 0) {
+            // Get all files in SampleInputRecords folder
+            const sampleInputFiles = uploadedFiles.filter(file => {
+                const relativePath = file.webkitRelativePath || file.relativePath || '';
+                return relativePath.includes('SampleInputRecords/') && file.name.endsWith('.json');
+            });
+            
+            manifest.tables.forEach((table, tableIndex) => {
+                const tableName = table.name;
+                if (tableName) {
+                    // Expected sample file name: <tableName>Sample.json
+                    const expectedFileName = `${tableName}Sample.json`;
+                    
+                    // Check if the expected sample file exists
+                    const hasSampleFile = sampleInputFiles.some(file => file.name === expectedFileName);
+                    
+                    if (!hasSampleFile) {
+                        result.warnings.push({
+                            message: `Table '${tableName}' is missing sample input file '${expectedFileName}'`,
+                            type: 'missing_sample_input',
+                            field: 'sampleInputFile',
+                            location: `tables[${tableIndex}]`,
+                            tableName: tableName,
+                            expectedFileName: expectedFileName,
+                            severity: 'warning',
+                            suggestion: `Create a sample input file named '${expectedFileName}' in the SampleInputRecords folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the input format for this table.`,
+                            microsoftRequirement: 'Each table in the manifest must have a corresponding sample input file in the SampleInputRecords folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.',
+                            fixInstructions: `1. Create a file named '${expectedFileName}' in the SampleInputRecords folder\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`
+                        });
+                    }
+                }
+            });
+        }
+        
         // Validate optional fields when present
         if (manifest.icmTeam && typeof manifest.icmTeam !== 'string') {
             result.issues.push({
