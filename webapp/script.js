@@ -2757,8 +2757,21 @@ function validateDescription(description, context, result, location) {
     }
 }
 
+function getTableDisplayName(table, index) {
+    // Try to get a meaningful table name for display
+    if (table.name) {
+        return `Table "${table.name}"`;
+    } else if (table.logicalName) {
+        return `Table "${table.logicalName}"`;
+    } else if (table.physicalName) {
+        return `Table "${table.physicalName}"`;
+    } else {
+        return `Table ${index + 1}`;
+    }
+}
+
 function validateTable(table, index, result) {
-    const tableContext = `Table ${index + 1}`;
+    const tableContext = getTableDisplayName(table, index);
     const tableLocation = `tables[${index}]`;
     
     // Check for table name - either standard 'name' OR transform pattern (workflowName + transformName + physicalName + logicalName)
@@ -2886,7 +2899,7 @@ function validateTable(table, index, result) {
             result.status = 'fail';
         } else {
             table.columns.forEach((column, colIndex) => {
-                validateColumn(column, colIndex, tableContext, result);
+                validateColumn(column, colIndex, tableContext, index, result);
             });
             
             // Check for required TimeGenerated column
@@ -2947,9 +2960,11 @@ function validateTable(table, index, result) {
                     const hasStandardName = column.name && typeof column.name === 'string';
                     const hasTransformPattern = column.transformName && column.physicalName && column.logicalName;
                     
+                    const columnDisplayName = column.name || column.logicalName || column.physicalName || `Column ${colIndex + 1}`;
+                    
                     if (!hasStandardName && !hasTransformPattern) {
                         result.issues.push({
-                            message: `${tableContext}: Column ${colIndex + 1} has invalid or missing name`,
+                            message: `${tableContext}: ${columnDisplayName} has invalid or missing name`,
                             type: 'invalid_column_name',
                             field: `columns[${colIndex}].name`,
                             location: `${tableLocation}.columns[${colIndex}].name`,
@@ -2981,8 +2996,9 @@ function validateTable(table, index, result) {
                         result.status = 'fail';
                     }
                 } catch (error) {
+                    const columnDisplayName = column.name || column.logicalName || column.physicalName || `Column ${colIndex + 1}`;
                     result.issues.push({
-                        message: `${tableContext}: Error processing column ${colIndex + 1} name - ${error.message}`,
+                        message: `${tableContext}: Error processing ${columnDisplayName} name - ${error.message}`,
                         type: 'column_name_processing_error',
                         field: `columns[${colIndex}].name`,
                         location: `${tableLocation}.columns[${colIndex}].name`,
@@ -3133,10 +3149,10 @@ function validateInputField(inputField, index, tableContext, result) {
     }
 }
 
-function validateColumn(column, index, tableContext, result) {
-    const columnContext = `${tableContext}, Column ${index + 1}`;
-    // Extract table index from tableContext (e.g., "Table 18" -> 17)
-    const tableIndex = parseInt(tableContext.match(/Table (\d+)/)[1]) - 1;
+function validateColumn(column, index, tableContext, tableIndex, result) {
+    // Create a meaningful column context using column name if available
+    const columnDisplayName = column.name || column.logicalName || column.physicalName || `Column ${index + 1}`;
+    const columnContext = `${tableContext}, ${columnDisplayName}`;
     const columnLocation = `tables[${tableIndex}].columns[${index}]`;
     
     // Check for column name - either standard 'name' OR transform pattern (transformName + physicalName + logicalName)
