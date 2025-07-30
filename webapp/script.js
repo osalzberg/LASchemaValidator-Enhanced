@@ -1719,9 +1719,41 @@ async function validateManifestFile(file, result) {
                 result.status = 'fail';
             }
             
+            // Check if user uploaded any sample files at all
+            const hasAnySampleInputFiles = sampleInputFiles.length > 0;
+            const hasAnySampleOutputFiles = sampleOutputFiles.length > 0;
+            const hasAnySampleFiles = hasAnySampleInputFiles || hasAnySampleOutputFiles;
+            
+            // If no sample files were uploaded at all, show general warnings instead of per-table warnings
+            if (!hasAnySampleFiles && hasTables) {
+                // General warning for missing sample input files
+                result.warnings.push({
+                    message: `No sample input files were uploaded. Consider adding sample input files for testing and validation.`,
+                    type: 'no_sample_input_files_uploaded',
+                    field: 'sampleInputFiles',
+                    location: 'root',
+                    severity: 'warning',
+                    suggestion: `Upload sample input files in the ${sampleInputPath} folder. Each table should have a corresponding sample input file named <tableName>Sample.json to validate data transformation correctness.`,
+                    microsoftRequirement: `Sample input files help validate that your transformation logic works correctly with real data examples.`,
+                    fixInstructions: `1. Create the ${sampleInputPath} folder\n2. Add sample input files for each table following the naming convention <tableName>Sample.json\n3. Include realistic JSON data that matches the input schema defined in each table's 'input' field`
+                });
+                
+                // General warning for missing sample output files  
+                result.warnings.push({
+                    message: `No sample output files were uploaded. Consider adding sample output files for testing and validation.`,
+                    type: 'no_sample_output_files_uploaded', 
+                    field: 'sampleOutputFiles',
+                    location: 'root',
+                    severity: 'warning',
+                    suggestion: `Upload sample output files in the ${sampleOutputPath} folder. Each table should have a corresponding sample output file named <tableName>Sample.json to validate output schema correctness.`,
+                    microsoftRequirement: `Sample output files help validate that your output schema matches the expected format after transformation.`,
+                    fixInstructions: `1. Create the ${sampleOutputPath} folder\n2. Add sample output files for each table following the naming convention <tableName>Sample.json\n3. Include JSON data that matches the output schema defined in each table's 'columns' field`
+                });
+            }
+            
             manifest.tables.forEach((table, tableIndex) => {
                 const tableName = table.name;
-                if (tableName) {
+                if (tableName && hasAnySampleFiles) { // Only do per-table validation if some sample files exist
                     // Expected sample file name: <tableName>Sample.json
                     const expectedFileName = `${tableName}Sample.json`;
                     
