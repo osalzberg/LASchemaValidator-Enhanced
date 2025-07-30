@@ -1889,6 +1889,10 @@ async function validateManifestFile(file, result) {
                 return file.name.endsWith('.kql') && relativePath.includes('KQL/');
             });
             
+            // Only validate transformation files if the user has uploaded any KQL files
+            // If no KQL files are uploaded, the user is just testing a manifest file
+            const hasKqlFiles = kqlFiles.length > 0;
+            
             manifest.tables.forEach((table, tableIndex) => {
                 const tableName = table.name;
                 const transformFilePath = table.transformFilePath;
@@ -1933,7 +1937,9 @@ async function validateManifestFile(file, result) {
                             expectedColumns: table.columns,
                             sampleInputFile: sampleInputFile
                         });
-                    } else {
+                    } else if (hasKqlFiles) {
+                        // Only show missing transformation file warning if user uploaded some KQL files
+                        // but this specific transformation file is missing
                         result.warnings.push({
                             message: `Table '${tableName}' references transformation file '${transformFilePath}' but the file was not found in uploaded files`,
                             type: 'missing_transformation_file',
