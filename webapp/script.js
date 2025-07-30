@@ -2731,7 +2731,19 @@ function validateDescription(description, context, result, location) {
         result.status = 'fail';
     }
     
-    if (!description.endsWith('.')) {
+    // Check for trailing spaces after period
+    if (description.trimEnd() !== description && description.trimEnd().endsWith('.')) {
+        result.issues.push({
+            message: `${context}: Description has trailing spaces after the period`,
+            type: 'formatting_error',
+            field: 'description',
+            location: location,
+            currentValue: description,
+            severity: 'error',
+            suggestion: `Remove the trailing spaces after the period in "${description}".`
+        });
+        result.status = 'fail';
+    } else if (!description.endsWith('.')) {
         result.issues.push({
             message: `${context}: Description must end with a period`,
             type: 'formatting_error',
