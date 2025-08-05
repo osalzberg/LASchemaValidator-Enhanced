@@ -7105,7 +7105,7 @@ function showCategoryItemDetails(resultIndex, issueType, itemIndex) {
             
             <div class="d-flex gap-2 flex-wrap">
                 ${result.originalContent ? `
-                    <button class="btn btn-sm btn-outline-secondary" onclick="showFileContent('${resultIndex}', '${item.location || 'unknown'}')">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="showFileContent(${resultIndex}, '${item.location || 'unknown'}')">
                         <i class="fas fa-file-code me-1"></i>View File Content
                     </button>
                 ` : ''}
