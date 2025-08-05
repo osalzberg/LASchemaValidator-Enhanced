@@ -4125,9 +4125,6 @@ function toggleWarningDetails(detailsId, button) {
 function showFileContent(resultIndex, location) {
     // Enhanced error handling and debugging
     try {
-        // Debug: Log the function call
-        console.log('showFileContent called with:', { resultIndex, location });
-        
         const results = validationResults; // Assuming this is stored globally
         
         if (!results) {
@@ -4136,8 +4133,6 @@ function showFileContent(resultIndex, location) {
             return;
         }
         
-        console.log('validationResults found:', results.length, 'results');
-        
         const result = results[resultIndex];
         
         if (!result) {
@@ -4145,8 +4140,6 @@ function showFileContent(resultIndex, location) {
             showAlert('File result not found. Please try again.', 'warning');
             return;
         }
-        
-        console.log('Result found:', result.filename, 'originalContent length:', result.originalContent?.length);
         
         if (!result.originalContent) {
             console.error('No original content available for result:', result);
@@ -5436,12 +5429,6 @@ function scrollToProblematicLine(location, issue) {
             const containerRect = scrollContainer.getBoundingClientRect();
             const targetRect = targetElement.getBoundingClientRect();
             const containerScrollTop = scrollContainer.scrollTop;
-            
-            console.log('Scroll calculation:', {
-                containerRect: { top: containerRect.top, height: containerRect.height },
-                targetRect: { top: targetRect.top, height: targetRect.height },
-                containerScrollTop
-            });
             
             // Calculate position relative to scroll container
             const targetTop = targetRect.top - containerRect.top + containerScrollTop;
