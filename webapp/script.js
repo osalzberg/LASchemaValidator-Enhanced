@@ -4506,7 +4506,10 @@ function toggleWarningDetails(detailsId, button) {
 function showFileContent(resultIndex, location) {
     // Enhanced error handling and logging
     try {
-        const results = validationResults; // Assuming this is stored globally
+        const results = window.validationResults || validationResults; // Check both global and window scope
+        
+        console.log('showFileContent called with:', { resultIndex, location });
+        console.log('Available results:', results);
         
         if (!results) {
             console.error('validationResults is not available');
@@ -4518,13 +4521,15 @@ function showFileContent(resultIndex, location) {
         
         if (!result) {
             console.error('Result not found at index:', resultIndex);
+            console.log('Available results length:', results.length);
+            console.log('Requested index:', resultIndex);
             showAlert('File result not found. Please try again.', 'warning');
             return;
         }
         
         if (!result.originalContent) {
             console.error('No original content available for result:', result);
-            showAlert('File content not available for viewing.', 'warning');
+            showAlert('File content not available for viewing. The file may not have been properly loaded.', 'warning');
             return;
         }
         
@@ -6086,6 +6091,10 @@ window.showValidationAndScroll = showValidationAndScroll;
 
 // Make function globally accessible
 window.toggleValidationDetails = toggleValidationDetails;
+window.showFileContent = showFileContent;
+window.copyFileContentToClipboard = copyFileContentToClipboard;
+window.downloadFileContent = downloadFileContent;
+window.showFixSuggestion = showFixSuggestion;
 
 /**
  * 🎯 DRAG & DROP HANDLER SETUP
