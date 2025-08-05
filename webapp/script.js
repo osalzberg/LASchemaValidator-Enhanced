@@ -3919,6 +3919,7 @@ function displayValidationResults(results) {
     
     // Store results globally for drill-down functionality
     validationResults = results;
+    window.validationResults = results; // Also make it available on window object
     
     // Calculate summary stats
     const totalFiles = results.length;
@@ -4334,7 +4335,7 @@ function createIssueCard(issue, resultIndex, issueIndex, result) {
                         ${result.originalContent ? `
                             <div class="mb-3">
                                 <h6>File Content Preview:</h6>
-                                <button class="btn btn-sm btn-secondary" onclick="showFileContent(${resultIndex}, '${issueLocation}')">
+                                <button class="btn btn-sm btn-secondary" onclick="console.log('Issue button clicked!', ${resultIndex}, '${issueLocation}'); showFileContent(${resultIndex}, '${issueLocation}')">
                                     <i class="fas fa-file-code me-1"></i> View File Content & Fix
                                 </button>
                             </div>
@@ -4446,7 +4447,7 @@ function createWarningCard(warning, resultIndex, warningIndex, result) {
                                 ${result.originalContent ? `
                                     <div class="mb-3">
                                         <h6>File Content Preview:</h6>
-                                        <button class="btn btn-sm btn-secondary" onclick="showFileContent(${resultIndex}, '${warningLocation}')">
+                                        <button class="btn btn-sm btn-secondary" onclick="console.log('Warning button 1 clicked!', ${resultIndex}, '${warningLocation}'); showFileContent(${resultIndex}, '${warningLocation}')">
                                             <i class="fas fa-file-code me-1"></i> View File Content & Fix
                                         </button>
                                     </div>
@@ -4456,7 +4457,7 @@ function createWarningCard(warning, resultIndex, warningIndex, result) {
                             ${result.originalContent ? `
                                 <div class="mb-3">
                                     <h6>File Content Preview:</h6>
-                                    <button class="btn btn-sm btn-secondary" onclick="showFileContent(${resultIndex}, '${warningLocation}')">
+                                    <button class="btn btn-sm btn-secondary" onclick="console.log('Warning button 2 clicked!', ${resultIndex}, '${warningLocation}'); showFileContent(${resultIndex}, '${warningLocation}')">
                                         <i class="fas fa-file-code me-1"></i> View File Content & Fix
                                     </button>
                                 </div>
@@ -6095,6 +6096,7 @@ window.showFileContent = showFileContent;
 window.copyFileContentToClipboard = copyFileContentToClipboard;
 window.downloadFileContent = downloadFileContent;
 window.showFixSuggestion = showFixSuggestion;
+window.validationResults = validationResults;
 
 /**
  * 🎯 DRAG & DROP HANDLER SETUP
@@ -7114,7 +7116,7 @@ function showCategoryItemDetails(resultIndex, issueType, itemIndex) {
             
             <div class="d-flex gap-2 flex-wrap">
                 ${result.originalContent ? `
-                    <button class="btn btn-sm btn-outline-secondary" onclick="showFileContent(${resultIndex}, '${item.location || 'unknown'}')">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="console.log('Button clicked!', ${resultIndex}, '${item.location || 'unknown'}'); showFileContent(${resultIndex}, '${item.location || 'unknown'}');">
                         <i class="fas fa-file-code me-1"></i>View File Content
                     </button>
                 ` : ''}
