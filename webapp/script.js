@@ -83,18 +83,9 @@ let validationResults = [];
 
 // Declare global functions early to ensure they're available for onclick handlers
 function startValidationWithScroll() {
-    // Add debug logging to help troubleshoot the issue
-    console.log('startValidationWithScroll called');
-    
     try {
         const uploadSection = document.getElementById('upload-section');
         const button = document.getElementById('startValidationBtn');
-        
-        console.log('Elements found:', {
-            uploadSection: uploadSection ? 'found' : 'NOT FOUND',
-            button: button ? 'found' : 'NOT FOUND',
-            uploadSectionDisplay: uploadSection ? uploadSection.style.display : 'N/A'
-        });
         
         if (!uploadSection) {
             console.error('Upload section not found!');
@@ -110,7 +101,6 @@ function startValidationWithScroll() {
 
         if (uploadSection.style.display === 'none' || uploadSection.style.display === '') {
             // Show the upload section
-            console.log('Showing upload section...');
             uploadSection.style.display = 'block';
             uploadSection.classList.remove('hide');
             uploadSection.classList.add('show');
@@ -122,14 +112,12 @@ function startValidationWithScroll() {
             
             // Auto-scroll to the upload section
             setTimeout(() => {
-                console.log('Scrolling to upload section...');
                 uploadSection.scrollIntoView({ 
                     behavior: 'smooth' 
                 });
             }, 100);
         } else {
             // Hide the upload section
-            console.log('Hiding upload section...');
             uploadSection.classList.remove('show');
             uploadSection.classList.add('hide');
             
@@ -153,8 +141,6 @@ function startValidationWithScroll() {
             }
         }
         
-        console.log('Function completed successfully');
-        
     } catch (error) {
         console.error('Error in startValidationWithScroll:', error);
         alert('An error occurred: ' + error.message);
@@ -163,7 +149,6 @@ function startValidationWithScroll() {
 
 // Make function available globally immediately
 window.startValidationWithScroll = startValidationWithScroll;
-console.log('startValidationWithScroll assigned to window:', typeof window.startValidationWithScroll);
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
@@ -371,31 +356,15 @@ function setupFileInput() {
     
     if (fileInput) {
         fileInput.addEventListener('change', function(e) {
-            console.log('File input changed:', e.target.files.length, 'files');
-            console.log('File input webkitdirectory:', e.target.webkitdirectory);
             handleFiles(e.target.files);
         });
-        
-        // Add click listener to debug
-        fileInput.addEventListener('click', function(e) {
-            console.log('File input clicked');
-        });
     }
-    
+
     if (folderInput) {
         folderInput.addEventListener('change', function(e) {
-            console.log('Folder input changed:', e.target.files.length, 'files');
-            console.log('Folder input webkitdirectory:', e.target.webkitdirectory);
             handleFiles(e.target.files);
         });
-        
-        // Add click listener to debug
-        folderInput.addEventListener('click', function(e) {
-            console.log('Folder input clicked');
-        });
-    }
-    
-    // Set up direct button click handlers as backup
+    }    // Set up direct button click handlers as backup
     setupFileInputButtons();
 }
 
@@ -449,13 +418,11 @@ function setupFileInputButtons() {
             e.stopImmediatePropagation();
             
             if (isProcessingClick) {
-                console.log('File button click ignored - processing in progress');
                 return;
             }
             
             isProcessingClick = true;
             lastClickType = 'files';
-            console.log('Select Files button clicked');
             
             const fileInput = document.getElementById('fileInput');
             const folderInput = document.getElementById('folderInput');
@@ -472,7 +439,6 @@ function setupFileInputButtons() {
                 
                 // Use longer timeout to prevent interference
                 setTimeout(() => {
-                    console.log('About to click file input');
                     fileInput.click();
                     
                     // Reset the processing flag and re-enable folder input after click
@@ -480,7 +446,6 @@ function setupFileInputButtons() {
                         enableInput(folderInput);
                         isProcessingClick = false;
                         lastClickType = null;
-                        console.log('File input processing completed');
                     }, 200);
                 }, 100);
             } else {
@@ -497,13 +462,11 @@ function setupFileInputButtons() {
             e.stopImmediatePropagation();
             
             if (isProcessingClick) {
-                console.log('Folder button click ignored - processing in progress');
                 return;
             }
             
             isProcessingClick = true;
             lastClickType = 'folder';
-            console.log('Select Folder button clicked');
             
             const fileInput = document.getElementById('fileInput');
             const folderInput = document.getElementById('folderInput');
@@ -520,7 +483,6 @@ function setupFileInputButtons() {
                 
                 // Use longer timeout to prevent interference
                 setTimeout(() => {
-                    console.log('About to click folder input');
                     folderInput.click();
                     
                     // Reset the processing flag and re-enable file input after click
@@ -528,7 +490,6 @@ function setupFileInputButtons() {
                         enableInput(fileInput);
                         isProcessingClick = false;
                         lastClickType = null;
-                        console.log('Folder input processing completed');
                     }, 200);
                 }, 100);
             } else {
@@ -1704,209 +1665,89 @@ async function validateManifestFile(file, result) {
             // Check if there are any sample output files at all
             const hasSampleOutputFiles = sampleOutputFiles.length > 0;
             
-            // If no sample output files exist at all AND path is not explicitly declared, give one general warning
+            // If no sample output files exist at all, give one general warning
             if (!hasSampleOutputFiles && !manifest.sampleOutputRecordsFilePath) {
-                result.issues.push({
+                result.warnings.push({
                     message: `No sample output files found in ${sampleOutputPath} folder`,
                     type: 'missing_sample_output_folder',
                     field: 'sampleOutputFiles',
                     location: 'root',
-                    severity: 'error',
+                    severity: 'warning',
                     suggestion: `Create the ${sampleOutputPath} folder and add sample output files for your tables. Each table should have a corresponding sample output file named <tableName>Sample.json.`,
                     microsoftRequirement: `Sample output files are required for schema validation and E2E testing.`,
                     fixInstructions: `1. Create the ${sampleOutputPath} folder\n2. Add sample output files for each table following the naming convention <tableName>Sample.json\n3. Ensure the sample data matches the output schema defined in each table's 'columns' field`
-                });
-                result.status = 'fail';
-            }
-            
-            // Check if user uploaded any sample files at all
-            const hasAnySampleInputFiles = sampleInputFiles.length > 0;
-            const hasAnySampleOutputFiles = sampleOutputFiles.length > 0;
-            const hasAnySampleFiles = hasAnySampleInputFiles || hasAnySampleOutputFiles;
-            
-            // If no sample files were uploaded at all, show general warnings instead of per-table warnings
-            if (!hasAnySampleFiles && hasTables) {
-                // General warning for missing sample input files
-                result.warnings.push({
-                    message: `No sample input files were uploaded. Consider adding sample input files for testing and validation.`,
-                    type: 'no_sample_input_files_uploaded',
-                    field: 'sampleInputFiles',
-                    location: 'root',
-                    severity: 'warning',
-                    suggestion: `Upload sample input files in the ${sampleInputPath} folder. Each table should have a corresponding sample input file named <tableName>Sample.json to validate data transformation correctness.`,
-                    microsoftRequirement: `Sample input files help validate that your transformation logic works correctly with real data examples.`,
-                    fixInstructions: `1. Create the ${sampleInputPath} folder\n2. Add sample input files for each table following the naming convention <tableName>Sample.json\n3. Include realistic JSON data that matches the input schema defined in each table's 'input' field`
-                });
-                
-                // General warning for missing sample output files  
-                result.warnings.push({
-                    message: `No sample output files were uploaded. Consider adding sample output files for testing and validation.`,
-                    type: 'no_sample_output_files_uploaded', 
-                    field: 'sampleOutputFiles',
-                    location: 'root',
-                    severity: 'warning',
-                    suggestion: `Upload sample output files in the ${sampleOutputPath} folder. Each table should have a corresponding sample output file named <tableName>Sample.json to validate output schema correctness.`,
-                    microsoftRequirement: `Sample output files help validate that your output schema matches the expected format after transformation.`,
-                    fixInstructions: `1. Create the ${sampleOutputPath} folder\n2. Add sample output files for each table following the naming convention <tableName>Sample.json\n3. Include JSON data that matches the output schema defined in each table's 'columns' field`
                 });
             }
             
             manifest.tables.forEach((table, tableIndex) => {
                 const tableName = table.name;
-                if (tableName && hasAnySampleFiles) { // Only do per-table validation if some sample files exist
+                if (tableName) {
                     // Expected sample file name: <tableName>Sample.json
                     const expectedFileName = `${tableName}Sample.json`;
                     
                     // Check if the expected sample input file exists
-                    let hasSampleInputFile = false;
-                    
-                    if (manifest.sampleInputRecordsFilePath && manifest.sampleInputRecordsFilePath.endsWith('.json')) {
-                        // If sampleInputRecordsFilePath points to a specific file, check if that file exists
-                        const specifiedFilePath = manifest.sampleInputRecordsFilePath;
-                        hasSampleInputFile = uploadedFiles.some(file => {
-                            const relativePath = file.webkitRelativePath || file.relativePath || '';
-                            return relativePath.endsWith(specifiedFilePath) || relativePath === specifiedFilePath;
-                        });
-                    } else {
-                        // If sampleInputRecordsFilePath is a folder or not specified, use the folder-based approach
-                        hasSampleInputFile = sampleInputFiles.some(file => file.name === expectedFileName);
-                    }
+                    const hasSampleInputFile = sampleInputFiles.some(file => file.name === expectedFileName);
                     
                     if (!hasSampleInputFile) {
-                        // Check if there's a file with the table name but missing "Sample" suffix (only for folder-based approach)
-                        let hasIncorrectlyNamedFile = false;
-                        const incorrectFileName = `${tableName}.json`;
-                        
-                        // Check for case mismatch first
-                        let hasCaseMismatchFile = false;
-                        let caseMismatchFileName = '';
-                        
-                        if (!manifest.sampleInputRecordsFilePath || !manifest.sampleInputRecordsFilePath.endsWith('.json')) {
-                            hasIncorrectlyNamedFile = sampleInputFiles.some(file => file.name === incorrectFileName);
+                        const warningType = manifest.sampleInputRecordsFilePath ? 'error' : 'warning';
+                        const messageContent = manifest.sampleInputRecordsFilePath ? 
+                            `Table '${tableName}' requires sample input file '${expectedFileName}' in declared path '${sampleInputPath}' but file is missing` :
+                            `Table '${tableName}' is missing sample input file '${expectedFileName}'`;
                             
-                            // Check for case-insensitive match
-                            const caseMismatchFile = sampleInputFiles.find(file => 
-                                file.name.toLowerCase() === expectedFileName.toLowerCase() && 
-                                file.name !== expectedFileName
-                            );
-                            
-                            if (caseMismatchFile) {
-                                hasCaseMismatchFile = true;
-                                caseMismatchFileName = caseMismatchFile.name;
-                            }
-                        }
-                        
-                        let messageContent, suggestion, fixInstructions;
-                        
-                        if (manifest.sampleInputRecordsFilePath && manifest.sampleInputRecordsFilePath.endsWith('.json')) {
-                            // Check for case mismatch in declared file path
-                            const declaredFileName = manifest.sampleInputRecordsFilePath.split('/').pop();
-                            const caseMismatchDeclaredFile = uploadedFiles.find(file => {
-                                const fileName = (file.webkitRelativePath || file.relativePath || file.name).split('/').pop();
-                                return fileName.toLowerCase() === declaredFileName.toLowerCase() && 
-                                       fileName !== declaredFileName;
-                            });
-                            
-                            if (caseMismatchDeclaredFile) {
-                                const actualFileName = (caseMismatchDeclaredFile.webkitRelativePath || caseMismatchDeclaredFile.relativePath || caseMismatchDeclaredFile.name).split('/').pop();
-                                messageContent = `Table '${tableName}' sample input file found with incorrect casing: expected '${declaredFileName}', found '${actualFileName}'`;
-                                suggestion = `Rename the file '${actualFileName}' to '${declaredFileName}' to match the exact casing specified in the manifest. File names are case-sensitive in Azure Log Analytics validation.`;
-                                fixInstructions = `1. Locate the file '${actualFileName}'\n2. Rename it to '${declaredFileName}' (note the exact capitalization)\n3. Ensure the file path matches exactly what is declared in the manifest`;
-                            } else {
-                                // Specific file path is declared but file is missing
-                                messageContent = `Table '${tableName}' requires sample input file at declared path '${manifest.sampleInputRecordsFilePath}' but file is missing`;
-                                suggestion = `Create the sample input file at the exact path specified in the manifest: '${manifest.sampleInputRecordsFilePath}'. This file should contain sample JSON data that represents the input format for this table.`;
-                                fixInstructions = `1. Create a file at the exact path '${manifest.sampleInputRecordsFilePath}'\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`;
-                            }
-                        } else if (hasCaseMismatchFile) {
-                            // File exists but has incorrect casing
-                            messageContent = `Table '${tableName}' sample input file found with incorrect casing: expected '${expectedFileName}', found '${caseMismatchFileName}'`;
-                            suggestion = `Rename the file '${caseMismatchFileName}' to '${expectedFileName}' to match the exact casing required. File names are case-sensitive in Azure Log Analytics validation.`;
-                            fixInstructions = `1. Locate the file '${caseMismatchFileName}' in the ${sampleInputPath} folder\n2. Rename it to '${expectedFileName}' (note the exact capitalization)\n3. File names must match exactly including case sensitivity`;
-                        } else if (hasIncorrectlyNamedFile) {
-                            // File exists but has wrong name (missing "Sample")
-                            messageContent = `Table '${tableName}' has incorrectly named sample input file '${incorrectFileName}' - should be named '${expectedFileName}'`;
-                            suggestion = `Rename the existing file '${incorrectFileName}' to '${expectedFileName}' to follow the required naming convention. The file content appears to be correct, only the filename needs to be updated.`;
-                            fixInstructions = `1. Locate the file '${incorrectFileName}' in the ${sampleInputPath} folder\n2. Rename it to '${expectedFileName}'\n3. The naming convention requires the word "Sample" to be added between the table name and file extension`;
-                        } else {
-                            // File doesn't exist at all
-                            messageContent = `Table '${tableName}' is missing sample input file '${expectedFileName}'`;
-                            suggestion = `Create a sample input file named '${expectedFileName}' in the ${sampleInputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the input format for this table.`;
-                            fixInstructions = `1. Create a file named '${expectedFileName}' in the ${sampleInputPath} folder\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`;
-                        }
-                            
-                        const errorObj = {
+                        const warningObj = {
                             message: messageContent,
-                            type: hasCaseMismatchFile ? 'incorrect_sample_file_casing' : 
-                                  (hasIncorrectlyNamedFile ? 'incorrect_sample_file_name' : 'missing_sample_input'),
+                            type: 'missing_sample_input',
                             field: 'sampleInputFile',
                             location: `tables[${tableIndex}]`,
                             tableName: tableName,
                             expectedFileName: expectedFileName,
-                            incorrectFileName: hasIncorrectlyNamedFile ? incorrectFileName : null,
-                            caseMismatchFileName: hasCaseMismatchFile ? caseMismatchFileName : null,
-                            severity: 'error',
+                            severity: warningType,
                             declaredPath: manifest.sampleInputRecordsFilePath || null,
-                            suggestion: suggestion,
-                            microsoftRequirement: `Each table in the manifest must have a corresponding sample input file following the proper naming convention for schema validation and E2E testing.`,
-                            fixInstructions: fixInstructions
+                            suggestion: `Create a sample input file named '${expectedFileName}' in the ${sampleInputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the input format for this table.`,
+                            microsoftRequirement: `Each table in the manifest must have a corresponding sample input file in the ${sampleInputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
+                            fixInstructions: `1. Create a file named '${expectedFileName}' in the ${sampleInputPath} folder\n2. Add sample JSON data that represents the expected input format for the '${tableName}' table\n3. Ensure the sample data matches the input schema defined in the table's 'input' field`
                         };
                         
-                        result.issues.push(errorObj);
-                        result.status = 'fail';
+                        if (warningType === 'error') {
+                            result.issues.push(warningObj);
+                            result.status = 'fail';
+                        } else {
+                            result.warnings.push(warningObj);
+                        }
                     }
                     
-                    // Only check individual table sample output files if:
-                    // 1. There are sample output files present (partial implementation), OR
-                    // 2. The path is explicitly declared in manifest (strict validation required)
-                    const shouldCheckIndividualOutputFiles = hasSampleOutputFiles || manifest.sampleOutputRecordsFilePath;
-                    
-                    if (shouldCheckIndividualOutputFiles) {
+                    // Only check individual table sample output files if there are sample output files present
+                    // OR if the path is explicitly declared in manifest
+                    if (hasSampleOutputFiles || manifest.sampleOutputRecordsFilePath) {
                         // Check if the expected sample output file exists
                         const hasSampleOutputFile = sampleOutputFiles.some(file => file.name === expectedFileName);
                         
                         if (!hasSampleOutputFile) {
-                            // Check if there's a file with the table name but missing "Sample" suffix
-                            const incorrectFileName = `${tableName}.json`;
-                            const hasIncorrectlyNamedFile = sampleOutputFiles.some(file => file.name === incorrectFileName);
-                            
-                            let messageContent, suggestion, fixInstructions;
-                            
-                            if (hasIncorrectlyNamedFile) {
-                                // File exists but has wrong name (missing "Sample")
-                                messageContent = manifest.sampleOutputRecordsFilePath ? 
-                                    `Table '${tableName}' has incorrectly named sample output file '${incorrectFileName}' in declared path '${sampleOutputPath}' - should be named '${expectedFileName}'` :
-                                    `Table '${tableName}' has incorrectly named sample output file '${incorrectFileName}' - should be named '${expectedFileName}'`;
+                            const warningType = manifest.sampleOutputRecordsFilePath ? 'error' : 'warning';
+                            const messageContent = manifest.sampleOutputRecordsFilePath ? 
+                                `Table '${tableName}' requires sample output file '${expectedFileName}' in declared path '${sampleOutputPath}' but file is missing` :
+                                `Table '${tableName}' is missing sample output file '${expectedFileName}'`;
                                 
-                                suggestion = `Rename the existing file '${incorrectFileName}' to '${expectedFileName}' to follow the required naming convention. The file content appears to be correct, only the filename needs to be updated.`;
-                                fixInstructions = `1. Locate the file '${incorrectFileName}' in the ${sampleOutputPath} folder\n2. Rename it to '${expectedFileName}'\n3. The naming convention requires the word "Sample" to be added between the table name and file extension`;
-                            } else {
-                                // File doesn't exist at all
-                                messageContent = manifest.sampleOutputRecordsFilePath ? 
-                                    `Table '${tableName}' requires sample output file '${expectedFileName}' in declared path '${sampleOutputPath}' but file is missing` :
-                                    `Table '${tableName}' is missing sample output file '${expectedFileName}'`;
-                                
-                                suggestion = `Create a sample output file named '${expectedFileName}' in the ${sampleOutputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the expected output format after transformation for this table.`;
-                                fixInstructions = `1. Create a file named '${expectedFileName}' in the ${sampleOutputPath} folder\n2. Add sample JSON data that represents the expected output format for the '${tableName}' table after transformation\n3. Ensure the sample data matches the output schema defined in the table's 'columns' field\n4. Do not include system-generated fields like _ResourceId, _SubscriptionId, TenantId, or Type`;
-                            }
-                                
-                            const errorObj = {
+                            const warningObj = {
                                 message: messageContent,
-                                type: hasIncorrectlyNamedFile ? 'incorrect_sample_file_name' : 'missing_sample_output',
+                                type: 'missing_sample_output',
                                 field: 'sampleOutputFile',
                                 location: `tables[${tableIndex}]`,
                                 tableName: tableName,
                                 expectedFileName: expectedFileName,
-                                incorrectFileName: hasIncorrectlyNamedFile ? incorrectFileName : null,
-                                severity: 'error',
+                                severity: warningType,
                                 declaredPath: manifest.sampleOutputRecordsFilePath || null,
-                                suggestion: suggestion,
+                                suggestion: `Create a sample output file named '${expectedFileName}' in the ${sampleOutputPath} folder. This file is required for schema correctness validation and E2E testing. The file should contain sample JSON data that represents the expected output format after transformation for this table.`,
                                 microsoftRequirement: `Each table in the manifest must have a corresponding sample output file in the ${sampleOutputPath} folder following the naming convention <tableName>Sample.json for schema validation and E2E testing.`,
-                                fixInstructions: fixInstructions
+                                fixInstructions: `1. Create a file named '${expectedFileName}' in the ${sampleOutputPath} folder\n2. Add sample JSON data that represents the expected output format for the '${tableName}' table after transformation\n3. Ensure the sample data matches the output schema defined in the table's 'columns' field\n4. Do not include system-generated fields like _ResourceId, _SubscriptionId, TenantId, or Type`
                             };
                             
-                            result.issues.push(errorObj);
-                            result.status = 'fail';
+                            if (warningType === 'error') {
+                                result.issues.push(warningObj);
+                                result.status = 'fail';
+                            } else {
+                                result.warnings.push(warningObj);
+                            }
                         }
                     }
                 }
@@ -1920,10 +1761,6 @@ async function validateManifestFile(file, result) {
                 const relativePath = file.webkitRelativePath || file.relativePath || '';
                 return file.name.endsWith('.kql') && relativePath.includes('KQL/');
             });
-            
-            // Only validate transformation files if the user has uploaded any KQL files
-            // If no KQL files are uploaded, the user is just testing a manifest file
-            const hasKqlFiles = kqlFiles.length > 0;
             
             manifest.tables.forEach((table, tableIndex) => {
                 const tableName = table.name;
@@ -1939,22 +1776,6 @@ async function validateManifestFile(file, result) {
                     });
                     
                     if (kqlFile) {
-                        // Find the corresponding sample input file
-                        const expectedSampleFileName = `${tableName}Sample.json`;
-                        let sampleInputFile = null;
-                        
-                        if (manifest.sampleInputRecordsFilePath && manifest.sampleInputRecordsFilePath.endsWith('.json')) {
-                            // If sampleInputRecordsFilePath points to a specific file
-                            const specifiedFilePath = manifest.sampleInputRecordsFilePath;
-                            sampleInputFile = uploadedFiles.find(file => {
-                                const relativePath = file.webkitRelativePath || file.relativePath || '';
-                                return relativePath.endsWith(specifiedFilePath) || relativePath === specifiedFilePath;
-                            });
-                        } else {
-                            // Use folder-based approach
-                            sampleInputFile = sampleInputFiles.find(file => file.name === expectedSampleFileName);
-                        }
-                        
                         // We'll validate the schema match asynchronously
                         // For now, we'll add this to a queue for later processing
                         if (!result.pendingSchemaValidations) {
@@ -1966,12 +1787,9 @@ async function validateManifestFile(file, result) {
                             tableName: tableName,
                             transformFilePath: transformFilePath,
                             kqlFile: kqlFile,
-                            expectedColumns: table.columns,
-                            sampleInputFile: sampleInputFile
+                            expectedColumns: table.columns
                         });
-                    } else if (hasKqlFiles) {
-                        // Only show missing transformation file warning if user uploaded some KQL files
-                        // but this specific transformation file is missing
+                    } else {
                         result.warnings.push({
                             message: `Table '${tableName}' references transformation file '${transformFilePath}' but the file was not found in uploaded files`,
                             type: 'missing_transformation_file',
@@ -2094,26 +1912,6 @@ async function validateTransformationSchemaMatch(manifestResult, kqlFiles) {
                     });
                 });
                 manifestResult.status = 'fail';
-            }
-            
-            // Check for unused input columns if sample input file is available
-            if (validation.sampleInputFile) {
-                try {
-                    const sampleInputContent = await readFileContent(validation.sampleInputFile);
-                    const sampleInputData = JSON.parse(sampleInputContent);
-                    
-                    const unusedColumnWarnings = checkForUnusedInputColumns(sampleInputData, kqlContent, validation.tableName);
-                    unusedColumnWarnings.forEach(warning => {
-                        manifestResult.warnings.push({
-                            ...warning,
-                            tableIndex: validation.tableIndex,
-                            tableName: validation.tableName,
-                            transformFilePath: validation.transformFilePath
-                        });
-                    });
-                } catch (error) {
-                    console.warn(`Could not check unused columns for table '${validation.tableName}':`, error);
-                }
             }
             
         } catch (error) {
@@ -2365,157 +2163,6 @@ function areTypesCompatible(transformationType, expectedType) {
     return false;
 }
 
-function extractTransformationInputColumns(kqlContent) {
-    const inputColumns = new Set();
-    
-    // Remove comments and normalize whitespace
-    const cleanContent = kqlContent
-        .replace(/\/\/.*$/gm, '') // Remove single-line comments
-        .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
-        .replace(/\s+/g, ' ') // Normalize whitespace
-        .trim();
-    
-    // Look for column references in the KQL content
-    // Focus on project statements and other column references
-    
-    // Find project statements and extract column references
-    const projectRegex = /\|\s*project\s+([^|;]+)/gi;
-    const projectMatches = cleanContent.match(projectRegex);
-    
-    if (projectMatches) {
-        projectMatches.forEach(projectStatement => {
-            const projectContent = projectStatement.replace(/\|\s*project\s+/i, '').trim();
-            
-            // Look for column assignments like "OutputCol = InputCol" or just "InputCol"
-            const columnExpressions = parseProjectColumns(projectContent);
-            
-            columnExpressions.forEach(expr => {
-                // Extract input column references from expressions
-                const inputRefs = extractInputColumnReferences(expr);
-                inputRefs.forEach(ref => inputColumns.add(ref));
-            });
-        });
-    }
-    
-    // Also look for extend statements
-    const extendRegex = /\|\s*extend\s+([^|;]+)/gi;
-    const extendMatches = cleanContent.match(extendRegex);
-    
-    if (extendMatches) {
-        extendMatches.forEach(extendStatement => {
-            const extendContent = extendStatement.replace(/\|\s*extend\s+/i, '').trim();
-            const columnExpressions = parseProjectColumns(extendContent);
-            
-            columnExpressions.forEach(expr => {
-                const inputRefs = extractInputColumnReferences(expr);
-                inputRefs.forEach(ref => inputColumns.add(ref));
-            });
-        });
-    }
-    
-    // Look for where clauses that might reference input columns
-    const whereRegex = /\|\s*where\s+([^|;]+)/gi;
-    const whereMatches = cleanContent.match(whereRegex);
-    
-    if (whereMatches) {
-        whereMatches.forEach(whereStatement => {
-            const whereContent = whereStatement.replace(/\|\s*where\s+/i, '').trim();
-            const inputRefs = extractInputColumnReferences(whereContent);
-            inputRefs.forEach(ref => inputColumns.add(ref));
-        });
-    }
-    
-    return Array.from(inputColumns);
-}
-
-function extractInputColumnReferences(expression) {
-    const inputColumns = new Set();
-    
-    // KQL functions and keywords to exclude
-    const kqlKeywords = new Set([
-        'let', 'extend', 'project', 'where', 'summarize', 'join', 'union', 'sort', 'order', 'take', 'limit',
-        'count', 'distinct', 'group', 'by', 'on', 'kind', 'has', 'contains', 'startswith', 'endswith',
-        'matches', 'regex', 'parse', 'extract', 'split', 'strcat', 'substring', 'replace', 'trim',
-        'tolower', 'toupper', 'tostring', 'toint', 'tolong', 'toreal', 'todatetime', 'totimespan',
-        'now', 'ago', 'datetime', 'timespan', 'true', 'false', 'null', 'and', 'or', 'not', 'in', 'between',
-        'case', 'iff', 'isnull', 'isempty', 'isnan', 'isinf', 'pack', 'unpack', 'bag_keys', 'bag_values',
-        'source', 'data'
-    ]);
-    
-    // Look for identifiers that could be column references
-    const columnPattern = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
-    let match;
-    
-    while ((match = columnPattern.exec(expression)) !== null) {
-        const identifier = match[1];
-        
-        // Skip KQL keywords and functions
-        if (!kqlKeywords.has(identifier.toLowerCase())) {
-            // Skip obvious function calls (followed by parentheses)
-            const nextChar = expression.charAt(match.index + match[0].length);
-            const prevChar = expression.charAt(match.index - 1);
-            
-            // Skip if it's a function call or part of an assignment target
-            if (nextChar !== '(' && prevChar !== '=' && !expression.slice(match.index).match(/^\w+\s*=\s*[^=]/)) {
-                inputColumns.add(identifier);
-            }
-        }
-    }
-    
-    return Array.from(inputColumns);
-}
-
-function checkForUnusedInputColumns(sampleInputData, kqlContent, tableName) {
-    const warnings = [];
-    
-    try {
-        if (!Array.isArray(sampleInputData) || sampleInputData.length === 0) {
-            return warnings;
-        }
-        
-        // Extract all columns from sample input data
-        const inputColumns = new Set();
-        sampleInputData.forEach(record => {
-            if (record && typeof record === 'object') {
-                Object.keys(record).forEach(key => inputColumns.add(key));
-            }
-        });
-        
-        if (inputColumns.size === 0) {
-            return warnings;
-        }
-        
-        // Extract columns referenced in the KQL transformation
-        const referencedColumns = new Set(extractTransformationInputColumns(kqlContent));
-        
-        // Find columns that exist in input but are not referenced in transformation
-        const unusedColumns = Array.from(inputColumns).filter(col => !referencedColumns.has(col));
-        
-        if (unusedColumns.length > 0) {
-            warnings.push({
-                message: `Some columns in sample input file aren't used in transformation but incurring Azure costs. Verify if possible to remove unused columns from input to optimize pipeline resources.`,
-                type: 'unused_input_columns',
-                field: 'sampleInputRecords',
-                location: `table_${tableName}_sample_input`,
-                severity: 'warning',
-                currentValue: `${unusedColumns.length} unused columns: ${unusedColumns.join(', ')}`,
-                expectedValue: 'All input columns used in transformation',
-                suggestion: `Consider removing unused columns from sample input to optimize Azure ingestion costs. Unused columns: ${unusedColumns.join(', ')}. Review your data pipeline to determine if these columns can be filtered out at the source.`,
-                microsoftRequirement: 'Azure Log Analytics charges for data ingestion and storage. Removing unused columns can reduce costs and improve query performance.',
-                fixInstructions: `1. Review the transformation file to confirm these columns are not needed\n2. Remove unused columns from the sample input file\n3. Update your data pipeline to exclude these columns at the source\n4. This optimization can reduce Azure ingestion and storage costs`,
-                unusedColumns: unusedColumns,
-                totalInputColumns: inputColumns.size,
-                referencedColumns: Array.from(referencedColumns)
-            });
-        }
-        
-    } catch (error) {
-        console.warn('Error checking for unused input columns:', error);
-    }
-    
-    return warnings;
-}
-
 async function validateTransformManifestFile(file, result) {
     const content = await readFileContent(file);
     
@@ -2763,19 +2410,7 @@ function validateDescription(description, context, result, location) {
         result.status = 'fail';
     }
     
-    // Check for trailing spaces after period
-    if (description.trimEnd() !== description && description.trimEnd().endsWith('.')) {
-        result.issues.push({
-            message: `${context}: Description has trailing spaces after the period`,
-            type: 'formatting_error',
-            field: 'description',
-            location: location,
-            currentValue: description,
-            severity: 'error',
-            suggestion: `Remove the trailing spaces after the period in "${description}".`
-        });
-        result.status = 'fail';
-    } else if (!description.endsWith('.')) {
+    if (!description.endsWith('.')) {
         result.issues.push({
             message: `${context}: Description must end with a period`,
             type: 'formatting_error',
@@ -2789,21 +2424,8 @@ function validateDescription(description, context, result, location) {
     }
 }
 
-function getTableDisplayName(table, index) {
-    // Try to get a meaningful table name for display
-    if (table.name) {
-        return `Table "${table.name}"`;
-    } else if (table.logicalName) {
-        return `Table "${table.logicalName}"`;
-    } else if (table.physicalName) {
-        return `Table "${table.physicalName}"`;
-    } else {
-        return `Table ${index + 1}`;
-    }
-}
-
 function validateTable(table, index, result) {
-    const tableContext = getTableDisplayName(table, index);
+    const tableContext = `Table ${index + 1}`;
     const tableLocation = `tables[${index}]`;
     
     // Check for table name - either standard 'name' OR transform pattern (workflowName + transformName + physicalName + logicalName)
@@ -2931,7 +2553,7 @@ function validateTable(table, index, result) {
             result.status = 'fail';
         } else {
             table.columns.forEach((column, colIndex) => {
-                validateColumn(column, colIndex, tableContext, index, result);
+                validateColumn(column, colIndex, tableContext, result);
             });
             
             // Check for required TimeGenerated column
@@ -2992,11 +2614,9 @@ function validateTable(table, index, result) {
                     const hasStandardName = column.name && typeof column.name === 'string';
                     const hasTransformPattern = column.transformName && column.physicalName && column.logicalName;
                     
-                    const columnDisplayName = column.name || column.logicalName || column.physicalName || `Column ${colIndex + 1}`;
-                    
                     if (!hasStandardName && !hasTransformPattern) {
                         result.issues.push({
-                            message: `${tableContext}: ${columnDisplayName} has invalid or missing name`,
+                            message: `${tableContext}: Column ${colIndex + 1} has invalid or missing name`,
                             type: 'invalid_column_name',
                             field: `columns[${colIndex}].name`,
                             location: `${tableLocation}.columns[${colIndex}].name`,
@@ -3028,9 +2648,8 @@ function validateTable(table, index, result) {
                         result.status = 'fail';
                     }
                 } catch (error) {
-                    const columnDisplayName = column.name || column.logicalName || column.physicalName || `Column ${colIndex + 1}`;
                     result.issues.push({
-                        message: `${tableContext}: Error processing ${columnDisplayName} name - ${error.message}`,
+                        message: `${tableContext}: Error processing column ${colIndex + 1} name - ${error.message}`,
                         type: 'column_name_processing_error',
                         field: `columns[${colIndex}].name`,
                         location: `${tableLocation}.columns[${colIndex}].name`,
@@ -3181,10 +2800,10 @@ function validateInputField(inputField, index, tableContext, result) {
     }
 }
 
-function validateColumn(column, index, tableContext, tableIndex, result) {
-    // Create a meaningful column context using column name if available
-    const columnDisplayName = column.name || column.logicalName || column.physicalName || `Column ${index + 1}`;
-    const columnContext = `${tableContext}, ${columnDisplayName}`;
+function validateColumn(column, index, tableContext, result) {
+    const columnContext = `${tableContext}, Column ${index + 1}`;
+    // Extract table index from tableContext (e.g., "Table 18" -> 17)
+    const tableIndex = parseInt(tableContext.match(/Table (\d+)/)[1]) - 1;
     const columnLocation = `tables[${tableIndex}].columns[${index}]`;
     
     // Check for column name - either standard 'name' OR transform pattern (transformName + physicalName + logicalName)
@@ -3919,7 +3538,6 @@ function displayValidationResults(results) {
     
     // Store results globally for drill-down functionality
     validationResults = results;
-    window.validationResults = results; // Also make it available on window object
     
     // Calculate summary stats
     const totalFiles = results.length;
@@ -4335,7 +3953,7 @@ function createIssueCard(issue, resultIndex, issueIndex, result) {
                         ${result.originalContent ? `
                             <div class="mb-3">
                                 <h6>File Content Preview:</h6>
-                                <button class="btn btn-sm btn-secondary" onclick="console.log('Issue button clicked!', ${resultIndex}, '${issueLocation}'); showFileContent(${resultIndex}, '${issueLocation}')">
+                                <button class="btn btn-sm btn-secondary" onclick="showFileContent('${resultIndex}', '${issueLocation}')">
                                     <i class="fas fa-file-code me-1"></i> View File Content & Fix
                                 </button>
                             </div>
@@ -4447,7 +4065,7 @@ function createWarningCard(warning, resultIndex, warningIndex, result) {
                                 ${result.originalContent ? `
                                     <div class="mb-3">
                                         <h6>File Content Preview:</h6>
-                                        <button class="btn btn-sm btn-secondary" onclick="console.log('Warning button 1 clicked!', ${resultIndex}, '${warningLocation}'); showFileContent(${resultIndex}, '${warningLocation}')">
+                                        <button class="btn btn-sm btn-secondary" onclick="showFileContent('${resultIndex}', '${warningLocation}')">
                                             <i class="fas fa-file-code me-1"></i> View File Content & Fix
                                         </button>
                                     </div>
@@ -4457,7 +4075,7 @@ function createWarningCard(warning, resultIndex, warningIndex, result) {
                             ${result.originalContent ? `
                                 <div class="mb-3">
                                     <h6>File Content Preview:</h6>
-                                    <button class="btn btn-sm btn-secondary" onclick="console.log('Warning button 2 clicked!', ${resultIndex}, '${warningLocation}'); showFileContent(${resultIndex}, '${warningLocation}')">
+                                    <button class="btn btn-sm btn-secondary" onclick="showFileContent('${resultIndex}', '${warningLocation}')">
                                         <i class="fas fa-file-code me-1"></i> View File Content & Fix
                                     </button>
                                 </div>
@@ -4507,10 +4125,7 @@ function toggleWarningDetails(detailsId, button) {
 function showFileContent(resultIndex, location) {
     // Enhanced error handling and logging
     try {
-        const results = window.validationResults || validationResults; // Check both global and window scope
-        
-        console.log('showFileContent called with:', { resultIndex, location });
-        console.log('Available results:', results);
+        const results = validationResults; // Assuming this is stored globally
         
         if (!results) {
             console.error('validationResults is not available');
@@ -4522,15 +4137,13 @@ function showFileContent(resultIndex, location) {
         
         if (!result) {
             console.error('Result not found at index:', resultIndex);
-            console.log('Available results length:', results.length);
-            console.log('Requested index:', resultIndex);
             showAlert('File result not found. Please try again.', 'warning');
             return;
         }
         
         if (!result.originalContent) {
             console.error('No original content available for result:', result);
-            showAlert('File content not available for viewing. The file may not have been properly loaded.', 'warning');
+            showAlert('File content not available for viewing.', 'warning');
             return;
         }
         
@@ -5068,86 +4681,6 @@ function findProblemLine(lines, location, problemItem) {
     // Parse the location to understand what we're looking for
     const locationParts = location.split('.');
     let searchTerm = '';
-    
-    // Handle input field locations (e.g., table"aadcustomsecurityattributeauditlogs".input[9].type)
-    if (location.includes('.input[') && location.includes('].type')) {
-        const inputMatch = location.match(/\.input\[(\d+)\]\.type/);
-        
-        if (inputMatch) {
-            const inputIndex = parseInt(inputMatch[1]);
-            
-            // Find the table name from the location
-            const tableNameMatch = location.match(/table"([^"]+)"/);
-            const tableName = tableNameMatch ? tableNameMatch[1] : null;
-            
-            // Search for the specific input field
-            let currentTableName = null;
-            let currentInputIndex = -1;
-            let inInputArray = false;
-            let inInputObject = false;
-            let braceDepth = 0;
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                
-                // Look for table name
-                if (line.includes('"name":') && tableName) {
-                    const nameMatch = line.match(/"name":\s*"([^"]+)"/);
-                    if (nameMatch && nameMatch[1].toLowerCase() === tableName.toLowerCase()) {
-                        currentTableName = nameMatch[1];
-                        continue;
-                    }
-                }
-                
-                // Look for input array start
-                if (currentTableName && line.includes('"input"') && line.includes('[')) {
-                    inInputArray = true;
-                    currentInputIndex = -1;
-                    continue;
-                }
-                
-                // Track input objects within the input array
-                if (inInputArray) {
-                    if (line === '{' || line.endsWith('{')) {
-                        if (!inInputObject) {
-                            currentInputIndex++;
-                            if (currentInputIndex === inputIndex) {
-                                inInputObject = true;
-                                braceDepth = 1;
-                                continue;
-                            }
-                        } else {
-                            braceDepth++;
-                        }
-                    }
-                    
-                    if (line === '}' || line.startsWith('}')) {
-                        if (inInputObject) {
-                            braceDepth--;
-                            if (braceDepth === 0) {
-                                inInputObject = false;
-                            }
-                        }
-                    }
-                    
-                    // Look for the type field in the current input object
-                    if (inInputObject && braceDepth === 1 && line.includes('"type":')) {
-                        return {
-                            lineNumber: i + 1,
-                            line: lines[i],
-                            searchTerm: `Input field ${inputIndex + 1} type field`
-                        };
-                    }
-                    
-                    // End of input array
-                    if (line === ']' || line.includes(']')) {
-                        inInputArray = false;
-                        currentTableName = null;
-                    }
-                }
-            }
-        }
-    }
     
     // Handle table-specific locations (e.g., tables[17].columns[0].description)
     if (location.includes('tables[') && location.includes('].columns[')) {
@@ -6092,11 +5625,6 @@ window.showValidationAndScroll = showValidationAndScroll;
 
 // Make function globally accessible
 window.toggleValidationDetails = toggleValidationDetails;
-window.showFileContent = showFileContent;
-window.copyFileContentToClipboard = copyFileContentToClipboard;
-window.downloadFileContent = downloadFileContent;
-window.showFixSuggestion = showFixSuggestion;
-window.validationResults = validationResults;
 
 /**
  * 🎯 DRAG & DROP HANDLER SETUP
@@ -6549,22 +6077,6 @@ function showFixSuggestion(resultIndex, location) {
                                             </div>
                                         </div>
                                     ` : ''}
-                                    ${isWarning && problemItem.type === 'unused_input_columns' ? `
-                                        <div class="mt-2">
-                                            <small class="text-warning d-block"><strong>Unused columns identified:</strong></small>
-                                            <div class="d-flex flex-wrap gap-1 mt-1">
-                                                ${problemItem.unusedColumns ? problemItem.unusedColumns.map(col => `<span class="badge bg-warning text-dark">${escapeHtml(col)}</span>`).join('') : ''}
-                                            </div>
-                                            ${problemItem.referencedColumns && problemItem.referencedColumns.length > 0 ? `
-                                                <div class="mt-2">
-                                                    <small class="text-success d-block"><strong>Used columns:</strong></small>
-                                                    <div class="d-flex flex-wrap gap-1 mt-1">
-                                                        ${problemItem.referencedColumns.map(col => `<span class="badge bg-success">${escapeHtml(col)}</span>`).join('')}
-                                                    </div>
-                                                </div>
-                                            ` : ''}
-                                        </div>
-                                    ` : ''}
                                 </div>
                             </div>
                         </div>
@@ -6604,27 +6116,6 @@ function showFixSuggestion(resultIndex, location) {
                                     <li><strong>Type Safety:</strong> Prevents runtime errors from type mismatches</li>
                                     <li><strong>Storage Efficiency:</strong> More efficient data compression and storage</li>
                                 </ul>
-                            </div>
-                        ` : ''}
-                        
-                        ${isWarning && problemItem.type === 'unused_input_columns' ? `
-                            <div class="alert alert-warning">
-                                <h6 class="alert-heading"><i class="fas fa-dollar-sign me-2"></i>Cost Optimization Impact</h6>
-                                <p class="mb-2">Unused input columns are incurring unnecessary Azure costs. Consider these benefits of removing unused columns:</p>
-                                <ul class="mb-0">
-                                    <li><strong>Reduced Ingestion Costs:</strong> Lower data volume means lower Azure Log Analytics ingestion charges</li>
-                                    <li><strong>Storage Savings:</strong> Less data stored means reduced storage costs over time</li>
-                                    <li><strong>Improved Performance:</strong> Smaller payload size leads to faster data processing</li>
-                                    <li><strong>Simplified Pipeline:</strong> Cleaner data with only necessary columns reduces complexity</li>
-                                </ul>
-                                ${problemItem.unusedColumns && problemItem.unusedColumns.length > 0 ? `
-                                    <div class="mt-3">
-                                        <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Columns to Consider Removing:</h6>
-                                        <div class="d-flex flex-wrap gap-1 mt-2">
-                                            ${problemItem.unusedColumns.map(col => `<span class="badge bg-warning text-dark">${escapeHtml(col)}</span>`).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
                             </div>
                         ` : ''}
                     </div>
@@ -6713,11 +6204,6 @@ function getIssueCategoryName(type) {
         'missing_required_column': 'Missing Required Columns',
         'invalid_column_type': 'Invalid Column Types',
         'folder_structure': 'Folder Structure Issues',
-        'missing_sample_input': 'Sample File Validation Failures',
-        'missing_sample_output': 'Sample File Validation Failures',
-        'incorrect_sample_file_name': 'Sample File Validation Failures',
-        'incorrect_sample_file_casing': 'Sample File Validation Failures',
-        'missing_sample_output_folder': 'Sample File Validation Failures',
         'unknown': 'Other Issues'
     };
     
@@ -6733,7 +6219,6 @@ function getWarningCategoryName(type) {
         'empty_sample_data': 'Sample Data Issues',
         'invalid_record_structure': 'Record Structure Issues',
         'missing_kql_syntax_warning': 'KQL Syntax Issues',
-        'unused_input_columns': 'Resource Optimization Warnings',
         'unknown': 'Other Warnings'
     };
     
@@ -6754,10 +6239,6 @@ function getIssueCategoryIcon(type) {
         'missing_required_column': 'fas fa-table',
         'invalid_column_type': 'fas fa-columns',
         'folder_structure': 'fas fa-folder-open',
-        'missing_sample_input': 'fas fa-file-import',
-        'missing_sample_output': 'fas fa-file-export',
-        'incorrect_sample_file_name': 'fas fa-file-signature',
-        'missing_sample_output_folder': 'fas fa-folder-plus',
         'unknown': 'fas fa-question-circle'
     };
     
@@ -6773,7 +6254,6 @@ function getWarningCategoryIcon(type) {
         'empty_sample_data': 'fas fa-database',
         'invalid_record_structure': 'fas fa-list-alt',
         'missing_kql_syntax_warning': 'fas fa-search',
-        'unused_input_columns': 'fas fa-dollar-sign',
         'unknown': 'fas fa-exclamation-triangle'
     };
     
@@ -6794,10 +6274,6 @@ function getIssueCategoryDescription(type) {
         'missing_required_column': 'Required columns like TimeGenerated that are missing',
         'invalid_column_type': 'Column data types that are invalid for the specified usage',
         'folder_structure': 'Issues with the organization and structure of your schema package',
-        'missing_sample_input': 'Required sample input files that are missing from your schema package',
-        'missing_sample_output': 'Required sample output files that are missing from your schema package',
-        'incorrect_sample_file_name': 'Sample files with incorrect naming conventions (missing "Sample" suffix)',
-        'missing_sample_output_folder': 'The sample output folder is missing from your schema package',
         'unknown': 'Other validation issues that need attention'
     };
     
@@ -6813,7 +6289,6 @@ function getWarningCategoryDescription(type) {
         'empty_sample_data': 'Sample data files that are empty or have no records',
         'invalid_record_structure': 'Sample records that don\'t follow proper structure',
         'missing_kql_syntax_warning': 'KQL files that may not contain valid query syntax',
-        'unused_input_columns': 'Input columns that may be incurring unnecessary Azure costs',
         'unknown': 'Other warnings and suggestions for improvement'
     };
     
@@ -7087,36 +6562,9 @@ function showCategoryItemDetails(resultIndex, issueType, itemIndex) {
                 </div>
             ` : ''}
             
-            ${!isIssue && item.type === 'unused_input_columns' ? `
-                <div class="alert alert-warning py-2 mb-3">
-                    <i class="fas fa-dollar-sign me-2"></i>
-                    <strong>Cost Impact:</strong> Azure Log Analytics charges for data ingestion and storage. Unused columns in your input data are incurring unnecessary costs.
-                </div>
-                
-                <div class="mb-3">
-                    <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Unused Columns:</h6>
-                    <div class="p-3 bg-light border border-warning rounded">
-                        <div class="d-flex flex-wrap gap-1">
-                            ${item.unusedColumns ? item.unusedColumns.map(col => `<span class="badge bg-warning text-dark">${escapeHtml(col)}</span>`).join('') : ''}
-                        </div>
-                    </div>
-                </div>
-                
-                ${item.referencedColumns && item.referencedColumns.length > 0 ? `
-                    <div class="mb-3">
-                        <h6 class="text-success"><i class="fas fa-check me-1"></i>Currently Used Columns:</h6>
-                        <div class="p-3 bg-light border border-success rounded">
-                            <div class="d-flex flex-wrap gap-1">
-                                ${item.referencedColumns.map(col => `<span class="badge bg-success">${escapeHtml(col)}</span>`).join('')}
-                            </div>
-                        </div>
-                    </div>
-                ` : ''}
-            ` : ''}
-            
             <div class="d-flex gap-2 flex-wrap">
                 ${result.originalContent ? `
-                    <button class="btn btn-sm btn-outline-secondary" onclick="console.log('Button clicked!', ${resultIndex}, '${item.location || 'unknown'}'); showFileContent(${resultIndex}, '${item.location || 'unknown'}');">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="showFileContent('${resultIndex}', '${item.location || 'unknown'}')">
                         <i class="fas fa-file-code me-1"></i>View File Content
                     </button>
                 ` : ''}

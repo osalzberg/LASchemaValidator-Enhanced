@@ -1068,12 +1068,10 @@ Content/
                 script.crossOrigin = 'anonymous';
                 
                 script.onload = () => {
-                    console.log(`✅ MSAL loaded successfully from: ${script.src}`);
                     resolve();
                 };
                 
                 script.onerror = () => {
-                    console.warn(`❌ Failed to load MSAL from: ${script.src}`);
                     window.msalLoadAttempts++;
                     document.head.removeChild(script);
                     loadMSAL().then(resolve).catch(reject);
@@ -1086,22 +1084,20 @@ Content/
         // Load MSAL and then auth.js
         loadMSAL()
             .then(() => {
-                console.log('🔐 MSAL library loaded, initializing authentication...');
                 const authScript = document.createElement('script');
                 authScript.src = 'auth.js';
                 authScript.onload = () => {
-                    console.log('🚀 Authentication system ready');
                     if (typeof initializeAuth === 'function') {
                         initializeAuth();
                     }
                 };
                 authScript.onerror = () => {
-                    console.error('❌ Failed to load auth.js');
+                    console.error('Failed to load auth.js');
                 };
                 document.head.appendChild(authScript);
             })
             .catch((error) => {
-                console.error('❌ Failed to load MSAL library:', error);
+                console.error('Failed to load MSAL library:', error);
                 showLoginError('Authentication system failed to load. Please refresh the page.');
             });
     </script>

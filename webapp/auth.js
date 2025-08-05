@@ -31,8 +31,6 @@ let account = null;
  */
 async function initializeAuth() {
     try {
-        console.log('🔐 Initializing MSAL authentication...');
-        
         if (typeof msal === 'undefined') {
             throw new Error('MSAL library is not loaded');
         }
@@ -60,7 +58,7 @@ async function initializeAuth() {
             }
         }
     } catch (error) {
-        console.error('❌ Authentication initialization error:', error);
+        console.error('Authentication initialization error:', error);
         showLoginError('Failed to initialize authentication. Please refresh the page.');
         showLoginScreen();
     }
@@ -85,7 +83,7 @@ async function validateAccount(account) {
         
         return true;
     } catch (error) {
-        console.error('❌ Account validation error:', error);
+        console.error('Account validation error:', error);
         showLoginError('Error validating account.');
         return false;
     }
@@ -102,7 +100,6 @@ async function handleSuccessfulLogin(account) {
         
         updateUserInfo(account);
         showMainApplication();
-        console.log('User authenticated:', account.username);
     } catch (error) {
         console.error('Error handling login:', error);
         showLoginError('Error processing login.');
@@ -114,8 +111,6 @@ async function handleSuccessfulLogin(account) {
  */
 async function signIn() {
     try {
-        console.log('🚀 Starting sign in...');
-        
         if (!msalInstance) {
             throw new Error('MSAL not initialized');
         }
@@ -126,7 +121,7 @@ async function signIn() {
         await msalInstance.loginRedirect(loginRequest);
         
     } catch (error) {
-        console.error('❌ Sign in error:', error);
+        console.error('Sign in error:', error);
         showLoginProgress(false);
         showLoginError('Sign in failed. Please try again.');
     }
