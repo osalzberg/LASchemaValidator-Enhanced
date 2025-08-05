@@ -15,46 +15,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
-    
-    <!-- Microsoft Authentication Library (MSAL) with fallbacks -->
-    <script src="https://alcdn.msauth.net/browser/2.37.1/js/msal-browser.min.js" 
-            onerror="console.log('Primary MSAL CDN failed, trying fallback...'); loadMSALFallback()"></script>
-    
-    <script>
-        // MSAL CDN Fallback System
-        let msalLoadAttempts = 0;
-        const maxMSALAttempts = 3;
-        
-        function loadMSALFallback() {
-            msalLoadAttempts++;
-            console.log(`🔄 MSAL CDN attempt ${msalLoadAttempts}/${maxMSALAttempts}`);
-            
-            if (msalLoadAttempts >= maxMSALAttempts) {
-                console.error('❌ All MSAL CDN sources failed');
-                return;
-            }
-            
-            // Remove failed script
-            const failedScript = document.querySelector('script[src*="msal-browser"]');
-            if (failedScript) failedScript.remove();
-            
-            // Try alternative CDNs and local fallback
-            const fallbackCDNs = [
-                'https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.37.1/lib/msal-browser.min.js',
-                'https://unpkg.com/@azure/msal-browser@2.37.1/lib/msal-browser.min.js',
-                'https://cdnjs.cloudflare.com/ajax/libs/msal/2.37.1/msal-browser.min.js',
-                './msal-browser.min.js' // Local fallback (if available)
-            ];
-            
-            if (msalLoadAttempts <= fallbackCDNs.length) {
-                const script = document.createElement('script');
-                script.src = fallbackCDNs[msalLoadAttempts - 1];
-                script.onerror = loadMSALFallback;
-                script.onload = () => console.log('✅ MSAL loaded from fallback CDN:', script.src);
-                document.head.appendChild(script);
-            }
-        }
-    </script>
 </head>
 <body>
     <!-- Header -->
@@ -69,63 +29,64 @@
                 </svg>
                 Microsoft Azure Log Analytics Schema Validator
             </span>
-            
-            <!-- User Info and Logout -->
-            <div id="userInfo" class="d-none">
-                <div class="dropdown">
-                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                        <i class="fas fa-user me-2"></i>
-                        <span id="userName">Loading...</span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><h6 class="dropdown-header" id="userEmail">Loading...</h6></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" onclick="signOut()">
-                            <i class="fas fa-sign-out-alt me-2"></i>Sign Out
-                        </a></li>
-                    </ul>
-                </div>
-            </div>
         </div>
     </nav>
 
     <!-- Login Screen -->
-    <div id="loginScreen" class="min-vh-100 d-flex align-items-center justify-content-center bg-light">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-6 col-lg-5">
-                    <div class="card shadow-lg border-0">
-                        <div class="card-body p-5 text-center">
-                            <div class="mb-4">
-                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
-                                    <rect x="13" y="1" width="10" height="10" fill="#7FBA00"/>
-                                    <rect x="1" y="13" width="10" height="10" fill="#00A4EF"/>
-                                    <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
-                                </svg>
-                            </div>
-                            <h3 class="card-title mb-3">Microsoft Azure Log Analytics Schema Validator</h3>
-                            <p class="text-muted mb-4">
-                                Sign in with your Microsoft account to access the validation tool.
-                                <br><small class="text-info">Only @microsoft.com accounts are authorized.</small>
-                            </p>
-                            
-                            <div id="loginError" class="alert alert-danger d-none" role="alert">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                <span id="loginErrorMessage"></span>
-                            </div>
-                            
-                            <button id="signInButton" class="btn btn-primary btn-lg w-100" onclick="signIn()">
-                                <i class="fab fa-microsoft me-2"></i>
-                                Sign in with Microsoft
-                            </button>
-                            
-                            <div id="loginProgress" class="d-none mt-3">
-                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                <span>Signing in...</span>
-                            </div>
-                        </div>
+    <div id="loginScreen" class="login-screen d-none">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="text-center mb-4">
+                    <div class="microsoft-logo mb-3">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
+                            <rect x="13" y="1" width="10" height="10" fill="#7FBA00"/>
+                            <rect x="1" y="13" width="10" height="10" fill="#00A4EF"/>
+                            <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
+                        </svg>
                     </div>
+                    <h2 class="login-title">Azure Log Analytics Schema Validator</h2>
+                    <p class="login-subtitle">Sign in with your Microsoft account</p>
+                    <small class="text-muted">Only @microsoft.com accounts are authorized</small>
+                </div>
+
+                <div id="loginError" class="alert alert-danger d-none" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <span id="loginErrorMessage"></span>
+                </div>
+
+                <div class="d-grid">
+                    <button id="signInButton" class="btn btn-primary btn-lg" onclick="signIn()">
+                        <i class="fab fa-microsoft me-2"></i>
+                        Sign in with Microsoft
+                    </button>
+                </div>
+
+                <div id="loginProgress" class="text-center mt-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Signing in...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Info Bar (shown when authenticated) -->
+    <div id="userInfo" class="user-info-bar bg-light border-bottom d-none">
+        <div class="container">
+            <div class="row align-items-center py-2">
+                <div class="col">
+                    <small class="text-muted">
+                        <i class="fas fa-user me-1"></i>
+                        Signed in as: <strong id="userName"></strong> (<span id="userEmail"></span>)
+                    </small>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="signOut()">
+                        <i class="fas fa-sign-out-alt me-1"></i>
+                        Sign Out
+                    </button>
                 </div>
             </div>
         </div>
@@ -133,6 +94,8 @@
 
     <!-- Main Application Content (hidden until authenticated) -->
     <div id="appContent" class="d-none">
+
+    <!-- Hero Section -->
     <div class="hero-section bg-light py-5">
         <div class="container">
             <div class="row align-items-center">
@@ -1062,10 +1025,9 @@ Content/
             </div>
         </div>
     </div>
-
-    <!-- Footer -->
     </div> <!-- End of appContent -->
 
+    <!-- Footer -->
     <footer class="bg-dark text-white py-4">
         <div class="container text-center">
             <p class="mb-2">
@@ -1082,114 +1044,68 @@ Content/
     </footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script src="auth.js"></script>
-    <script src="script.js"></script>
     
-    <!-- Initialize Authentication on Page Load -->
+    <!-- MSAL.js Authentication Library with Fallbacks -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🌟 Page loaded - initializing authentication...');
-            console.log('🌍 Current URL:', window.location.href);
-            console.log('🔍 Checking global variables...');
-            console.log('📦 typeof msal:', typeof msal);
-            console.log('📦 window.msal exists:', 'msal' in window);
-            console.log('📦 MSAL script tag found:', !!document.querySelector('script[src*="msal-browser"]'));
-            
-            // Function to wait for MSAL library to load
-            function waitForMSAL() {
-                return new Promise((resolve, reject) => {
-                    console.log('⏳ Waiting for MSAL library...');
-                    
-                    if (typeof msal !== 'undefined' && msal.PublicClientApplication) {
-                        console.log('✅ MSAL already available');
-                        resolve();
-                        return;
-                    }
-                    
-                    let attempts = 0;
-                    const maxAttempts = 50; // 5 seconds total
-                    
-                    const checkMSAL = () => {
-                        attempts++;
-                        console.log(`🔄 Attempt ${attempts}: checking MSAL...`);
-                        
-                        if (typeof msal !== 'undefined' && msal.PublicClientApplication) {
-                            console.log('✅ MSAL library loaded after', attempts * 100, 'ms');
-                            console.log('🔧 MSAL version:', msal.version || 'unknown');
-                            console.log('🔧 MSAL PublicClientApplication:', typeof msal.PublicClientApplication);
-                            resolve();
-                        } else if (attempts >= maxAttempts) {
-                            console.error('❌ MSAL library failed to load after 5 seconds');
-                            console.error('📊 Final state check:');
-                            console.error('  - typeof msal:', typeof msal);
-                            console.error('  - window.msal:', window.msal);
-                            console.error('  - All scripts:', Array.from(document.scripts).map(s => s.src));
-                            reject(new Error('MSAL library failed to load after 5 seconds. Network or CDN issue.'));
-                        } else {
-                            setTimeout(checkMSAL, 100);
-                        }
-                    };
-                    
-                    checkMSAL();
-                });
-            }
-            
-            // Initialize authentication with detailed error handling
-            waitForMSAL()
-                .then(() => {
-                    console.log('🚀 MSAL ready, starting authentication initialization...');
-                    return initializeAuth();
-                })
-                .catch(error => {
-                    console.error('❌ Failed to initialize authentication:', error);
-                    console.error('🔍 Error details:', {
-                        name: error.name,
-                        message: error.message,
-                        stack: error.stack
-                    });
-                    
-                    // Show specific error message with manual loading option
-                    let errorMsg = 'Authentication initialization failed. ';
-                    if (error.message.includes('MSAL library failed to load')) {
-                        errorMsg += 'The Microsoft authentication library could not be loaded from any CDN. This may be due to network restrictions, ad blockers, or corporate firewall settings. ';
-                        errorMsg += 'Try refreshing the page, disabling ad blockers, or contact your IT administrator.';
-                        
-                        // Add manual load button
-                        setTimeout(() => addManualLoadButton(), 1000);
-                    } else {
-                        errorMsg += error.message + ' Please refresh the page and try again.';
-                    }
-                    
-                    // Show error but still display login screen for manual retry
-                    showLoginError(errorMsg);
-                    showLoginScreen();
-                });
-        });
-        
-        // Manual MSAL loading function
-        function addManualLoadButton() {
-            const loginError = document.getElementById('loginError');
-            if (loginError && !document.getElementById('manualLoadBtn')) {
-                const button = document.createElement('button');
-                button.id = 'manualLoadBtn';
-                button.className = 'btn btn-secondary mt-2';
-                button.innerHTML = '<i class="fas fa-download me-2"></i>Try Loading Authentication Library Again';
-                button.onclick = () => {
-                    button.disabled = true;
-                    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
-                    
-                    // Try loading MSAL again
-                    msalLoadAttempts = 0;
-                    loadMSALFallback();
-                    
-                    // Retry initialization after a delay
-                    setTimeout(() => {
-                        location.reload(); // Simplest approach - refresh the page
-                    }, 3000);
+        window.msalLoadAttempts = 0;
+        window.maxMsalAttempts = 3;
+        window.msalLibraries = [
+            'https://alcdn.msauth.net/browser/2.37.1/js/msal-browser.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/msal/2.37.1/msal.min.js',
+            'https://unpkg.com/@azure/msal-browser@2.37.1/dist/msal-browser.min.js'
+        ];
+
+        function loadMSAL() {
+            return new Promise((resolve, reject) => {
+                if (window.msalLoadAttempts >= window.maxMsalAttempts) {
+                    reject(new Error('All MSAL CDN sources failed'));
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = window.msalLibraries[window.msalLoadAttempts];
+                script.crossOrigin = 'anonymous';
+                
+                script.onload = () => {
+                    console.log(`✅ MSAL loaded successfully from: ${script.src}`);
+                    resolve();
                 };
-                loginError.appendChild(button);
-            }
+                
+                script.onerror = () => {
+                    console.warn(`❌ Failed to load MSAL from: ${script.src}`);
+                    window.msalLoadAttempts++;
+                    document.head.removeChild(script);
+                    loadMSAL().then(resolve).catch(reject);
+                };
+                
+                document.head.appendChild(script);
+            });
         }
+
+        // Load MSAL and then auth.js
+        loadMSAL()
+            .then(() => {
+                console.log('🔐 MSAL library loaded, initializing authentication...');
+                const authScript = document.createElement('script');
+                authScript.src = 'auth.js';
+                authScript.onload = () => {
+                    console.log('🚀 Authentication system ready');
+                    if (typeof initializeAuth === 'function') {
+                        initializeAuth();
+                    }
+                };
+                authScript.onerror = () => {
+                    console.error('❌ Failed to load auth.js');
+                };
+                document.head.appendChild(authScript);
+            })
+            .catch((error) => {
+                console.error('❌ Failed to load MSAL library:', error);
+                showLoginError('Authentication system failed to load. Please refresh the page.');
+            });
     </script>
+    
+    <script src="script.js"></script>
 </body>
 </html>

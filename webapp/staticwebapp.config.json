@@ -21,19 +21,15 @@
     ".json": "application/json"
   },
   "globalHeaders": {
-    "content-security-policy": "default-src 'self' https://cdnjs.cloudflare.com https://alcdn.msauth.net; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://alcdn.msauth.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://login.microsoftonline.com; upgrade-insecure-requests",
+    "content-security-policy": "default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://alcdn.msauth.net https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https:; font-src 'self' https:; img-src 'self' data: https:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com https://microsoft.onmicrosoft.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self' https://login.microsoftonline.com; form-action 'self' https://login.microsoftonline.com",
     "referrer-policy": "strict-origin-when-cross-origin",
     "x-content-type-options": "nosniff",
-    "x-frame-options": "DENY",
+    "x-frame-options": "SAMEORIGIN",
     "x-xss-protection": "1; mode=block",
-    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "strict-transport-security": "max-age=31536000; includeSubDomains",
     "permissions-policy": "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), fullscreen=(), autoplay=(), encrypted-media=(), picture-in-picture=()",
-    "cross-origin-opener-policy": "same-origin",
-    "cross-origin-embedder-policy": "require-corp",
-    "cross-origin-resource-policy": "same-origin",
-    "cache-control": "no-cache, no-store, must-revalidate, max-age=0",
-    "pragma": "no-cache",
-    "expires": "0"
+    "cross-origin-opener-policy": "same-origin-allow-popups",
+    "cache-control": "public, max-age=300"
   },
   "forwardingGateway": {
     "requiredHeaders": {
