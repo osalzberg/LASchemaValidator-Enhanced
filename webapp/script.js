@@ -4123,8 +4123,11 @@ function toggleWarningDetails(detailsId, button) {
 }
 
 function showFileContent(resultIndex, location) {
-    // Enhanced error handling and logging
+    // Enhanced error handling and debugging
     try {
+        // Debug: Log the function call
+        console.log('showFileContent called with:', { resultIndex, location });
+        
         const results = validationResults; // Assuming this is stored globally
         
         if (!results) {
@@ -4133,6 +4136,8 @@ function showFileContent(resultIndex, location) {
             return;
         }
         
+        console.log('validationResults found:', results.length, 'results');
+        
         const result = results[resultIndex];
         
         if (!result) {
@@ -4140,6 +4145,8 @@ function showFileContent(resultIndex, location) {
             showAlert('File result not found. Please try again.', 'warning');
             return;
         }
+        
+        console.log('Result found:', result.filename, 'originalContent length:', result.originalContent?.length);
         
         if (!result.originalContent) {
             console.error('No original content available for result:', result);
@@ -4327,7 +4334,50 @@ function showFileContent(resultIndex, location) {
         
     } catch (error) {
         console.error('Critical error in showFileContent:', error);
-        showAlert('An error occurred while trying to display file content: ' + error.message, 'danger');
+        
+        // Fallback: Show content in a simple alert/prompt
+        try {
+            const result = validationResults[resultIndex];
+            if (result && result.originalContent) {
+                // Create a simple popup window as fallback
+                const newWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                if (newWindow) {
+                    newWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>File Content - ${result.filename}</title>
+                            <style>
+                                body { font-family: monospace; margin: 20px; }
+                                .header { background: #007bff; color: white; padding: 10px; margin-bottom: 20px; }
+                                .content { background: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; white-space: pre-wrap; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="header">
+                                <h3>File Content - ${result.filename}</h3>
+                                <p>Issue location: ${location}</p>
+                            </div>
+                            <div class="content">${result.originalContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                        </body>
+                        </html>
+                    `);
+                    newWindow.document.close();
+                } else {
+                    // Final fallback: copy to clipboard and alert
+                    navigator.clipboard.writeText(result.originalContent).then(() => {
+                        alert(`File content has been copied to clipboard.\n\nFile: ${result.filename}\nLocation: ${location}\n\nContent length: ${result.originalContent.length} characters`);
+                    }).catch(() => {
+                        alert(`Unable to show file content in modal or copy to clipboard.\n\nFile: ${result.filename}\nLocation: ${location}\n\nTry refreshing the page and running validation again.`);
+                    });
+                }
+            } else {
+                alert('File content not available. Please try running validation again.');
+            }
+        } catch (fallbackError) {
+            console.error('Fallback also failed:', fallbackError);
+            alert('Unable to display file content. Please refresh the page and try again.');
+        }
     }
 }
 
@@ -6600,3 +6650,10 @@ function showCategoryItemDetails(resultIndex, issueType, itemIndex) {
         });
     }, 100);
 }
+
+// Ensure critical functions are available globally for onclick handlers
+window.showFileContent = showFileContent;
+window.showFixSuggestion = showFixSuggestion;
+window.expandFileResult = expandFileResult;
+window.toggleFileDetails = toggleFileDetails;
+window.showCategoryItemDetails = showCategoryItemDetails;
