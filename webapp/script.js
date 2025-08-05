@@ -4334,7 +4334,7 @@ function createIssueCard(issue, resultIndex, issueIndex, result) {
                         ${result.originalContent ? `
                             <div class="mb-3">
                                 <h6>File Content Preview:</h6>
-                                <button class="btn btn-sm btn-secondary" onclick="showFileContent('${resultIndex}', '${issueLocation}')">
+                                <button class="btn btn-sm btn-secondary" onclick="showFileContent(${resultIndex}, '${issueLocation}')">
                                     <i class="fas fa-file-code me-1"></i> View File Content & Fix
                                 </button>
                             </div>
@@ -4446,7 +4446,7 @@ function createWarningCard(warning, resultIndex, warningIndex, result) {
                                 ${result.originalContent ? `
                                     <div class="mb-3">
                                         <h6>File Content Preview:</h6>
-                                        <button class="btn btn-sm btn-secondary" onclick="showFileContent('${resultIndex}', '${warningLocation}')">
+                                        <button class="btn btn-sm btn-secondary" onclick="showFileContent(${resultIndex}, '${warningLocation}')">
                                             <i class="fas fa-file-code me-1"></i> View File Content & Fix
                                         </button>
                                     </div>
@@ -4456,7 +4456,7 @@ function createWarningCard(warning, resultIndex, warningIndex, result) {
                             ${result.originalContent ? `
                                 <div class="mb-3">
                                     <h6>File Content Preview:</h6>
-                                    <button class="btn btn-sm btn-secondary" onclick="showFileContent('${resultIndex}', '${warningLocation}')">
+                                    <button class="btn btn-sm btn-secondary" onclick="showFileContent(${resultIndex}, '${warningLocation}')">
                                         <i class="fas fa-file-code me-1"></i> View File Content & Fix
                                     </button>
                                 </div>
