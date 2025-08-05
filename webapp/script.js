@@ -5063,6 +5063,86 @@ function findProblemLine(lines, location, problemItem) {
     const locationParts = location.split('.');
     let searchTerm = '';
     
+    // Handle input field locations (e.g., table"aadcustomsecurityattributeauditlogs".input[9].type)
+    if (location.includes('.input[') && location.includes('].type')) {
+        const inputMatch = location.match(/\.input\[(\d+)\]\.type/);
+        
+        if (inputMatch) {
+            const inputIndex = parseInt(inputMatch[1]);
+            
+            // Find the table name from the location
+            const tableNameMatch = location.match(/table"([^"]+)"/);
+            const tableName = tableNameMatch ? tableNameMatch[1] : null;
+            
+            // Search for the specific input field
+            let currentTableName = null;
+            let currentInputIndex = -1;
+            let inInputArray = false;
+            let inInputObject = false;
+            let braceDepth = 0;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Look for table name
+                if (line.includes('"name":') && tableName) {
+                    const nameMatch = line.match(/"name":\s*"([^"]+)"/);
+                    if (nameMatch && nameMatch[1].toLowerCase() === tableName.toLowerCase()) {
+                        currentTableName = nameMatch[1];
+                        continue;
+                    }
+                }
+                
+                // Look for input array start
+                if (currentTableName && line.includes('"input"') && line.includes('[')) {
+                    inInputArray = true;
+                    currentInputIndex = -1;
+                    continue;
+                }
+                
+                // Track input objects within the input array
+                if (inInputArray) {
+                    if (line === '{' || line.endsWith('{')) {
+                        if (!inInputObject) {
+                            currentInputIndex++;
+                            if (currentInputIndex === inputIndex) {
+                                inInputObject = true;
+                                braceDepth = 1;
+                                continue;
+                            }
+                        } else {
+                            braceDepth++;
+                        }
+                    }
+                    
+                    if (line === '}' || line.startsWith('}')) {
+                        if (inInputObject) {
+                            braceDepth--;
+                            if (braceDepth === 0) {
+                                inInputObject = false;
+                            }
+                        }
+                    }
+                    
+                    // Look for the type field in the current input object
+                    if (inInputObject && braceDepth === 1 && line.includes('"type":')) {
+                        return {
+                            lineNumber: i + 1,
+                            line: lines[i],
+                            searchTerm: `Input field ${inputIndex + 1} type field`
+                        };
+                    }
+                    
+                    // End of input array
+                    if (line === ']' || line.includes(']')) {
+                        inInputArray = false;
+                        currentTableName = null;
+                    }
+                }
+            }
+        }
+    }
+    
     // Handle table-specific locations (e.g., tables[17].columns[0].description)
     if (location.includes('tables[') && location.includes('].columns[')) {
         const tableMatch = location.match(/tables\[(\d+)\]/);
