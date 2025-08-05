@@ -316,7 +316,7 @@
 				},
 				{
 					"name": "callerIpAddress",
-            "type": "String"
+					"type": "string"
 				},
 				{
 					"name": "correlationId",
