@@ -1883,8 +1883,13 @@ async function validateManifestFile(file, result) {
 }
 
 async function validateTransformationSchemaMatch(manifestResult, kqlFiles) {
+    const schemaValidationResult = {
+        issues: [],
+        warnings: []
+    };
+    
     if (!manifestResult.pendingSchemaValidations || manifestResult.pendingSchemaValidations.length === 0) {
-        return manifestResult;
+        return schemaValidationResult;
     }
     
     for (const validation of manifestResult.pendingSchemaValidations) {
@@ -1898,7 +1903,7 @@ async function validateTransformationSchemaMatch(manifestResult, kqlFiles) {
             
             if (schemaMismatches.length > 0) {
                 schemaMismatches.forEach(mismatch => {
-                    manifestResult.issues.push({
+                    schemaValidationResult.issues.push({
                         message: `Table '${validation.tableName}': Transformation output schema mismatch - ${mismatch.message}`,
                         type: 'schema_mismatch_error',
                         field: 'transformation_schema',
@@ -1914,11 +1919,10 @@ async function validateTransformationSchemaMatch(manifestResult, kqlFiles) {
                         fixInstructions: `1. Open the transformation file '${validation.transformFilePath}'\n2. ${mismatch.fixInstructions}\n3. Ensure the project statement includes all required columns with correct data types\n4. Verify column names match exactly (case-sensitive)`
                     });
                 });
-                manifestResult.status = 'fail';
             }
             
         } catch (error) {
-            manifestResult.warnings.push({
+            schemaValidationResult.warnings.push({
                 message: `Table '${validation.tableName}': Could not validate transformation schema - ${error.message}`,
                 type: 'schema_validation_error',
                 field: 'transformation_schema',
@@ -1934,7 +1938,7 @@ async function validateTransformationSchemaMatch(manifestResult, kqlFiles) {
     
     // Clean up the pending validations
     delete manifestResult.pendingSchemaValidations;
-    return manifestResult;
+    return schemaValidationResult;
 }
 
 function extractTransformationOutputSchema(kqlContent) {
