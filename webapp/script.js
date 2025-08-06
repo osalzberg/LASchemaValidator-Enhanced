@@ -3583,6 +3583,12 @@ function displayValidationResults(results) {
                                     <p class="text-muted mb-0">
                                         ${overallStatus === 'pass' ? 'All files passed validation successfully!' : 'Some files have validation issues that need attention.'}
                                     </p>
+                                    ${totalIssues > 0 || totalWarnings > 0 ? `
+                                        <div class="mt-2">
+                                            <span class="badge bg-danger me-1">${totalIssues} total errors</span>
+                                            <span class="badge bg-warning">${totalWarnings} total warnings</span>
+                                        </div>
+                                    ` : ''}
                                 </div>
                                 <div class="col-md-6">
                                     <div class="row text-center">
@@ -3595,19 +3601,19 @@ function displayValidationResults(results) {
                                         <div class="col-3">
                                             <div class="summary-stat-box">
                                                 <div class="stat-number text-success">${passedFiles}</div>
-                                                <div class="stat-label">Passed</div>
+                                                <div class="stat-label">Files Passed</div>
                                             </div>
                                         </div>
                                         <div class="col-3">
                                             <div class="summary-stat-box">
                                                 <div class="stat-number text-danger">${failedFiles}</div>
-                                                <div class="stat-label">Failed</div>
+                                                <div class="stat-label">Files Failed</div>
                                             </div>
                                         </div>
                                         <div class="col-3">
                                             <div class="summary-stat-box">
                                                 <div class="stat-number text-warning">${warningFiles}</div>
-                                                <div class="stat-label">Warnings</div>
+                                                <div class="stat-label">Files w/ Warnings</div>
                                             </div>
                                         </div>
                                     </div>
