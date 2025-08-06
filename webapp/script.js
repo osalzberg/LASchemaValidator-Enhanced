@@ -2434,8 +2434,65 @@ function validateDescription(description, context, result, location) {
     }
 }
 
+/**
+ * Helper function to get a meaningful table identifier for validation messages
+ * Prioritizes logicalName > name > physicalName > generic fallback
+ */
+function getTableDisplayName(table, index) {
+    // Priority 1: logicalName (most descriptive for users)
+    if (table.logicalName && typeof table.logicalName === 'string') {
+        return table.logicalName;
+    }
+    
+    // Priority 2: standard name field
+    if (table.name && typeof table.name === 'string') {
+        return table.name;
+    }
+    
+    // Priority 3: physicalName as fallback
+    if (table.physicalName && typeof table.physicalName === 'string') {
+        return table.physicalName;
+    }
+    
+    // Fallback: generic table reference
+    return `Table ${index + 1}`;
+}
+
+/**
+ * Helper function to get a meaningful column identifier for validation messages
+ * Prioritizes logicalName > name > generic fallback
+ */
+function getColumnDisplayName(column, index) {
+    // Priority 1: logicalName (if available)
+    if (column.logicalName && typeof column.logicalName === 'string') {
+        return column.logicalName;
+    }
+    
+    // Priority 2: standard name field
+    if (column.name && typeof column.name === 'string') {
+        return column.name;
+    }
+    
+    // Fallback: generic column reference
+    return `Column ${index + 1}`;
+}
+
+/**
+ * Helper function to get a meaningful input field identifier for validation messages
+ */
+function getInputFieldDisplayName(inputField, index) {
+    // Use the name field if available
+    if (inputField.name && typeof inputField.name === 'string') {
+        return inputField.name;
+    }
+    
+    // Fallback: generic input field reference
+    return `Input field ${index + 1}`;
+}
+
 function validateTable(table, index, result) {
-    const tableContext = `Table ${index + 1}`;
+    const tableName = getTableDisplayName(table, index);
+    const tableContext = `Table '${tableName}'`;
     const tableLocation = `tables[${index}]`;
     
     // Check for table name - either standard 'name' OR transform pattern (workflowName + transformName + physicalName + logicalName)
@@ -2563,7 +2620,7 @@ function validateTable(table, index, result) {
             result.status = 'fail';
         } else {
             table.columns.forEach((column, colIndex) => {
-                validateColumn(column, colIndex, tableContext, result);
+                validateColumn(column, colIndex, tableContext, index, result);
             });
             
             // Check for required TimeGenerated column
@@ -2723,7 +2780,8 @@ function validateTable(table, index, result) {
 }
 
 function validateInputField(inputField, index, tableContext, result) {
-    const inputContext = `${tableContext}, Input field ${index + 1}`;
+    const inputFieldName = getInputFieldDisplayName(inputField, index);
+    const inputContext = `${tableContext}, Input field '${inputFieldName}'`;
     const inputLocation = `${tableContext.replace(' ', '').toLowerCase()}.input[${index}]`;
     
     // Required fields for input
@@ -2810,10 +2868,9 @@ function validateInputField(inputField, index, tableContext, result) {
     }
 }
 
-function validateColumn(column, index, tableContext, result) {
-    const columnContext = `${tableContext}, Column ${index + 1}`;
-    // Extract table index from tableContext (e.g., "Table 18" -> 17)
-    const tableIndex = parseInt(tableContext.match(/Table (\d+)/)[1]) - 1;
+function validateColumn(column, index, tableContext, tableIndex, result) {
+    const columnName = getColumnDisplayName(column, index);
+    const columnContext = `${tableContext}, Column '${columnName}'`;
     const columnLocation = `tables[${tableIndex}].columns[${index}]`;
     
     // Check for column name - either standard 'name' OR transform pattern (transformName + physicalName + logicalName)
