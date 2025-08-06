@@ -1860,7 +1860,10 @@ async function validateManifestFile(file, result) {
             result.status = 'fail';
         }
         
-        if (result.issues.length === 0 && result.status !== 'fail') {
+        // Determine final status based on issues
+        if (result.issues.length > 0) {
+            result.status = 'fail';
+        } else if (result.status !== 'fail') {
             result.status = 'pass';
         }
         
@@ -2364,7 +2367,10 @@ async function validateTransformManifestFile(file, result) {
             });
         }
         
-        if (result.issues.length === 0 && result.status !== 'fail') {
+        // Determine final status based on issues
+        if (result.issues.length > 0) {
+            result.status = 'fail';
+        } else if (result.status !== 'fail') {
             result.status = 'pass';
         }
         
